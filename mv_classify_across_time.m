@@ -105,20 +105,22 @@ if ~strcmp(cfg.CV,'none')
         for ff=1:cfg.K                      % ---- CV folds ----
             if cfg.verbose, fprintf('%d ',ff), end
             
+            % Train data
+            Xtrain = X(CV.training(ff),:,:,:);
+            
+            % Split labels into training and test
+            trainlabels= labels(CV.training(ff));
+            testlabels= labels(CV.test(ff));
+
             % Oversample data if requested. We need to oversample each
             % training set separately to prevent overfitting (see
             % mv_balance_classes for an explanation)
             if strcmp(cfg.balance,'oversample')
-                [Xtrain,trainlabels] = mv_balance_classes(X_orig,labels_orig,cfg.balance,cfg.replace);
-            else
-                Xtrain = X(CV.training(ff),:,:,:);
-                % Split labels into training and test
-                trainlabels= labels(CV.training(ff));
+                [Xtrain,trainlabels] = mv_balance_classes(Xtrain,trainlabels,cfg.balance,cfg.replace);
             end
-            testlabels= labels(CV.test(ff));
             
             for tt=1:nTime           % ---- Train and test time ----
-                % Get train and test data
+                % Train and test data for time point tt
                 Xtrain_tt= squeeze(Xtrain(:,:,cfg.time(tt)));
                 Xtest= squeeze(X(CV.test(ff),:,cfg.time(tt)));
                 
