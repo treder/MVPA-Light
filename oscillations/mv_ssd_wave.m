@@ -112,7 +112,7 @@ for dd=1:nDat
     if isfield(dat{dd},'trialinfo')
         dat_out{dd}.trialinfo = dat{dd}.trialinfo;
     end
-    dat_out{dd}.time = cfg.toi;
+    dat_out{dd}.time = cfg.toi{dd};
 end
 
 W= zeros(nChan,nComp,nFreq);
@@ -217,6 +217,10 @@ for dd=1:nDat
     dat_out{dd}.freq = cfg.foi;
 end
 
+if nDat == 1
+    dat_out = dat_out{1};
+end
+
 %% ----- Helper functions -----
     function [V,C] = projectIfRankDeficient(X)
         % Project data onto subspace if it's not full rank
@@ -255,3 +259,4 @@ end
     end
 
 end
+
