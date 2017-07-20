@@ -1,4 +1,4 @@
-function [X,labels] = mv_balance_classes(X,labels,method,replace,num)
+function [X,labels] = mv_balance_classes(X,labels,method,replace)
 %Balances data with imbalanced classes by oversampling the minority class
 %or undersampling the majority class.
 %

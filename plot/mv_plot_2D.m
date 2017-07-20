@@ -87,7 +87,6 @@ if ~iscell(cfg.title)
     cfg.title = repmat({cfg.title},[1 P]);
 end
 
-
 h = struct();
 h.ax = gca;
 

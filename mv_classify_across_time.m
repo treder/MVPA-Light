@@ -168,11 +168,7 @@ if ~strcmp(cfg.CV,'none')
             end
         end
     end
-    
-    % We have to divide the summed classification scores by the number of
-    % repetitions x number of trials to get the accuracy from the absolute
-    % number of correct predictions // OLD // REMOVE
-    
+       
     % We have to divide the classifier performance by the number of
     % repetitions x number of folds to get the correct mean performance 
     for mm=1:nMetrics

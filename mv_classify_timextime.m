@@ -1,29 +1,16 @@
-function [acc] = mv_classify_timextime(cfg,X,labels,X2)
+function [acc] = mv_classify_timextime(cfg, X, labels)
 % Time x time generalisation. A classifier is trained on the training data
-% X and validated on either the same dataset X.
-% Alternatively, it is trained on X and validated on an independent dataset
-% X2. 
-% Cross-validation can be used optionally, but it is recommended in the
-% first case.
+% X and validated on either the same dataset X. Cross-validation is
+% recommended to avoid overfitting.
 %
 % Usage:
 % cf = mv_classify_timextime(cfg,X,labels)
-% cf = mv_classify_timextime(cfg,X,labels,X2)
 %
 %Parameters:
 % X              - [number of samples x number of features x number of time points]
 %                  data matrix.
 % labels         - [number of samples] vector of class labels containing
 %                  1's (class 1) and -1's (class 2)
-% X2             - second data matrix. Should have the same number of
-%                  samples and number of features, but can have different
-%                  number of time points.
-%
-% If two different datasets X and X2 are provided, the classifier is
-% trained on X and tested on X2. No cross-validation is required.
-% If only X is provided, both training and testing is performed on X.
-% Cross-validation should then be used to obtain an out-of-sample estimate
-% of the test performance.
 %
 % cfg          - struct with optional parameters:
 % .classifier   - name of classifier, needs to have according train_ and test_
@@ -43,7 +30,7 @@ function [acc] = mv_classify_timextime(cfg,X,labels,X2)
 % .time1        - indices of training time points (by default all time
 %                 points in X are used)
 % .time2        - indices of test time points (by default all time points
-%                 in X or X2 are used)
+%                 in X are used)
 % .balance      - for imbalanced data with a minority and a majority class.
 %                 'oversample' oversamples the minority class
 %                 'undersample' undersamples the minority class
@@ -51,6 +38,11 @@ function [acc] = mv_classify_timextime(cfg,X,labels,X2)
 %                 (default 'none'). Note that for we undersample at the
 %                 level of the repeats, whereas we oversample within each
 %                 training set (for an explanation see mv_balance_classes)
+%                 You can also give an integer number for undersampling.
+%                 The samples will be reduced to this number. Note that
+%                 concurrent over/undersampling (oversampling of the
+%                 smaller class, undersampling of the larger class) is not
+%                 supported at the moment
 % .replace      - if balance is set to 'oversample' or 'undersample',
 %                 replace deteremines whether data is drawn with
 %                 replacement (default 1)
@@ -64,19 +56,12 @@ function [acc] = mv_classify_timextime(cfg,X,labels,X2)
 
 % (c) Matthias Treder 2017
 
-if nargin < 4 || isempty(X2)
-    X2 = X;
-end
-
-[~,~,nTime1] = size(X);
-nTime2 = size(X2,3);
-
 mv_setDefault(cfg,'classifier','lda');
 mv_setDefault(cfg,'param',[]);
-mv_setDefault(cfg,'CV','none')
+mv_setDefault(cfg,'CV','none');
 mv_setDefault(cfg,'repeat',5);
-mv_setDefault(cfg,'time1',1:nTime1);
-mv_setDefault(cfg,'time2',1:nTime2);
+mv_setDefault(cfg,'time1',1:size(X,3));
+mv_setDefault(cfg,'time2',1:size(X,3));
 mv_setDefault(cfg,'normalise','none');
 mv_setDefault(cfg,'verbose',0);
 
@@ -104,14 +89,16 @@ test_fun = eval(['@test_' cfg.classifier]);
 %% Normalise 
 if strcmp(cfg.normalise,'zscore')
     X = zscore(X,[],1);
-    X2 = zscore(X,[],1);
 elseif strcmp(cfg.normalise,'demean')
     X  = X  - repmat(mean(X,1), [nSam 1 1]);
-    X2 = X2 - repmat(mean(X,1), [nSam 1 1]);
 end
 
 %% Time x time generalisation
+
+% Output matrix with average classification accuracy
 acc= zeros(nTime1,nTime2);
+
+% Save original data and labels in case we do over/undersampling
 X_orig = X;
 labels_orig = labels;
 
@@ -126,6 +113,15 @@ if do_CV
         % of the result
         if strcmp(cfg.balance,'undersample')
             [X,labels] = mv_balance_classes(X_orig,labels_orig,cfg.balance,cfg.replace);
+        elseif isnumeric(cfg.balance)
+            if ~all( cfg.balance <= [N1,N2])
+                error(['cfg.balance is larger [%d] than the samples in one of the classes [%d, %d]. ' ...
+                    'Concurrent over- and undersampling is currently not supported.'],cfg.balance,N1,N2)
+            end
+            % Sometimes we want to undersample to a specific
+            % number (e.g. to match the number of samples across
+            % subconditions)
+            [X,labels] = mv_balance_classes(X_orig,labels_orig,cfg.balance,cfg.replace);
         end
         nSamples = numel(labels);
 
@@ -133,39 +129,55 @@ if do_CV
         
         for ff=1:cfg.K                % ---- CV folds ----
             if cfg.verbose, fprintf('%d ',ff), end
+                      
+            % Train data
+            Xtrain = X(CV.training(ff),:,:,:);
+            
+            % Split labels into training and test
+            trainlabels= labels(CV.training(ff));
+            testlabels= labels(CV.test(ff));
             
             % Oversample data if requested. We need to oversample each
             % training set separately to prevent overfitting (see
             % mv_balance_classes for an explanation)
             if strcmp(cfg.balance,'oversample')
                 [Xtrain,trainlabels] = mv_balance_classes(X_orig,labels_orig,cfg.balance,cfg.replace);
-            else
-                Xtrain = X(CV.training(ff),:,:,:);
-                % Split labels into training and test
-                trainlabels= labels(CV.training(ff));
             end
             
-            testlabels= labels(CV.test(ff));
+            % Repeat and reshape into [test trials x test times] so that we can
+            % test all test time points at once
+            testlabels = repmat(testlabels(:), [1 nTime2]);
             
-            for t1=1:nTime1          % ---- Training time ----
-                % Training data
+            % ---- Test data ----
+            % Instead of looping through the second time dimension, we
+            % reshape the data and apply the classifier to all time
+            % points. We then need to apply the classifier only once
+            % instead of nTime2 times.
+            
+            % Get test data
+            Xtest= X(CV.test(ff),:,:);
+            
+            % permute and reshape into [trials x test times x features]
+            Xtest= permute(Xtest, [1 3 2]);
+            Xtest= reshape(Xtest, CV.TestSize(ff)*nTime2, []);
+            
+            % ---- Training time ----
+            for t1=1:nTime1          
+                % Training data for time point t1
                 Xtrain_tt= squeeze(Xtrain(:,:,cfg.time1(t1)));
                 
                 % Train classifier
                 cf= train_fun(Xtrain_tt, trainlabels, cfg.param);
                 
-                for t2=1:nTime2      % ---- Testing time ----
-                    
-                    % Test data
-                    Xtest= squeeze(X2(CV.test(ff),:,cfg.time2(t2)));
-                    
-                    % Obtain the predicted class labels
-                    predlabel = test_fun(cf,Xtest);
-                    
-                    % Sum number of correctly predicted labels
-                    acc(t1,t2)= acc(t1,t2) + sum(predlabel(:) == testlabels(:));
-                          
-                end
+                % Obtain the predicted class labels
+                predlabels = test_fun(cf,Xtest);
+                
+                % Reshape into [trials x test times]
+                predlabels = reshape(predlabels, CV.TestSize(ff), nTime2);
+                
+                % Sum number of correctly predicted labels
+                acc(t1,:)= acc(t1,:) + sum(predlabels == testlabels,1);
+                
             end
       
         end
@@ -190,13 +202,13 @@ else
         for t2=1:nTime2      % ---- Testing time ----
 
             % Test data
-            Xtest=  squeeze(X2(:,:,cfg.time2(t2)));
+            Xtest=  squeeze(X(:,:,cfg.time2(t2)));
             
             % Obtain the predicted class labels
-            predlabel = test_fun(cf,Xtest);
+            predlabels = test_fun(cf,Xtest);
             
             % Sum number of correctly predicted labels
-            acc(t1,t2)= acc(t1,t2) + sum(predlabel(:) == labels(:));    
+            acc(t1,t2)= acc(t1,t2) + sum(predlabels(:) == labels(:));    
         end
     end
     

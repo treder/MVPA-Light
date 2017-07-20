@@ -17,11 +17,12 @@ function [dat_out,W,D,A] = mv_ssd_wave(cfg,varargin)
 % [dat_out, W, D, A]= MV_SSD_WAVE(CFG,dat,<dat2,dat3,...>)
 %
 % INPUT:
-%     dat  -   data structure of unfiltered continous or epoched data. Data
+%     dat  -   Fieldtrip data structure of unfiltered continous or epoched data. Data
 %              should come in matrix format (not cell array). If multiple
 %              datasets are provided (dat2, dat3, etc.) then a common set
 %              of components is extracted for all datasets. All datasets
-%              should be 2D (continuous) or 3D (epoched).
+%              should be 2D (continuous) or 3D (epoched). The data should
+%              be contained in the .trial field.
 %
 % The configuration should be according to
 %
@@ -35,7 +36,7 @@ function [dat_out,W,D,A] = mv_ssd_wave(cfg,varargin)
 %   nCycle              - number of cycles for wavelet (default 6)
 %
 % OUTPUT:
-% dat       - updated data structure with data in the target band
+% dat       - updated Fieldtrip data structure with data in the target band
 % W         - SSD projection matrix (spatial filters are in the columns)
 % D         - generalized eigenvalue score of SSD objective function. This
 %             is a measure of the signal-to-noise ratio of the oscillation
@@ -145,31 +146,37 @@ for ff=1:nFreq
         % Calculate wavelet spectra
         cfg_wave.toi        = cfg.toi{dd};
         wave = ft_freqanalysis(cfg_wave, dat{dd});
-        
-        wave = wave.fourierspctrm;
-        sig{dd} = squeeze(wave(:,:,2,:));
-        wv= real(wave);
+                
+        % Save the signal. Remove the 3rd dimension (do not use squeeze
+        % otherwise it would also remove dimension 1 if there is only 1
+        % trial
+        sig{dd}= wave.fourierspctrm(:,:,2,:); 
+        s= size(sig{dd});s(3)=[];
+        sig{dd} = reshape(sig{dd},s);
+        wv= real(wave.fourierspctrm);
         
         % Get covariance matrices of signal and noise
         C_s_tmp = zeros(nChan);
         C_n_tmp = zeros(nChan);
         if numel(sz)==2
             C_s_tmp= nancov(squeeze(wv(:,2,:))');
-            C_n_tmp= nancov( squeeze(wv(:,1,:))' + squeeze(wv(:,3,:))');
+            C_n_tmp= nancov( squeeze(wv(:,1,:))') + nancov( squeeze(wv(:,3,:))');
         else
             for ii=1:nTrial(dd)
                 C_s_tmp= C_s_tmp + nancov(squeeze(wv(ii,:,2,:))');
-                C_n_tmp= C_n_tmp + nancov( squeeze(wv(ii,:,1,:))' + squeeze(wv(ii,:,3,:))');
+                C_n_tmp= C_n_tmp + nancov( squeeze(wv(ii,:,1,:))') + nancov( squeeze(wv(ii,:,3,:))');
             end
             C_s_tmp = C_s_tmp/nTrial(dd);
             C_n_tmp = C_n_tmp/nTrial(dd);
         end
         
-        % Add to pooled covariance (across datasets if multiple)
+        % Add to pooled covariance (across datasets, if there's multiple)
         C_s = C_s + C_s_tmp;
         C_n = C_n + C_n_tmp;
         
     end
+
+    wave= [];  % free the memory
     
     % Regularise if necessary
     V = projectIfRankDeficient(sig);
@@ -178,7 +185,6 @@ for ff=1:nFreq
     end
     C_s = V' * C_s * V;
     C_n = V' * C_n * V;
-    
     
     % ---- SSD ----
     [W_tmp,D_tmp]= eig(C_s,C_s+C_n);
@@ -189,12 +195,11 @@ for ff=1:nFreq
     
     % Project timeseries on SSD components
     for dd=1:nDat
-        wave= sig{dd};  % restrict to signal band
         if numel(sz)==2
-            dat_out{dd}.trial(:,ff,:) = W_tmp' * wave;
+            dat_out{dd}.trial(:,ff,:) = W_tmp' * sig{dd};
         elseif numel(sz)==3
             for ii=1:nTrial(dd)
-                dat_out{dd}.trial(ii,:,ff,:) = W_tmp' * squeeze(wave(ii,:,:));
+                dat_out{dd}.trial(ii,:,ff,:) = W_tmp' * squeeze(sig{dd}(ii,:,:));
             end
         end
     end
