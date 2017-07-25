@@ -10,7 +10,8 @@ function h = mv_plot_2D(cfg, dat)
 %                     matrix with P different images
 %
 % cfg          - struct with hyperparameters:
-% xlabel,ylabel     - label for x and y axes (default '')
+% xlabel,ylabel     - label for x and y axes (default 'Training time' and
+%                     'Testing time')
 % title             - axis title (default '')
 % x, y              - x and y values (e.g. time points, frequencies). the 
 %                     number of elements in x and y should match the size of DAT
@@ -60,8 +61,8 @@ function h = mv_plot_2D(cfg, dat)
 
 mv_setDefault(cfg,'x',1:nX);
 mv_setDefault(cfg,'y',1:nY);
-mv_setDefault(cfg,'xlabel','');
-mv_setDefault(cfg,'ylabel','');
+mv_setDefault(cfg,'xlabel','Testing time');
+mv_setDefault(cfg,'ylabel','Training time');
 mv_setDefault(cfg,'title','');
 mv_setDefault(cfg,'clim','maxmin');
 mv_setDefault(cfg,'climzero',0);
@@ -100,7 +101,10 @@ for rr=1:cfg.nrow
         if axnum<=P
             h.ax(axnum) = subplot(cfg.nrow,cfg.ncol,axnum);
             set(gcf,'CurrentAxes',h.ax(axnum));
-            % Paint the image
+            
+            % Plot the classification performance image here. The y-axis
+            % represents training time and the x-axis represents testing
+            % time
             imagesc(cfg.x, cfg.y, squeeze(dat(:,:,axnum)));
             axnum=axnum+1;
         end
