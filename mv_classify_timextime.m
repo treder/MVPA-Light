@@ -1,4 +1,4 @@
-function [acc] = mv_classify_timextime(cfg, X, labels)
+function perf = mv_classify_timextime(cfg, X, labels)
 % Time x time generalisation. A classifier is trained on the training data
 % X and validated on either the same dataset X. Cross-validation is
 % recommended to avoid overfitting.
@@ -17,6 +17,9 @@ function [acc] = mv_classify_timextime(cfg, X, labels)
 %                 functions (default 'lda')
 % .param        - struct with parameters passed on to the classifier train
 %                 function (default [])
+% .metric       - classifier performance metric, default 'acc'. See
+%                 mv_calculate_metric. Multiple metrics can be requested by
+%                 providing a cell array e.g. {'acc' 'dval'}
 % .CV           - perform cross-validation, can be set to
 %                 'kfold' (recommended) or 'leaveout' (not recommended
 %                 since it has a higher variance than k-fold) (default
@@ -58,6 +61,7 @@ function [acc] = mv_classify_timextime(cfg, X, labels)
 
 mv_setDefault(cfg,'classifier','lda');
 mv_setDefault(cfg,'param',[]);
+mv_setDefault(cfg,'metric','acc');
 mv_setDefault(cfg,'CV','none');
 mv_setDefault(cfg,'repeat',5);
 mv_setDefault(cfg,'time1',1:size(X,3));
@@ -75,12 +79,14 @@ else
     mv_setDefault(cfg,'K',1);
 end
 
-do_CV = ~strcmp(cfg.CV,'none');
-
 [~,~,labels] = mv_check_labels(labels);
 
 nTime1 = numel(cfg.time1);
 nTime2 = numel(cfg.time2);
+
+% Number of samples in the classes
+N1 = sum(labels == 1);
+N2 = sum(labels == -1);
 
 %% Get train and test functions
 train_fun = eval(['@train_' cfg.classifier]);
@@ -90,20 +96,26 @@ test_fun = eval(['@test_' cfg.classifier]);
 if strcmp(cfg.normalise,'zscore')
     X = zscore(X,[],1);
 elseif strcmp(cfg.normalise,'demean')
-    X  = X  - repmat(mean(X,1), [nSam 1 1]);
+    X  = X  - repmat(mean(X,1), [size(X,1) 1 1]);
 end
 
-%% Time x time generalisation
+%% Prepare performance metrics
+if ~iscell(cfg.metric)
+    cfg.metric = {cfg.metric};
+end
 
-% Output matrix with average classification accuracy
-acc= zeros(nTime1,nTime2);
+nMetrics = numel(cfg.metric);
+perf= repmat( {zeros(nTime1,nTime2)}, [1 nMetrics]);
+
+%% Time x time generalisation
 
 % Save original data and labels in case we do over/undersampling
 X_orig = X;
 labels_orig = labels;
 
-if do_CV
+if ~strcmp(cfg.CV,'none')
     if cfg.verbose, fprintf('Using %s cross-validation (K=%d) with %d repetitions.\n',cfg.CV,cfg.K,cfg.repeat), end
+    
     for rr=1:cfg.repeat                 % ---- CV repetitions ----
         if cfg.verbose, fprintf('\nRepetition #%d. Fold ',rr), end
         
@@ -123,11 +135,10 @@ if do_CV
             % subconditions)
             [X,labels] = mv_balance_classes(X_orig,labels_orig,cfg.balance,cfg.replace);
         end
-        nSamples = numel(labels);
 
         CV= cvpartition(labels,cfg.CV,cfg.K);
         
-        for ff=1:cfg.K                % ---- CV folds ----
+        for ff=1:cfg.K                      % ---- CV folds ----
             if cfg.verbose, fprintf('%d ',ff), end
                       
             % Train data
@@ -144,9 +155,9 @@ if do_CV
                 [Xtrain,trainlabels] = mv_balance_classes(X_orig,labels_orig,cfg.balance,cfg.replace);
             end
             
-            % Repeat and reshape into [test trials x test times] so that we can
-            % test all test time points at once
-            testlabels = repmat(testlabels(:), [1 nTime2]);
+%             % Repeat and reshape into [test trials x test times] so that we can
+%             % test all test time points at once in order to speed up things
+%             testlabels = repmat(testlabels(:), [1 nTime2]);
             
             % ---- Test data ----
             % Instead of looping through the second time dimension, we
@@ -157,40 +168,50 @@ if do_CV
             % Get test data
             Xtest= X(CV.test(ff),:,:);
             
-            % permute and reshape into [trials x test times x features]
+            % permute and reshape into [ (trials x test times) x features]
             Xtest= permute(Xtest, [1 3 2]);
             Xtest= reshape(Xtest, CV.TestSize(ff)*nTime2, []);
             
             % ---- Training time ----
-            for t1=1:nTime1          
+            for t1=1:nTime1  
+                
                 % Training data for time point t1
                 Xtrain_tt= squeeze(Xtrain(:,:,cfg.time1(t1)));
                 
                 % Train classifier
                 cf= train_fun(Xtrain_tt, trainlabels, cfg.param);
                 
-                % Obtain the predicted class labels
-                predlabels = test_fun(cf,Xtest);
+                % Obtain the performance metrics
+                for mm=1:nMetrics
+                    perf{mm}(t1,:) = perf{mm}(t1,:) + ...
+                        mv_calculate_metric(cfg.metric{mm}, cf, test_fun, Xtest, testlabels, 1);
+                end
                 
-                % Reshape into [trials x test times]
-                predlabels = reshape(predlabels, CV.TestSize(ff), nTime2);
-                
-                % Sum number of correctly predicted labels
-                acc(t1,:)= acc(t1,:) + sum(predlabels == testlabels,1);
+%                 % Obtain the predicted class labels
+%                 predlabels = test_fun(cf,Xtest);
+%                 
+%                 % Reshape into [trials x test times]
+%                 predlabels = reshape(predlabels, CV.TestSize(ff), nTime2);
+%                 
+%                 % Sum number of correctly predicted labels
+%                 acc(t1,:)= acc(t1,:) + sum(predlabels == testlabels,1);
                 
             end
       
         end
     end
-    
-    % We have to divide the summed classification scores by the number of
-    % repetitions x number of trials to get the accuracy from the absolute
-    % number of correct predictions
-    acc = acc / (cfg.repeat * nSamples);
-    
+       
+    % We have to divide the classifier performance by the number of
+    % repetitions x number of folds to get the correct mean performance 
+    for mm=1:nMetrics
+        perf{mm} = perf{mm} / (cfg.repeat * cfg.K);
+    end
+
 else
     % No cross-validation, just train and test once for each
     % training/testing time
+    
+    error('Needs fixing: remove the second (t2) time loop and add performance metrics')
     
     for t1=1:nTime1          % ---- Training time ----
         % Training data
@@ -213,4 +234,10 @@ else
     end
     
     acc = acc / nSam;
+end
+
+% If only one performance metric was requested, we unnest the cell array
+% again
+if nMetrics==1
+    perf = perf{1};
 end

@@ -104,6 +104,8 @@ nMetrics = numel(cfg.metric);
 perf= repmat( {zeros(nTime,1)}, [1 nMetrics]);
     
 %% Classify across time
+
+% Save original data and labels in case we do over/undersampling
 X_orig = X;
 labels_orig = labels;
 
