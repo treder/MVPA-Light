@@ -2,11 +2,13 @@
 Lightweight Matlab toolbox for multivariate pattern analysis (MVPA)
 
 # Installation
-Download the toolbox and unzip it in your desired directory or (better) check it out using Git. In Matlab, you can add the MVPA-Light folder and all its subfolders to the Matlab path using
+Download the toolbox or, better, check it out using Git. In Matlab, you can add the MVPA-Light folder and all its subfolders to the Matlab path using
 
+```Matlab
 addpath(genpath('my-path-to/MVPA-Light/'))
+```
 
-The Git repository is split into two branches, the master branch (recommended for use) and the devel branch (not recommended for use). The latter is the development branch that contains new features that are either under construction or not tested. In contrast, the master branch is the stable branch that should always work - if it does not, there's a bug so please report it.
+The Git repository is split into two branches: the `master` branch (recommended) is the stable branch that should always work. The devel branch (not recommended) is the development branch that contains new features that are either under construction or not tested.
 
 # Overview
 MVPA-Light is meant to be a light-weight multivariate pattern analysis (MVPA) toolbox in Matlab, with a focus on the multivariate classification of ERPs/ERFs and oscillations. Rather than solving all decoding problems, it focuses on a few issues such as time generalisation while maintaining a code base that is hopefully well-documented and easily comprehensible.
