@@ -4,7 +4,7 @@ function cf = train_ensemble(X,labels,param)
 % (random subspaces).
 %
 % Usage:
-% cf = train_ensemble(cfg,X,labels)
+% cf = train_ensemble(X,labels,param)
 % 
 %Parameters:
 % X              - [number of samples x number of features] matrix of
@@ -12,7 +12,7 @@ function cf = train_ensemble(X,labels,param)
 % labels         - [number of samples] vector of class labels containing 
 %                  1's (class 1) and -1's (class 2)
 %
-% cfg: struct with parameters:
+% param: struct with parameters:
 % .nSamples         - number of randomly subselected samples for each
 %                     learner. Can be an integer number or a
 %                     fraction, e.g. 0.1 means that 10% of the training 
@@ -38,7 +38,7 @@ function cf = train_ensemble(X,labels,param)
 %                     (this is also called bootstrapping), otherwise they
 %                     are drawn without replacement (default 1)
 % .learner          - type of learning algorithm, e.g. 'lda','logreg' etc. 
-% .param            - struct with further parameters passed on to the learning
+% .learner_param    - struct with further parameters passed on to the learning
 %                     algorithm (e.g. .param.gamma specifies the
 %                     regularisation hyperparameter for LDA)
 % .simplify         - for linear classifiers, the operation of the ensemble
@@ -57,7 +57,7 @@ function cf = train_ensemble(X,labels,param)
 
 % default settings
 mv_setDefault(param,'learner','lda');
-mv_setDefault(param,'param',[]);
+mv_setDefault(param,'learner_param',[]);
 mv_setDefault(param,'nSamples', 0.5);
 mv_setDefault(param,'nFeatures', 0.2);
 mv_setDefault(param,'nLearners', 500);
@@ -136,8 +136,8 @@ randomSamples = sort(randomSamples);
 %% Train learner ensemble
 cf = struct('randomFeatures',randomFeatures,'strategy',param.strategy,...
     'nLearners',param.nLearners,'simplify',param.simplify);
-cf.train= eval(['@train_' param.classifier ]);
-cf.test= eval(['@test_' param.classifier ]);
+cf.train= eval(['@train_' param.learner ]);
+cf.test= eval(['@test_' param.learner ]);
 
 if param.simplify
     % In linear classifiers, the operation of the ensemble is equivalent to
@@ -148,7 +148,7 @@ if param.simplify
     cf.w = zeros(F,1);
     cf.b = 0;
     for ll=1:param.nLearners
-        tmp = cf.train(param.param, X(randomSamples(:,ll),randomFeatures(:,ll)),labels(randomSamples(:,ll)));
+        tmp = cf.train(X(randomSamples(:,ll),randomFeatures(:,ll)),labels(randomSamples(:,ll)),param.learner_param);
         cf.w(randomFeatures(:,ll)) = cf.w(randomFeatures(:,ll)) + tmp.w;
         cf.b = cf.b + tmp.b;
     end
@@ -156,11 +156,11 @@ if param.simplify
     cf.b = cf.b / param.nLeaners;
 else
     % Initialise struct array of learners
-    cf.classifier(param.nLearners) = cf.train(param.param, X(randomSamples(:,param.nLearners),randomFeatures(:,param.nLearners)),labels(randomSamples(:,param.nLearners)));
+    cf.classifier(param.nLearners) = cf.train(X(randomSamples(:,param.nLearners),randomFeatures(:,param.nLearners)),labels(randomSamples(:,param.nLearners)),param.learner_param);
     
-    % Get all the other learners
+    % Train all the other learners
     for ll=1:param.nLearners-1
-        cf.classifier(ll) = cf.train(param.param, X(randomSamples(:,ll),randomFeatures(:,ll)),labels(randomSamples(:,ll)));
+        cf.classifier(ll) = cf.train(X(randomSamples(:,ll),randomFeatures(:,ll)),labels(randomSamples(:,ll)),param.learner_param);
     end
 end
 
