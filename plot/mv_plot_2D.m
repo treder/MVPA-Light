@@ -7,7 +7,8 @@ function h = mv_plot_2D(cfg, dat)
 %
 %Parameters:
 % DAT               - [N x M] data matrix with results or [N x M x P] 3D
-%                     matrix with P different images
+%                     matrix with P different images. For multiple images,
+%                     all images need to have the same x and y axis 
 %
 % cfg          - struct with hyperparameters:
 % xlabel,ylabel     - label for x and y axes (default 'Training time' and
@@ -15,6 +16,8 @@ function h = mv_plot_2D(cfg, dat)
 % title             - axis title (default '')
 % x, y              - x and y values (e.g. time points, frequencies). the 
 %                     number of elements in x and y should match the size of DAT
+% xlim,ylim         - [min val, max val] vector that specifies the x axis
+%                     and y axis limits
 % grid              - options for the grid function (default {'on'})
 % clim              - set to fix the color limits
 %                     [cmin cmax] sets the color limits manually
@@ -61,6 +64,8 @@ function h = mv_plot_2D(cfg, dat)
 
 mv_setDefault(cfg,'x',1:nX);
 mv_setDefault(cfg,'y',1:nY);
+mv_setDefault(cfg,'xlim',[min(cfg.x), max(cfg.x)]);
+mv_setDefault(cfg,'ylim',[min(cfg.y), max(cfg.y)]);
 mv_setDefault(cfg,'xlabel','Testing time');
 mv_setDefault(cfg,'ylabel','Training time');
 mv_setDefault(cfg,'title','');
@@ -94,6 +99,10 @@ h.ax = gca;
 x= cfg.x;
 y= cfg.y;
 
+%% Select samples according to xlim and ylim
+xsel = find(x >= cfg.xlim(1)  & x <= cfg.xlim(2));
+ysel = find(y >= cfg.ylim(1)  & y <= cfg.ylim(2));
+
 %% Plot data matrix
 axnum=1;
 for rr=1:cfg.nrow
@@ -105,7 +114,7 @@ for rr=1:cfg.nrow
             % Plot the classification performance image here. The y-axis
             % represents training time and the x-axis represents testing
             % time
-            imagesc(cfg.x, cfg.y, squeeze(dat(:,:,axnum)));
+            imagesc(cfg.x(xsel), cfg.y(ysel), squeeze(dat(ysel,xsel,axnum)));
             axnum=axnum+1;
         end
     end
