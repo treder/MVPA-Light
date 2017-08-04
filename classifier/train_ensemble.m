@@ -152,8 +152,8 @@ if param.simplify
         cf.w(randomFeatures(:,ll)) = cf.w(randomFeatures(:,ll)) + tmp.w;
         cf.b = cf.b + tmp.b;
     end
-    cf.w = cf.w / param.nLeaners;
-    cf.b = cf.b / param.nLeaners;
+    cf.w = cf.w / param.nLearners;
+    cf.b = cf.b / param.nLearners;
 else
     % Initialise struct array of learners
     cf.classifier(param.nLearners) = cf.train(X(randomSamples(:,param.nLearners),randomFeatures(:,param.nLearners)),labels(randomSamples(:,param.nLearners)),param.learner_param);
