@@ -1,28 +1,26 @@
 # MVPA-Light
 Lightweight Matlab toolbox for multivariate pattern analysis (MVPA)
 
-# Installation
-Download the toolbox or, better, check it out using Git. In Matlab, you can add the MVPA-Light folder and all its subfolders to the Matlab path using
+## Installation
+Download the toolbox or, better, check it out using Git. In Matlab, you can add the following line to your `startup.m` file to add the MVPA-Light toolbox to the Matlab path:
 
 ```Matlab
 addpath(genpath('my-path-to/MVPA-Light/'))
 ```
 
-The Git repository is split into two branches: the `master` branch (recommended) is the stable branch that should always work. The devel branch (not recommended) is the development branch that contains new features that are either under construction or not tested.
+The Git repository is split into two branches: the `master` branch (recommended) is the stable branch that should always work. The `devel` branch (not recommended) is the development branch that contains new features that are either under construction or not tested.
 
-# Overview
-MVPA-Light is meant to be a light-weight multivariate pattern analysis (MVPA) toolbox in Matlab, with a focus on the multivariate classification of ERPs/ERFs and oscillations. Rather than solving all decoding problems, it focuses on a few issues such as time generalisation while maintaining a code base that is hopefully well-documented and easily comprehensible.
+## Overview
+`MVPA-Light` provides functions for the multivariate classification of ERPs/ERFs and oscillations. For Fieldtrip users, the use of the toolbox will be familiar: The first argument to the main functions is a configuration struct `cfg` that contains all the parameters. However, the toolbox does *not* require or use Fieldtrip. `MVPA-Light` is intended to remain small with a readable and well-documented codebase.
 
-For Fieldtrip users, the use of the toolbox will be familiar: The first argument to the main functions is a configuration struct that contains all the parameters. However, MVPA-Light does not require or use Fieldtrip, so it is compatible with other toolboxes as well. 
+Classifiers can be trained and tested directly using the train_* and test_* functions. For data with a trial structure, `mv_classify_across_time` can be used to obtain classification performance for each time point in a trial. `mv_classify_timextime` implements time generalisation, i.e., training on a specific time point, and testing the classifier on all other time points in a trial. Cross-validation, balancing unequal class proportions, and different performance metrics are automatically implemented in these functions.
 
-Classifiers can be trained and tested directly using the train_* and test_* functions. However, for classification across time and time generalisation, dedicated functions should be used instead. Cross-validation and data resampling methods are implemented in these functions.
-
-# Classifiers
+## Classifiers
 
 ### take from wiki page and then extend here
 
 
-# testing and training 
+## testing and training 
 
 A classifier is the main workhorse of MVPA. Its task is to take input data such as EEG activity, called 'features' in machine learning, and predict the class label ... 
 
@@ -35,21 +33,18 @@ For more details (on LDA), see [1] --- Blankertz et al
 Linear Discriminant Analysis (LDA) (equivalent to Fisher's Discriminant Analysis for two classes), linear support vector machines (SVM), and logistic regression, are all linear classifiers that perform classification by means of a linear hyperplane. The only ...
 As a rule of thumb, ... 
 
-# Cross-validation/Resampling methods
+## Cross-validation/Resampling methods
 
 a complex classifier (such as kernel SVM) can easily learn to perfectly discriminate a specific dataset. However, the same classifier will perform very poorly when applied to a new dataset, called D2. The reason is that the classifier has not learnt ... Instead, it has overadapted to the 
-
 
 complex methods tend to overfit the data ... 
 
 ...
 To get a realistic estimate of the classifier performance, a classifier should be applied to a new dataset that has not been used for learning.
 
-
-# Classification across time
+## Classification across time
 In many EEG/MEG experiments, data is split into epochs representing individual trials. 
  has a trial structure ... 
-
 
 * Classification across time (mv_classify_across_time): 
 
@@ -57,9 +52,7 @@ In many EEG/MEG experiments, data is split into epochs representing individual t
 
 * Time x time generalisation using two datasets (mv_classify_timextime_two_datasets): 
 
-
-
-# Time x time generalisation
+## Time x time generalisation
 
 
 
