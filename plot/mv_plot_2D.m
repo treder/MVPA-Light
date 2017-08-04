@@ -16,8 +16,8 @@ function h = mv_plot_2D(cfg, dat)
 % title             - axis title (default '')
 % x, y              - x and y values (e.g. time points, frequencies). the 
 %                     number of elements in x and y should match the size of DAT
-% xlim,ylim         - [min val, max val] vectors that can be used to
-%                     restrict the x or y axis
+% xlim,ylim         - [min val, max val] vector that specifies the x axis
+%                     and y axis limits
 % grid              - options for the grid function (default {'on'})
 % clim              - set to fix the color limits
 %                     [cmin cmax] sets the color limits manually
