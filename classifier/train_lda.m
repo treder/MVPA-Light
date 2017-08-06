@@ -67,14 +67,15 @@ if (ischar(param.lambda)&&strcmp(param.lambda,'auto')) || param.lambda>0
         % parameter analytically.
         % Get samples from each class separately and correct by the class
         % means mu1 and mu2 using bsxfun.
-        [~,param.lambda]= cov1para([bsxfun(@minus,X(idx1,:),mu1');bsxfun(@minus,X(idx2,:),mu2')]);
+        [C, param.lambda]= cov1para([bsxfun(@minus,X(idx1,:),mu1');bsxfun(@minus,X(idx2,:),mu2')]);
+    else
+        % Shrinkage parameter is given directly as a number.
+        % We write the regularised covariance matrix as a convex combination of
+        % the empirical covariance C and an identity matrix scaled to have
+        % the same trace as C
+        C = (1-param.lambda)* C + param.lambda * eye(size(C,1)) * trace(C)/size(X,2);
     end
-    I = eye(size(C,1));
     
-    % We write the regularised covariance matrix as a convex combination of
-    % the empirical covariance C and an identity matrix I scaled to have
-    % the same trace as C
-    C = (1-param.lambda)* C + param.lambda*I*trace(C)/size(X,2);
 end
 
 % Get the classifier projection vector (normal to the hyperplane)
@@ -84,10 +85,7 @@ w = C\(mu1-mu2);
 b= w'*(mu1+mu2)/2;
 
 %% Prepare output
-cf= struct();
-cf.classifier= 'LDA';
-cf.w= w;
-cf.b= b;
+cf= struct('w',w,'b',b);
 
 if nargout>2
     lambda= param.lambda;
