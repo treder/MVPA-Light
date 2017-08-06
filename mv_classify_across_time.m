@@ -1,7 +1,7 @@
 function [perf,cfs] = mv_classify_across_time(cfg, X, labels)
 % Classification across time. A classifier is trained and validate for
 % different time points in the dataset X. Cross-validation should be used
-% to get an unbiased estimate of classification performance.
+% to get a realistic estimate of classification performance.
 %
 % Usage:
 % [acc,cfs] = mv_classify_across_time(cfg,X,labels)
@@ -181,10 +181,10 @@ else
     
     % No cross-validation, just train and test once for each
     % training/testing time. This gives the classification performance for
-    % the training set, but it may lead to overfitting and thus to a
-    % performance that is artificially large.
+    % the training set, but it may lead to overfitting and thus to an
+    % artifically inflated performance.
     
-    % Rebalance data using under-/over-fitting if requested
+    % Rebalance data using under-/over-sampling if requested
     if ~strcmp(cfg.balance,'none')
         [X,labels] = mv_balance_classes(X_orig,labels_orig,cfg.balance,cfg.replace);
     end
@@ -207,8 +207,7 @@ else
     end
 end
 
-% If only one performance metric was requested, we unnest the cell array
-% again
+% Un-nest the cell array if only one performance metric was requested
 if nMetrics==1
     perf = perf{1};
 end
