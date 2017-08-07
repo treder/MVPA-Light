@@ -20,7 +20,8 @@ function [perf,cfs] = mv_classify_across_time(cfg, X, label)
 % .metric       - classifier performance metric, default 'acc'. See
 %                 mv_calculate_metric. If set to [], the raw classifier
 %                 output (labels or dvals depending on cfg.output) for each
-%                 sample is returned
+%                 sample is returned. Multiple metrics can be requested by
+%                 providing a cell array e.g. {'acc' 'dval'}
 % .CV           - perform cross-validation, can be set to
 %                 'kfold' (recommended) or 'leaveout' (not recommended
 %                 since it has a higher variance than k-fold) (default
@@ -70,7 +71,7 @@ mv_setDefault(cfg,'repeat',5);
 mv_setDefault(cfg,'time',1:size(X,3));
 mv_setDefault(cfg,'verbose',0);
 
-if ismember(cfg.metric,{'dval'})
+if any(ismember({'dval'},cfg.metric))
     mv_setDefault(cfg,'output','dval');
 else
     mv_setDefault(cfg,'output','label');
@@ -101,6 +102,15 @@ N2 = sum(label == -1);
 %% Get train and test functions
 train_fun = eval(['@train_' cfg.classifier]);
 test_fun = eval(['@test_' cfg.classifier]);
+
+
+%% Prepare performance metrics
+if ~iscell(cfg.metric)
+    cfg.metric = {cfg.metric};
+end
+
+nMetrics = numel(cfg.metric);
+perf= cell(nMetrics,1);
 
 %% Classify across time
 
@@ -170,8 +180,10 @@ if ~strcmp(cfg.CV,'none')
         end
     end
 
-    % Calculate performance metric and average across the repeats
-    perf = mv_calculate_metric(cfg.metric, cf_output, label, 2);
+    % Calculate performance metrics and average across the repeats
+    for mm=1:nMetrics
+        perf{mm} = mv_calculate_metric(cfg.metric{mm}, cf_output, label, 2);
+    end
 
 else
 
@@ -203,8 +215,13 @@ else
         cfs= cf;
     end
     
-    % Calculate classifier performance metric and average across the repeats
-    perf = mv_calculate_metric(cfg.metric, cf_output, label);
-
+    % Calculate performance metrics
+    for mm=1:nMetrics
+        perf{mm} = mv_calculate_metric(cfg.metric{mm}, cf_output, label);
+    end
 end
 
+% Un-nest the cell array if only one performance metric was requested
+if nMetrics==1
+    perf = perf{1};
+end

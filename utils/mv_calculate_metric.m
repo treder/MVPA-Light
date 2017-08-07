@@ -39,7 +39,7 @@ isLabel = all(ismember(unique(cf_output),[-1 1]));
 
 % For some metrics dvals are required
 if isLabel && any(strcmp(metric,{'dval' 'roc' 'auc'}))
-    error('To calculate %s, classifier output must be given as dvals not as labels', cfg.metric)
+    error('To calculate %s, classifier output must be given as dvals not as labels', metric)
 end
 
 
