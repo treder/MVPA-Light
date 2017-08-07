@@ -1,9 +1,9 @@
-function perf = mv_calculate_metric(metric, cf, test_fun, Xtest, testlabels, average)
+function perf = mv_metric_calculate(metric, cf, test_fun, Xtest, testlabels, average)
 %Calculates a desired performance metric given test data and a
 %classifier.
 %
 %Usage:
-% [X,labels] = mv_calculate_metric(method,test_fun, Xtest, testlabels)
+% [X,labels] = mv_metric_calculate(method,test_fun, Xtest, testlabels)
 %
 %Parameters:
 % metric            - desired performance metric: 'acc' (accuracy),

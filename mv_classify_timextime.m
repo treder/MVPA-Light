@@ -18,7 +18,7 @@ function perf = mv_classify_timextime(cfg, X, labels)
 % .param        - struct with parameters passed on to the classifier train
 %                 function (default [])
 % .metric       - classifier performance metric, default 'acc'. See
-%                 mv_calculate_metric. Multiple metrics can be requested by
+%                 mv_metric_calculate. Multiple metrics can be requested by
 %                 providing a cell array e.g. {'acc' 'dval'}
 % .CV           - perform cross-validation, can be set to
 %                 'kfold' (recommended) or 'leaveout' (not recommended
@@ -184,7 +184,7 @@ if ~strcmp(cfg.CV,'none')
                 % Obtain the performance metrics
                 for mm=1:nMetrics
                     perf{mm}(t1,:) = perf{mm}(t1,:) + ...
-                        mv_calculate_metric(cfg.metric{mm}, cf, test_fun, Xtest, testlabels, 1);
+                        mv_metric_calculate(cfg.metric{mm}, cf, test_fun, Xtest, testlabels, 1);
                 end
                 
 %                 % Obtain the predicted class labels
