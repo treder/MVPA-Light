@@ -23,7 +23,7 @@ varargout{1}= l1;
 varargout{2}= l2;
 
 if nargout > 2
-%     warning('Labels should consist of -1 and 1''s, trying to fix')
+    warning('Labels should consist of -1 and 1''s, trying to fix')
     tmp = double(labels);
     varargout{3}(tmp==l1) = 1;
     varargout{3}(tmp==l2) = -1;
