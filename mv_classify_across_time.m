@@ -221,7 +221,10 @@ else
     end
 end
 
-% Un-nest the cell array if only one performance metric was requested
 if nMetrics==1
+    % Un-nest the cell array if only one performance metric was requested
     perf = perf{1};
+elseif nMetrics==0
+    % If no metric was requested, return the raw classifier output
+    perf = cf_output;
 end

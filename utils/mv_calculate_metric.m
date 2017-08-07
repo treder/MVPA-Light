@@ -18,7 +18,7 @@ function perf = mv_calculate_metric(metric, cf_output, label, dim)
 % cf_output         - classifier output (labels or dvals)
 % label             - true labels
 % dim               - index of dimension across which values are averaged
-%                     (e.g. dim=1 if the first dimension is the number of
+%                     (e.g. dim=2 if the second dimension is the number of
 %                     repeats of a cross-validation)
 %
 %Returns:
@@ -35,13 +35,15 @@ end
 
 % Check whether the classifier output is given as predicted labels or 
 % dvals. In the former case, it should consist of -1's and 1's only.
-isLabel = all(ismember(unique(cf_output),[-1 1]));
+isLabel = all(ismember( unique(cf_output(~isnan(cf_output))), [-1 1] ));
 
 % For some metrics dvals are required
 if isLabel && any(strcmp(metric,{'dval' 'roc' 'auc'}))
     error('To calculate %s, classifier output must be given as dvals not as labels', metric)
 end
 
+% Classifier output can contains nan's, we need to remember their position
+nanidx = isnan(cf_output);
 
 % Calculate the metric
 switch(metric)
@@ -49,25 +51,28 @@ switch(metric)
         
         if isLabel
             % Compare predicted labels to the true labels
-            perf = bsxfun(@eq, cf_output, label(:));
+            perf = double(bsxfun(@eq, cf_output, label(:)));
         else
             % We first need to transform the classifier output into labels.
             % To this end, we multiply the the dvals by the true labels -
             % for correct classification the product is positive
-            perf = bsxfun(@times, cf_output, label(:)) > 0;
+            perf = double(bsxfun(@times, cf_output, label(:)) > 0);
         end
         
+        % Recover the NaN's
+        perf(nanidx)=nan;
+        
         % Aggregate across samples
-        perf = mean(perf,1);
+        perf = nanmean(perf,1);
         
     case 'dval'
         % Aggregate across samples, for each class separately 
-        perf = cat(1,mean(cf_output(label==1,:,:,:,:,:),1),mean(cf_output(label==-1,:,:,:,:,:),1));
+        perf = cat(1,nanmean(cf_output(label==1,:,:,:,:,:),1),nanmean(cf_output(label==-1,:,:,:,:,:),1));
 end
 
 % Average across additional dimensions
-for n=1:numel(dim)
-    perf = mean(perf, dim(n));
+for nn=1:numel(dim)
+    perf = nanmean(perf, dim(nn));
 end
 
 perf = squeeze(perf);
