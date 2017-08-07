@@ -19,7 +19,8 @@ The Git repository is split into two branches: the `master` branch (recommended)
 ## Overview <a name="overview"></a>
 `MVPA-Light` provides functions for the binary classification of neuroimaging data. For Fieldtrip users, the use of the toolbox will be familiar: The first argument to the main functions is a configuration struct `cfg` that contains all the parameters. However, the toolbox does *not* require or use Fieldtrip. `MVPA-Light` is intended to remain small with a readable and well-documented codebase.
 
-Classifiers can be trained and tested directly using the train_* and test_* functions. For data with a trial structure, such as ERP datasets, `mv_classify_across_time` can be used to obtain classification performance for each time point in a trial. `mv_classify_timextime` implements time generalisation, i.e., training on a specific time point, and testing the classifier on all other time points in a trial. Cross-validation, balancing unequal class proportions, and different performance metrics are automatically implemented in these functions.
+Classifiers can be trained and tested directly using the `train_*` and `test_*` functions. For data with a trial structure, such as ERP datasets, `mv_classify_across_time` can be used to obtain classification performance for each time point in a trial. `mv_classify_timextime` implements time generalisation, i.e., training on a specific time point, and testing the classifier on all other time points in a trial. `mv_classify_timextime_two_datasets` is used when training is performed on one dataset and testing is performed on a second dataset.
+Cross-validation, balancing unequal class proportions, and different performance metrics are automatically implemented in these functions.
 
 ## Classification <a name="classification"></a>
 
@@ -29,23 +30,22 @@ Classifiers can be trained and tested directly using the train_* and test_* func
 
 A *classifier* is the main workhorse of MVPA. The input brain data, e.g. channels or voxels, is referred to as *features*, whereas the output data is a *class label*. The classifier takes a feature vector as input and assigns it to a class. For binary classification, class labels are often coded as +1 (for class 1) and -1 (for class 2).
 
-*Example*: Assume that in a ERP-based memory paradigm, the goal is to predict whether an item is remembered or forgotten based on 128-channels EEG data. The target is single-trial ERPs at t=700 ms. Then, the feature vector for each trial consists of a 128-elements vector representing the activity at 700 ms for each electrode. Class labels are "remembered" (coded as +1) and "forgotten" (coded as -1). Note that the exact coding does not affect the classification.
+<!-- *Example*: Assume that in a ERP-based memory paradigm, the goal is to predict whether an item is remembered or forgotten based on 128-channels EEG data. The target is single-trial ERPs at t=700 ms. Then, the feature vector for each trial consists of a 128-elements vector representing the activity at 700 ms for each electrode. Class labels are "remembered" (coded as +1) and "forgotten" (coded as -1). Note that the exact coding does not affect the classification.
+-->
 
 ### Training
 
-In order to learn which features in the data discriminate between the experimental conditions, a classifier needs to be exposed to data called  *training data*. During training, the classifier's parameters are optimised (analogous to determining the beta's in linear regression).
+In order to learn which features in the data discriminate between the experimental conditions, a classifier needs to be exposed to *training data*. During training, the classifier's parameters are optimised (analogous to determining the beta's in linear regression). All training functions start with `train_` (e.g. `train_lda`).
 
 ### Testing
 
-After training, classifier performance is evaluated on a dataset called *test data*. To this end, the classifier is applied to samples from the test data. The class label predicted by the classifier can then be compared to the true class label in order to quantify classification performance.
-
-
+Classifier performance is evaluated on a dataset called *test data*. To this end, the classifier is applied to samples from the test data. The class label predicted by the classifier can then be compared to the true class label in order to quantify classification performance. All test functions start with `test_` (e.g. `test_lda`).
 
 ### Classifiers
 
-* Linear Discriminant Analysis (LDA) (`train_lda`, `test_lda`): For two classes, LDA is equivalent to Fisher's Discriminant Analysis. LDA models ... For more details on regularised LDA, see [1] --- Blankertz et al
-* linear support vector machines (SVM)
-* logistic regression, are all linear classifiers that perform classification by means of a linear hyperplane. The only ...
+* `train_lda`, `test_lda`: Regularised Linear Discriminant Analysis (LDA). LDA models ... For more details on regularised LDA, see [1] --- Blankertz et al
+* `train_svm`, `test_svm`: Support vector machines (SVM). Uses the [LIBSVM package](https://github.com/arnaudsj/libsvm) that needs to be installed.
+* `train_logist`, `test_logist`: Logistic regression classifier using Lucas Parra's implementation.
 
 ## Cross-validation <a name="crossvalidation"></a>
 
