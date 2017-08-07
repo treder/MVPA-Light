@@ -18,7 +18,7 @@ function [perf,cfs] = mv_classify_across_time(cfg, X, labels)
 % .param        - struct with parameters passed on to the classifier train
 %                 function (default [])
 % .metric       - classifier performance metric, default 'acc'. See
-%                 mv_calculate_metric. Multiple metrics can be requested by
+%                 mv_metric_calculate. Multiple metrics can be requested by
 %                 providing a cell array e.g. {'acc' 'dval'}
 % .CV           - perform cross-validation, can be set to
 %                 'kfold' (recommended) or 'leaveout' (not recommended
@@ -161,7 +161,7 @@ if ~strcmp(cfg.CV,'none')
 
                 % Obtain the performance metrics
                 for mm=1:nMetrics
-                    perf{mm}(tt) = perf{mm}(tt) + mv_calculate_metric(cfg.metric{mm}, cf, test_fun, Xtest, testlabels, 1);
+                    perf{mm}(tt) = perf{mm}(tt) + mv_metric_calculate(cfg.metric{mm}, cf, test_fun, Xtest, testlabels, 1);
                 end
 
                 if nargout>1
@@ -198,7 +198,7 @@ else
         
         % Obtain the performance metrics
         for mm=1:nMetrics
-            perf{mm}(tt) = mv_calculate_metric(cfg.metric{mm}, cf, test_fun, Xtraintest, labels, 1);
+            perf{mm}(tt) = mv_metric_calculate(cfg.metric{mm}, cf, test_fun, Xtraintest, labels, 1);
         end
     end
 
