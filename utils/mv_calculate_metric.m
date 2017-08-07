@@ -1,69 +1,73 @@
-function sumperf = mv_metric_summary(metric, perf, testlabels, dim)
-%Summarises performance 
+function perf = mv_calculate_metric(metric, cf_output, label, dim)
+%Calculates a classifier performance metric such as classification accuracy
+%based on the classifier output (labels or dvals).
 %
 %Usage:
-% [X,labels] = mv_metric_summary(method,perf, dim)
+%  perf = mv_calculate_metric(metric, cf_output, labels, dim)
 %
 %Parameters:
-% metric            - desired performance metric: 'acc' (accuracy),
-%                     'dval' (decision values)
-% cf                - classifier, output of a train_* function
-% test_fun          - classifier test function, a test_* function
-% Xtest             - [nSamples x nFeatures] test data
-% testlabels        - test labels according to the test data. 
+% metric            - desired performance metric: 
+%                     'acc': classification accuracy, i.e. the fraction
+%                     correct labels
+%                     'dval': decision values. Average dvals are calculated
+%                     for each class separately. The first dimension of
+%                     the output refers to the class, with perf(1,:)
+%                     refers to class +1 and perf(2,:) refers to class -1
+%                     'auc': area under the ROC curve TODO
+%                     'roc': ROC curve TODO
+% cf_output         - classifier output (labels or dvals)
+% label             - true labels
+% dim               - index of dimension across which values are averaged
+%                     (e.g. dim=1 if the first dimension is the number of
+%                     repeats of a cross-validation)
 %
 %Returns:
-% perf - performance metric, either a vector providing a metric for each
-%        test sample (average=0) or the average metric (average=1)
+% perf - performance metric
 
-% If the sizes of Xtest and test labels do not match it is assumed that
-% test samples for different time points/frequencies etc. are provided at
-% once. The predicted labels are then reshaped 
-if size(Xtest,1) ~= numel(testlabels)
-    nRepeats = size(Xtest,1) / numel(testlabels);
-else
-    nRepeats = 1;
+if nargin<4
+    dim=[];
 end
+
+% Labels should be the first dimension
+if size(cf_output,1) ~= numel(label)
+    error('Labels need to be the first dimension of the classifier output. You can use permute() to change the dimensions')
+end
+
+% Check whether the classifier output is given as predicted labels or 
+% dvals. In the former case, it should consist of -1's and 1's only.
+isLabel = all(ismember(unique(cf_output),[-1 1]));
+
+% For some metrics dvals are required
+if isLabel && any(strcmp(metric,{'dval' 'roc' 'auc'}))
+    error('To calculate %s, classifier output must be given as dvals not as labels', cfg.metric)
+end
+
 
 % Calculate the metric
 switch(metric)
     case 'acc'
-        % Obtain the predicted class labels
-        predlabels = test_fun(cf,Xtest);
         
-        % If the test samples stem from multiple time points/frequencies,
-        % we must reshape the predlabels into a matrix
-        predlabels = reshape(predlabels, [], nRepeats);
+        if isLabel
+            % Compare predicted labels to the true labels
+            perf = bsxfun(@eq, cf_output, label(:));
+        else
+            % We first need to transform the classifier output into labels.
+            % To this end, we multiply the the dvals by the true labels -
+            % for correct classification the product is positive
+            perf = bsxfun(@times, cf_output, label(:)) > 0;
+        end
         
-        % correctly predicted labels
-%         perf = predlabels(:)==testlabels(:);
-        perf = bsxfun(@eq, predlabels, testlabels(:));
-       
+        % Aggregate across samples
+        perf = mean(perf,1);
+        
     case 'dval'
-        % Note that the test function should be able to return decision
-        % values as second argument. This does not work with all
-        % classifiers (eg Random Forests)
-        [~, perf] = test_fun(cf,Xtest);
-        
-        % If the test samples stem from multiple time points/frequencies,
-        % we must reshape the predlabels into a matrix
-        perf = reshape(perf, [], nRepeats);
-       
+        % Aggregate across samples, for each class separately 
+        perf = cat(1,mean(cf_output(label==1,:,:,:,:,:),1),mean(cf_output(label==-1,:,:,:,:,:),1));
 end
 
-% Average metric across test samples
-if average
-    switch(metric)
-        case 'acc'
-            perf = mean(perf,1);
-            
-        case 'dval'
-            % Decision values for class +1 should be positive, decision
-            % values for class -1 should be negative, hence we multiply the
-            % class labels by their respective labels first and then
-            % average to get an average performance value
-            perf = mean( bsxfun( perf, testlabels(:)));
-            
-    end
+% Average across additional dimensions
+for n=1:numel(dim)
+    perf = mean(perf, dim(n));
 end
 
+perf = squeeze(perf);
