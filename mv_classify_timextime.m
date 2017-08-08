@@ -71,7 +71,7 @@ mv_setDefault(cfg,'time2',1:size(X,3));
 mv_setDefault(cfg,'normalise','none');
 mv_setDefault(cfg,'verbose',0);
 
-if ismember(cfg.metric,{'dval'})
+if any(ismember({'dval'},cfg.metric))
     mv_setDefault(cfg,'output','dval');
 else
     mv_setDefault(cfg,'output','label');
@@ -192,7 +192,7 @@ if ~strcmp(cfg.CV,'none')
                 cf= train_fun(Xtrain_tt, trainlabels, cfg.param);
 
                 % Obtain classifier output (labels or dvals)
-                cf_output(labelidx(CV.test(ff)),rr,t1,:) = reshape( mv_get_classifier_output(cfg.output, cf, test_fun, Xtest), sum(CV.test(ff)),[]);
+                cf_output(labelidx(CV.test(ff)),rr,t1,:) = reshape( mv_classifier_output(cfg.output, cf, test_fun, Xtest), sum(CV.test(ff)),[]);
 
             end
       
@@ -201,7 +201,7 @@ if ~strcmp(cfg.CV,'none')
 
     % Calculate performance metric and average across the repeats
     for mm=1:nMetrics
-        perf{mm} = mv_calculate_metric(cfg.metric{mm}, cf_output, label_orig, 2);
+        perf{mm} = mv_classifier_performance(cfg.metric{mm}, cf_output, label_orig, 2);
     end
     
 else
@@ -234,7 +234,7 @@ else
     
     % Calculate performance metrics
     for mm=1:nMetrics
-        perf{mm} = mv_calculate_metric(cfg.metric{mm}, cf_output, label);
+        perf{mm} = mv_classifier_performance(cfg.metric{mm}, cf_output, label);
     end
     
 end

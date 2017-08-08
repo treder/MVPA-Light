@@ -116,7 +116,7 @@ perf= cell(nMetrics,1);
 
 % Save original data and labels in case we do over/undersampling
 X_orig = X;
-labels_orig = label;
+label_orig = label;
 
 if ~strcmp(cfg.CV,'none')
     if cfg.verbose, fprintf('Using %s cross-validation (K=%d) with %d repetitions.\n',cfg.CV,cfg.K,cfg.repeat), end
@@ -132,7 +132,7 @@ if ~strcmp(cfg.CV,'none')
         % sampled) so randomly repeating the process reduces the variance
         % of the result
         if strcmp(cfg.balance,'undersample')
-            [X,label] = mv_balance_classes(X_orig,labels_orig,cfg.balance,cfg.replace);
+            [X,label] = mv_balance_classes(X_orig,label_orig,cfg.balance,cfg.replace);
         elseif isnumeric(cfg.balance)
             if ~all( cfg.balance <= [N1,N2])
                 error(['cfg.balance is larger [%d] than the samples in one of the classes [%d, %d]. ' ...
@@ -141,7 +141,7 @@ if ~strcmp(cfg.CV,'none')
             % Sometimes we want to undersample to a specific
             % number (e.g. to match the number of samples across
             % subconditions)
-            [X,label] = mv_balance_classes(X_orig,labels_orig,cfg.balance,cfg.replace);
+            [X,label] = mv_balance_classes(X_orig,label_orig,cfg.balance,cfg.replace);
         end
 
         CV= cvpartition(label,cfg.CV,cfg.K);
@@ -171,7 +171,7 @@ if ~strcmp(cfg.CV,'none')
                 cf= train_fun(Xtrain_tt, trainlabels, cfg.param);
 
                 % Obtain classifier output (labels or dvals)
-                cf_output(CV.test(ff),rr,tt) = mv_get_classifier_output(cfg.output, cf, test_fun, Xtest);
+                cf_output(CV.test(ff),rr,tt) = mv_classifier_output(cfg.output, cf, test_fun, Xtest);
                 
                 if nargout>1
                     cfs{rr,ff,tt} = cf;
@@ -182,7 +182,7 @@ if ~strcmp(cfg.CV,'none')
 
     % Calculate performance metrics and average across the repeats
     for mm=1:nMetrics
-        perf{mm} = mv_calculate_metric(cfg.metric{mm}, cf_output, label, 2);
+        perf{mm} = mv_classifier_performance(cfg.metric{mm}, cf_output, label_orig, 2);
     end
 
 else
@@ -197,7 +197,7 @@ else
     
     % Rebalance data using under-/over-sampling if requested
     if ~strcmp(cfg.balance,'none')
-        [X,label] = mv_balance_classes(X_orig,labels_orig,cfg.balance,cfg.replace);
+        [X,label] = mv_balance_classes(X_orig,label_orig,cfg.balance,cfg.replace);
     end
 
     for tt=1:nTime          % ---- Train and test time ----
@@ -217,7 +217,7 @@ else
     
     % Calculate performance metrics
     for mm=1:nMetrics
-        perf{mm} = mv_calculate_metric(cfg.metric{mm}, cf_output, label);
+        perf{mm} = mv_classifier_performance(cfg.metric{mm}, cf_output, label);
     end
 end
 
