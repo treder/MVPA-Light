@@ -1,9 +1,9 @@
-function perf = mv_calculate_metric(metric, cf_output, label, dim)
+function perf = mv_classifier_performance(metric, cf_output, label, dim)
 %Calculates a classifier performance metric such as classification accuracy
 %based on the classifier output (labels or dvals).
 %
 %Usage:
-%  perf = mv_calculate_metric(metric, cf_output, labels, dim)
+%  perf = mv_classifier_performance(metric, cf_output, labels, dim)
 %
 %Parameters:
 % metric            - desired performance metric: 
