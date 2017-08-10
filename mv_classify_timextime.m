@@ -145,7 +145,9 @@ if ~strcmp(cfg.CV,'none')
             end
             % Sometimes we want to undersample to a specific
             % number (e.g. to match the number of samples across
-            % subconditions)
+            % subconditions). labelidx tells us the original indices of the
+            % subsampled labels so we can store the classifier output at
+            % the right spot in cf_output
             [X,label,labelidx] = mv_balance_classes(X_orig,label_orig,cfg.balance,cfg.replace);
         else
             labelidx = 1:nLabel;
@@ -199,7 +201,7 @@ if ~strcmp(cfg.CV,'none')
         end
     end
 
-    % Calculate performance metric and average across the repeats
+    % Calculate classifier performance and average across the repeats
     for mm=1:nMetrics
         perf{mm} = mv_classifier_performance(cfg.metric{mm}, cf_output, label_orig, 2);
     end
