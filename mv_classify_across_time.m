@@ -132,7 +132,7 @@ if ~strcmp(cfg.CV,'none')
         % sampled) so randomly repeating the process reduces the variance
         % of the result
         if strcmp(cfg.balance,'undersample')
-            [X,label] = mv_balance_classes(X_orig,label_orig,cfg.balance,cfg.replace);
+            [X,label,labelidx] = mv_balance_classes(X_orig,label_orig,cfg.balance,cfg.replace);
         elseif isnumeric(cfg.balance)
             if ~all( cfg.balance <= [N1,N2])
                 error(['cfg.balance is larger [%d] than the samples in one of the classes [%d, %d]. ' ...
@@ -140,8 +140,12 @@ if ~strcmp(cfg.CV,'none')
             end
             % Sometimes we want to undersample to a specific
             % number (e.g. to match the number of samples across
-            % subconditions)
-            [X,label] = mv_balance_classes(X_orig,label_orig,cfg.balance,cfg.replace);
+            % subconditions). labelidx tells us the original indices of the
+            % subsampled labels so we can store the classifier output at
+            % the right spot in cf_output
+            [X,label,labelidx] = mv_balance_classes(X_orig,label_orig,cfg.balance,cfg.replace);
+        else
+            labelidx = 1:nLabel;
         end
 
         CV= cvpartition(label,cfg.CV,cfg.K);
@@ -171,7 +175,7 @@ if ~strcmp(cfg.CV,'none')
                 cf= train_fun(Xtrain_tt, trainlabels, cfg.param);
 
                 % Obtain classifier output (labels or dvals)
-                cf_output(CV.test(ff),rr,tt) = mv_classifier_output(cfg.output, cf, test_fun, Xtest);
+                cf_output(labelidx(CV.test(ff)),rr,tt) = mv_classifier_output(cfg.output, cf, test_fun, Xtest);
                 
                 if nargout>1
                     cfs{rr,ff,tt} = cf;
@@ -180,7 +184,7 @@ if ~strcmp(cfg.CV,'none')
         end
     end
 
-    % Calculate performance metrics and average across the repeats
+    % Calculate classifier performance and average across the repeats
     for mm=1:nMetrics
         perf{mm} = mv_classifier_performance(cfg.metric{mm}, cf_output, label_orig, 2);
     end
