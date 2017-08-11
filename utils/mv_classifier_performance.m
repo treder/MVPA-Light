@@ -8,7 +8,7 @@ function perf = mv_classifier_performance(metric, cf_output, label, dim)
 %Parameters:
 % metric            - desired performance metric: 
 %                     'acc': classification accuracy, i.e. the fraction
-%                     correct labels
+%                     correctly predicted labels labels
 %                     'dval': decision values. Average dvals are calculated
 %                     for each class separately. The first dimension of
 %                     the output refers to the class, with perf(1,:)
@@ -16,10 +16,11 @@ function perf = mv_classifier_performance(metric, cf_output, label, dim)
 %                     'auc': area under the ROC curve TODO
 %                     'roc': ROC curve TODO
 % cf_output         - classifier output (labels or dvals)
-% label             - true labels
+% label             - true class labels
 % dim               - index of dimension across which values are averaged
 %                     (e.g. dim=2 if the second dimension is the number of
-%                     repeats of a cross-validation)
+%                     repeats of a cross-validation). Default: [] (no
+%                     averaging)
 %
 %Returns:
 % perf - performance metric
