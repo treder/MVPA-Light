@@ -5,7 +5,7 @@ Light-weight Matlab toolbox for multivariate pattern analysis (MVPA)
 1. [Installation](#installation)
 2. [Overview](#overview)
 3. [Classification](#classification)
-4. [Cross-validation](#crossvalidation)
+4. [Examples](#examples)
 
 ## Installation <a name="installation"></a>
 Download the toolbox or, better, clone it using Git. In Matlab, you can add the following line to your `startup.m` file to add the MVPA-Light toolbox to the Matlab path:
@@ -43,7 +43,7 @@ Classifier performance is evaluated on a dataset called *test data*. To this end
 
 #### Classifiers
 
-* `train_lda`, `test_lda`: Regularised Linear Discriminant Analysis (LDA). For two classes, LDA is equivalent to Fisher's discriminant analysis (FDA). Hence, LDA searches for a projection of the data into 1D such that the class means are separated as far as possible and the within-class variability is as small as possible. To prevent overfitting and assure invertibility of the covariance matrix, the regularisation parameter λ can be varied between λ =0 (no regularisation) and λ=1 (maximum regularisation). It can also be set to λ='auto'. In this case, λ is estimated automatically. For more details on regularised LDA see [[Bla2011]](#Bla2011).
+* `train_lda`, `test_lda`: Regularised Linear Discriminant Analysis (LDA). For two classes, LDA is equivalent to Fisher's discriminant analysis (FDA). Hence, LDA searches for a projection of the data into 1D such that the class means are separated as far as possible and the within-class variability is as small as possible. To prevent overfitting and assure invertibility of the covariance matrix, the regularisation parameter λ can be varied between λ =0 (no regularisation) and λ=1 (maximum regularisation). It can also be set to λ='auto'. In this case, λ is estimated automatically. For more details on regularised LDA see [[Bla2011]](#Bla2011). LDA has been shown to be formally equivalent to LCMV beamforming and it can be used for recovering time series of ERP sources [[Tre2011]](#Tre2011).
 * `train_svm`, `test_svm`: Support vector machines (SVM). Uses the [LIBSVM package](https://github.com/arnaudsj/libsvm) that needs to be installed.
 * `train_logist`, `test_logist`: Logistic regression classifier using Lucas Parra's implementation.
 
@@ -53,26 +53,26 @@ Many neuroimaging datasets have a 3-D structure (trials x channels x time). The 
 
 #### Time x time generalisation
 
-Classification across time does not give insight into whether information is shared across different time points. For example, is the information that the classifier uses early in a trial (t=80 ms) the same that it uses later (t=300ms)? In time generalisation, this question is answered by training the classifier at a certain time point t. The classifer is then tested at the same time point t but it is also tested at all *other* time points in the trial. `mv_classify_timextime` implements time generalisation. It returns a 2D matrix of classification performance, with performance calculated for each combination of training time point and testing time point. If two separate datasets are used, one for training and one for testing, the function `mv_classify_timextime_two_datasets` can be used instead.
+Classification across time does not give insight into whether information is shared across different time points. For example, is the information that the classifier uses early in a trial (t=80 ms) the same that it uses later (t=300ms)? In time generalisation, this question is answered by training the classifier at a certain time point t. The classifer is then tested at the same time point t but it is also tested at all *other* time points in the trial, see [[King2014]](#King2014) for more information. `mv_classify_timextime` implements time generalisation. It returns a 2D matrix of classification performance, with performance calculated for each combination of training time point and testing time point. If two separate datasets are used, one for training and one for testing, the function `mv_classify_timextime_two_datasets` can be used instead.
 `mv_plot_2D` can be used to plot the result.
 
 
-#### How to measure classifier performance
+#### Classifier performance metrics
+
+Classifier output comes in form of decision values (=distances to the hyperplane for linear methods) or directly in form of class labels. In most cases, the researcher is only interested in a performance metric that quantifies classifier performance. The following metrics can be calculated by the function `mv_classifier_performance`:
+
+* `acc`: Classification accuracy, representing the fraction correctly predicted class labels on the test set.
+* `dval`: Average decision value for each class.
+
+Performance metrics can be selected in `mv_classify_across_time` and `mv_classify_timextime` by setting the `cfg.metric` field to one of the above values.
 
 
-## Cross-validation <a name="crossvalidation"></a>
+#### Cross-validation
 
-a complex classifier (such as kernel SVM) can easily learn to perfectly discriminate a specific dataset. However, the same classifier will perform very poorly when applied to a new dataset, called D2. The reason is that the classifier has not learnt ... Instead, it has overadapted to the
-
-complex methods tend to overfit the data ...
-
-...
-To get a realistic estimate of the classifier performance, a classifier should be tested on a new dataset that has not been used for training.
+To obtain a realistic estimate of classifier performance and control for overfitting, a classifier should be  tested on an independent dataset that has not been used for training [[Lemm2011]](#Lemm2011). In neuroimaging experiments,
 
 
-[[Lemm2011]](#Lemm2011) discusses overfitting, cross-validation and its caveats in applying machine learning to neuroimaging data.
-
-## Examples
+## Examples<a name="examples"></a>
 
 <!--
 ## Q&A
@@ -90,6 +90,8 @@ As a rule of thumb,
 
 [Bla2011<a name="Bla2011">]  [Blankertz, B., Lemm, S., Treder, M., Haufe, S., & Müller, K. R. (2011). Single-trial analysis and classification of ERP components - A tutorial. NeuroImage, 56(2), 814–825.](http://www.sciencedirect.com/science/article/pii/S1053811910009067)
 
+[King2014<a name="King2014">] [King, J.-R., & Dehaene, S. (2014). Characterizing the dynamics of mental representations: the temporal generalization method. Trends in Cognitive Sciences, 18(4), 203–210.](https://doi.org/10.1016/j.tics.2014.01.002)
+
 [Lemm2011<a name="Lemm2011">]  [Lemm, S., Blankertz, B., Dickhaus, T., & Müller, K. R. (2011). Introduction to machine learning for brain imaging. NeuroImage, 56(2), 387–399.](http://www.sciencedirect.com/science/article/pii/S1053811910014163)
 
-[Treder2016<a name="Treder2016">]  [Treder, M. S., Porbadnigk, A. K., Shahbazi Avarvand, F., Müller, K.-R., & Blankertz, B. (2016). The LDA beamformer: Optimal estimation of ERP source time series using linear discriminant analysis. NeuroImage, 129, 279–291.](https://doi.org/10.1016/j.neuroimage.2016.01.019)
+[Tre2016<a name="Tre2016">]  [Treder, M. S., Porbadnigk, A. K., Shahbazi Avarvand, F., Müller, K.-R., & Blankertz, B. (2016). The LDA beamformer: Optimal estimation of ERP source time series using linear discriminant analysis. NeuroImage, 129, 279–291.](https://doi.org/10.1016/j.neuroimage.2016.01.019)
