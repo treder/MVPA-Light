@@ -1,4 +1,4 @@
-function perf = mv_classify_timextime(cfg, X, labels)
+function perf = mv_classify_timextime(cfg, X, label)
 % Time x time generalisation. A classifier is trained on the training data
 % X and validated on either the same dataset X. Cross-validation is
 % recommended to avoid overfitting.
@@ -9,7 +9,7 @@ function perf = mv_classify_timextime(cfg, X, labels)
 %Parameters:
 % X              - [number of samples x number of features x number of time points]
 %                  data matrix.
-% labels         - [number of samples] vector of class labels containing
+% label          - [number of samples] vector of class labels containing
 %                  1's (class 1) and -1's (class 2)
 %
 % cfg          - struct with optional parameters:
@@ -18,7 +18,9 @@ function perf = mv_classify_timextime(cfg, X, labels)
 % .param        - struct with parameters passed on to the classifier train
 %                 function (default [])
 % .metric       - classifier performance metric, default 'acc'. See
-%                 mv_calculate_metric. Multiple metrics can be requested by
+%                 mv_calculate_metric. If set to [], the raw classifier
+%                 output (labels or dvals depending on cfg.output) for each
+%                 sample is returned. Multiple metrics can be requested by
 %                 providing a cell array e.g. {'acc' 'dval'}
 % .CV           - perform cross-validation, can be set to
 %                 'kfold' (recommended) or 'leaveout' (not recommended
@@ -69,6 +71,12 @@ mv_setDefault(cfg,'time2',1:size(X,3));
 mv_setDefault(cfg,'normalise','none');
 mv_setDefault(cfg,'verbose',0);
 
+if any(ismember({'dval'},cfg.metric))
+    mv_setDefault(cfg,'output','dval');
+else
+    mv_setDefault(cfg,'output','label');
+end
+
 % Balance the data using oversampling or undersampling
 mv_setDefault(cfg,'balance','none');
 mv_setDefault(cfg,'replace',1);
@@ -79,14 +87,15 @@ else
     mv_setDefault(cfg,'K',1);
 end
 
-[~,~,labels] = mv_check_labels(labels);
+[~,~,label] = mv_check_labels(label);
 
 nTime1 = numel(cfg.time1);
 nTime2 = numel(cfg.time2);
+nLabel = numel(label);
 
 % Number of samples in the classes
-N1 = sum(labels == 1);
-N2 = sum(labels == -1);
+N1 = sum(label == 1);
+N2 = sum(label == -1);
 
 %% Get train and test functions
 train_fun = eval(['@train_' cfg.classifier]);
@@ -105,17 +114,20 @@ if ~iscell(cfg.metric)
 end
 
 nMetrics = numel(cfg.metric);
-perf= repmat( {zeros(nTime1,nTime2)}, [1 nMetrics]);
+perf= cell(nMetrics,1);
 
 %% Time x time generalisation
 
 % Save original data and labels in case we do over/undersampling
 X_orig = X;
-labels_orig = labels;
+label_orig = label;
 
 if ~strcmp(cfg.CV,'none')
     if cfg.verbose, fprintf('Using %s cross-validation (K=%d) with %d repetitions.\n',cfg.CV,cfg.K,cfg.repeat), end
-    
+
+    % Initialise classifier outputs
+    cf_output = nan(nLabel, cfg.repeat, nTime1, nTime2);
+
     for rr=1:cfg.repeat                 % ---- CV repetitions ----
         if cfg.verbose, fprintf('\nRepetition #%d. Fold ',rr), end
         
@@ -124,7 +136,8 @@ if ~strcmp(cfg.CV,'none')
         % sampled) so randomly repeating the process reduces the variance
         % of the result
         if strcmp(cfg.balance,'undersample')
-            [X,labels] = mv_balance_classes(X_orig,labels_orig,cfg.balance,cfg.replace);
+            [X,label,labelidx] = mv_balance_classes(X_orig,label_orig,cfg.balance,cfg.replace);
+            
         elseif isnumeric(cfg.balance)
             if ~all( cfg.balance <= [N1,N2])
                 error(['cfg.balance is larger [%d] than the samples in one of the classes [%d, %d]. ' ...
@@ -132,11 +145,15 @@ if ~strcmp(cfg.CV,'none')
             end
             % Sometimes we want to undersample to a specific
             % number (e.g. to match the number of samples across
-            % subconditions)
-            [X,labels] = mv_balance_classes(X_orig,labels_orig,cfg.balance,cfg.replace);
+            % subconditions). labelidx tells us the original indices of the
+            % subsampled labels so we can store the classifier output at
+            % the right spot in cf_output
+            [X,label,labelidx] = mv_balance_classes(X_orig,label_orig,cfg.balance,cfg.replace);
+        else
+            labelidx = 1:nLabel;
         end
 
-        CV= cvpartition(labels,cfg.CV,cfg.K);
+        CV= cvpartition(label,cfg.CV,cfg.K);
         
         for ff=1:cfg.K                      % ---- CV folds ----
             if cfg.verbose, fprintf('%d ',ff), end
@@ -145,19 +162,14 @@ if ~strcmp(cfg.CV,'none')
             Xtrain = X(CV.training(ff),:,:,:);
             
             % Split labels into training and test
-            trainlabels= labels(CV.training(ff));
-            testlabels= labels(CV.test(ff));
+            trainlabels= label(CV.training(ff));
             
             % Oversample data if requested. We need to oversample each
             % training set separately to prevent overfitting (see
             % mv_balance_classes for an explanation)
             if strcmp(cfg.balance,'oversample')
-                [Xtrain,trainlabels] = mv_balance_classes(X_orig,labels_orig,cfg.balance,cfg.replace);
+                [Xtrain,trainlabels] = mv_balance_classes(X_orig,label_orig,cfg.balance,cfg.replace);
             end
-            
-%             % Repeat and reshape into [test trials x test times] so that we can
-%             % test all test time points at once in order to speed up things
-%             testlabels = repmat(testlabels(:), [1 nTime2]);
             
             % ---- Test data ----
             % Instead of looping through the second time dimension, we
@@ -180,33 +192,20 @@ if ~strcmp(cfg.CV,'none')
                 
                 % Train classifier
                 cf= train_fun(Xtrain_tt, trainlabels, cfg.param);
-                
-                % Obtain the performance metrics
-                for mm=1:nMetrics
-                    perf{mm}(t1,:) = perf{mm}(t1,:) + ...
-                        mv_calculate_metric(cfg.metric{mm}, cf, test_fun, Xtest, testlabels, 1);
-                end
-                
-%                 % Obtain the predicted class labels
-%                 predlabels = test_fun(cf,Xtest);
-%                 
-%                 % Reshape into [trials x test times]
-%                 predlabels = reshape(predlabels, CV.TestSize(ff), nTime2);
-%                 
-%                 % Sum number of correctly predicted labels
-%                 acc(t1,:)= acc(t1,:) + sum(predlabels == testlabels,1);
-                
+
+                % Obtain classifier output (labels or dvals)
+                cf_output(labelidx(CV.test(ff)),rr,t1,:) = reshape( mv_classifier_output(cfg.output, cf, test_fun, Xtest), sum(CV.test(ff)),[]);
+
             end
       
         end
     end
-       
-    % We have to divide the classifier performance by the number of
-    % repetitions x number of folds to get the correct mean performance 
-    for mm=1:nMetrics
-        perf{mm} = perf{mm} / (cfg.repeat * cfg.K);
-    end
 
+    % Calculate classifier performance and average across the repeats
+    for mm=1:nMetrics
+        perf{mm} = mv_classifier_performance(cfg.metric{mm}, cf_output, label_orig, 2);
+    end
+    
 else
     % No cross-validation, just train and test once for each
     % training/testing time
@@ -218,7 +217,7 @@ else
         Xtrain= squeeze(X(:,:,cfg.time1(t1)));
         
         % Train classifier
-        cf= train_fun(Xtrain, labels, cfg.param);
+        cf= train_fun(Xtrain, label, cfg.param);
         
         for t2=1:nTime2      % ---- Testing time ----
 
@@ -229,15 +228,23 @@ else
             predlabels = test_fun(cf,Xtest);
             
             % Sum number of correctly predicted labels
-            acc(t1,t2)= acc(t1,t2) + sum(predlabels(:) == labels(:));    
+            acc(t1,t2)= acc(t1,t2) + sum(predlabels(:) == label(:));    
         end
     end
     
     acc = acc / nSam;
+    
+    % Calculate performance metrics
+    for mm=1:nMetrics
+        perf{mm} = mv_classifier_performance(cfg.metric{mm}, cf_output, label);
+    end
+    
 end
 
-% If only one performance metric was requested, we unnest the cell array
-% again
 if nMetrics==1
+    % Un-nest the cell array if only one performance metric was requested
     perf = perf{1};
+elseif nMetrics==0
+    % If no metric was requested, return the raw classifier output
+    perf = cf_output;
 end
