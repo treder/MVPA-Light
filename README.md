@@ -59,17 +59,18 @@ Classification across time does not give insight into whether information is sha
 
 #### Classifier performance metrics
 
-Classifier output comes in form of decision values (=distances to the hyperplane for linear methods) or directly in form of class labels. In most cases, the researcher is only interested in a performance metric that quantifies classifier performance. The following metrics can be calculated by the function `mv_classifier_performance`:
+Classifier output comes in form of decision values (=distances to the hyperplane for linear methods) or directly in form of class labels. In most cases, the researcher is only interested in a performance metric that summarises classifier performance. The following metrics can be calculated by the function `mv_classifier_performance`:
 
 * `acc`: Classification accuracy, representing the fraction correctly predicted class labels on the test set.
+* `auc`: Area under the ROC curve. An alternative to classification accuracy that is more robust to imbalanced classes and independent of changes to the classifier threshold.
 * `dval`: Average decision value for each class.
 
-Performance metrics can be selected in `mv_classify_across_time` and `mv_classify_timextime` by setting the `cfg.metric` field to one of the above values.
+Performance metrics can be selected in `mv_classify_across_time` and `mv_classify_timextime` by setting the `cfg.metric` field.
 
 
 #### Cross-validation
 
-To obtain a realistic estimate of classifier performance and control for overfitting, a classifier should be  tested on an independent dataset that has not been used for training [[Lemm2011]](#Lemm2011). In neuroimaging experiments,
+To obtain a realistic estimate of classifier performance and control for overfitting, a classifier should be tested on an independent dataset that has not been used for training. In most neuroimaging experiments, there is only one dataset with a restricted number of trials. To make most efficient use of the data, in *k-fold cross-validation* the data is split into k different folds. In each iteration, one of the k folds is held out and used as test set, whereas all other folds are used for training. This is repeated until every fold has been used as test set once. See [[Lemm2011]](#Lemm2011) for a discussion of cross-validation and potential pitfalls.
 
 
 ## Examples<a name="examples"></a>
