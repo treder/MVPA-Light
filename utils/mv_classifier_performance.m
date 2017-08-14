@@ -8,18 +8,19 @@ function perf = mv_classifier_performance(metric, cf_output, label, dim)
 %Parameters:
 % metric            - desired performance metric: 
 %                     'acc': classification accuracy, i.e. the fraction
-%                     correct labels
+%                     correctly predicted labels labels
 %                     'dval': decision values. Average dvals are calculated
 %                     for each class separately. The first dimension of
-%                     the output refers to the class, with perf(1,:)
-%                     refers to class +1 and perf(2,:) refers to class -1
+%                     the output refers to the class, ie perf(1,...)
+%                     refers to class +1 and perf(2,...) refers to class -1
 %                     'auc': area under the ROC curve TODO
 %                     'roc': ROC curve TODO
 % cf_output         - classifier output (labels or dvals)
-% label             - true labels
+% label             - true class labels
 % dim               - index of dimension across which values are averaged
 %                     (e.g. dim=2 if the second dimension is the number of
-%                     repeats of a cross-validation)
+%                     repeats of a cross-validation). Default: [] (no
+%                     averaging)
 %
 %Returns:
 % perf - performance metric
@@ -68,6 +69,33 @@ switch(metric)
     case 'dval'
         % Aggregate across samples, for each class separately 
         perf = cat(1,nanmean(cf_output(label==1,:,:,:,:,:),1),nanmean(cf_output(label==-1,:,:,:,:,:),1));
+        
+    case 'auc'
+        % AUC can be calculated by sorting the dvals, traversing the
+        % positive examples (class +1) and counting the number of negative
+        % examples (class -1) with lower values
+        [cf_output,soidx] = sort(cf_output,'descend');
+        
+        sz= size(cf_output);
+        perf= zeros([1, sz(2:end)]);
+        
+        % Calculate AUC for each column of cf_output
+        for ii=1:prod(sz(2:end))
+            clabel = label(soidx(:,ii));
+            
+            % Find all class indices that do not correspond to NaNs
+            isClass1Idx = find(clabel(:)== 1 & ~nanidx(soidx(:,ii),ii));
+            isClass2 = (clabel(:)==-1 & ~nanidx(soidx(:,ii),ii));
+            
+            % Count number of FPs with lower value
+            for ix=1:numel(isClass1Idx)
+                perf(1,ii) = perf(1,ii) + sum(isClass2(isClass1Idx(ix)+1:end));
+            end
+            
+            % Correct by number of TPs*FPs
+            perf(1,ii) = perf(1,ii)/ (numel(isClass1Idx) * sum(isClass2));
+        end
+        
 end
 
 % Average across additional dimensions
