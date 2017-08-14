@@ -21,13 +21,14 @@ function perf = mv_classify_timextime(cfg, X, label)
 %                 mv_calculate_metric. If set to [], the raw classifier
 %                 output (labels or dvals depending on cfg.output) for each
 %                 sample is returned. Multiple metrics can be requested by
-%                 providing a cell array e.g. {'acc' 'dval'}
+%                 providing a cell array e.g. {'acc' 'dval'} (default
+%                 'acc')
 % .CV           - perform cross-validation, can be set to
 %                 'kfold' (recommended) or 'leaveout' (not recommended
 %                 since it has a higher variance than k-fold) (default
 %                 'none')
 % .K            - number of folds (the K in K-fold cross-validation). 
-%                 For leave-one-out, K should be 1. (default 10 for kfold,
+%                 For leave-one-out, K should be 1. (default 5 for kfold,
 %                 1 for leave-one-out)
 % .repeat       - number of times the cross-validation is repeated with new
 %                 randomly assigned folds. Only useful for CV = 'kfold'
@@ -82,7 +83,7 @@ mv_setDefault(cfg,'balance','none');
 mv_setDefault(cfg,'replace',1);
 
 if strcmp(cfg.CV,'kfold')
-    mv_setDefault(cfg,'K',10);
+    mv_setDefault(cfg,'K',5);
 else
     mv_setDefault(cfg,'K',1);
 end
