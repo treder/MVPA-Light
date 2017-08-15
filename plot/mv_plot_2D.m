@@ -194,7 +194,7 @@ end
 for ii=1:P  
     if ~isempty(cfg.xlabel{ii}), h.xlabel(ii) = xlabel(h.ax(ii),cfg.xlabel{ii}); end
     if ~isempty(cfg.ylabel{ii}), h.ylabel(ii) = ylabel(h.ax(ii),cfg.ylabel{ii}); end
-    if ~isempty(cfg.title{ii}), h.title(ii) = title(h.ax(ii),cfg.title{ii}); end
+    if ~isempty(cfg.title{ii}), h.title(ii) = title(h.ax(ii),cfg.title{ii},'interpreter','none'); end
 end
 
 %% Set Y-Dir
