@@ -1,21 +1,21 @@
-function h = mv_plot_1D(cfg, dat, err)
+function h = mv_plot_1D(cfg, time, dat, err)
 %Plots 1D results, e.g. classification across time. If a 2D matrix is given 
 %several plots are created.
 %
 %Usage:
-% ax = mv_plot_1D(cfg, DAT, ERR)
+% ax = mv_plot_1D(cfg, time, dat, err)
 %
 %Parameters:
-% DAT               - [N x M] data matrix with results. Plots M lines of
+% time              - [N x 1] vector of times representing the x-axis
+% dat               - [N x M] data matrix with results. Plots M lines of
 %                     length M
-% ERR               - [N x M] data matrix specifying errorbars (optional) 
+% err               - [N x M] data matrix specifying errorbars (optional) 
 %                     The external boundedline function is used to plot the
 %                     error as a shaded area
 %
-% cfg          - struct with hyperparameters:
-% xlabel,ylabel     - label for x and y axes (default '')
+% cfg          - struct with hyperparameters (use [] to keep all parameters at default):
+% xlabel,ylabel     - label for x and y axes (defaults 'Time' and 'Accuracy')
 % title             - axis title (default '')
-% x                 - x values (e.g. time points)
 % grid              - options for the grid function (default {'on'})
 % lineorder         - order of line types when multiple lines are plotted
 %                     (default {'-' '--' ':'})
@@ -34,12 +34,11 @@ function h = mv_plot_1D(cfg, dat, err)
 
 if nargin<3, err=[]; end
 
-mv_setDefault(cfg,'x',1:nX);
-mv_setDefault(cfg,'xlabel','');
-mv_setDefault(cfg,'ylabel','');
+mv_setDefault(cfg,'xlabel','Time');
+mv_setDefault(cfg,'ylabel','Accuracy');
 mv_setDefault(cfg,'title','');
 mv_setDefault(cfg,'grid',{'on'});
-mv_setDefault(cfg,'lineorder',{'-' '--' ':'});
+mv_setDefault(cfg,'lineorder',{'-' '-' '--' '--' ':'});
 mv_setDefault(cfg,'hor',0.5);
 mv_setDefault(cfg,'ver',0);
 mv_setDefault(cfg,'cross',{'--k'});
@@ -48,17 +47,15 @@ h = struct();
 h.ax = gca;
 cla
 
-x= cfg.x;
-
 %% Plot data 
-if nargin==3
+if nargin==4
     % We use boundedline to plot the error as well
     tmp = zeros( size(err,1), 1, size(err,2));
     tmp(:,1,:) = err;
-    h.plt = boundedline(cfg.x, dat, tmp);
+    h.plt = boundedline(time, dat, tmp);
 else
     % Ordinary plot without error
-    h.plt = plot(cfg.x, dat);
+    h.plt = plot(time, dat);
 end
 %% Set line styles
 for ii=1:nY
@@ -67,7 +64,7 @@ end
 
 %% Mark zero line
 if ~isempty(cfg.cross)
-    if x(1)<0 && x(end)>0
+    if time(1)<0 && time(end)>0
         hold on
         yl = ylim(gca);
         plot(gca,[1 1] * cfg.ver, yl(:), cfg.cross{:})
@@ -88,6 +85,6 @@ title(cfg.title);
 grid(h.ax, cfg.grid{:})
 
 %% Set xlim
-xlim([cfg.x(1) cfg.x(end)])
+xlim([time(1) time(end)])
 
 
