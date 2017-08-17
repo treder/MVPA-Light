@@ -233,11 +233,11 @@ end
         C= zeros(nChan);
         for ddd=1:nDat
             if numel(sz)==2
-                C_tmp= cov(real(X{ddd}));
+                C_tmp= nancov(real(X{ddd}));
             elseif numel(sz)==3
                 C_tmp= zeros(nChan);
                 for jj=1:nTrial(ddd)
-                    C_tmp= C_tmp + cov(squeeze(real(X{ddd}(jj,:,:)))');
+                    C_tmp= C_tmp + nancov(squeeze(real(X{ddd}(jj,:,:)))');
                 end
                 C_tmp= C_tmp/nTrial(ddd);
             end

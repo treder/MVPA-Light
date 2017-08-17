@@ -1,4 +1,4 @@
-function perf = mv_classify_timextime(cfg, X, label)
+function varargout = mv_classify_timextime(cfg, X, label)
 % Time x time generalisation. A classifier is trained on the training data
 % X and validated on either the same dataset X. Cross-validation is
 % recommended to avoid overfitting.
@@ -18,11 +18,10 @@ function perf = mv_classify_timextime(cfg, X, label)
 % .param        - struct with parameters passed on to the classifier train
 %                 function (default [])
 % .metric       - classifier performance metric, default 'acc'. See
-%                 mv_calculate_metric. If set to [], the raw classifier
-%                 output (labels or dvals depending on cfg.output) for each
-%                 sample is returned. Multiple metrics can be requested by
-%                 providing a cell array e.g. {'acc' 'dval'} (default
-%                 'acc')
+%                 mv_classifier_performance. If set to [], the raw classifier
+%                 output (labels or dvals depending on cfg.output) is returned. 
+%                 Multiple metrics can be requested by
+%                 providing a cell array e.g. {'acc' 'dval'}
 % .CV           - perform cross-validation, can be set to
 %                 'kfold' (recommended) or 'leaveout' (not recommended
 %                 since it has a higher variance than k-fold) (default
@@ -72,7 +71,7 @@ mv_setDefault(cfg,'time2',1:size(X,3));
 mv_setDefault(cfg,'normalise','none');
 mv_setDefault(cfg,'verbose',0);
 
-if any(ismember({'dval'},cfg.metric))
+if isempty(cfg.metric) || any(ismember({'dval','auc','roc'},cfg.metric))
     mv_setDefault(cfg,'output','dval');
 else
     mv_setDefault(cfg,'output','label');
@@ -110,7 +109,7 @@ elseif strcmp(cfg.normalise,'demean')
 end
 
 %% Prepare performance metrics
-if ~iscell(cfg.metric)
+if ~isempty(cfg.metric) && ~iscell(cfg.metric)
     cfg.metric = {cfg.metric};
 end
 
@@ -242,10 +241,9 @@ else
     
 end
 
-if nMetrics==1
-    % Un-nest the cell array if only one performance metric was requested
-    perf = perf{1};
-elseif nMetrics==0
+if nMetrics==0
     % If no metric was requested, return the raw classifier output
-    perf = cf_output;
+    varargout{1} = cf_output;
+else
+    varargout(1:nMetrics) = perf;
 end
