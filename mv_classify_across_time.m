@@ -25,7 +25,7 @@ function varargout = mv_classify_across_time(cfg, X, label)
 % .CV           - perform cross-validation, can be set to
 %                 'kfold' (recommended) or 'leaveout' (not recommended
 %                 since it has a higher variance than k-fold) (default
-%                 'none')
+%                 'kfold')
 % .K            - number of folds (the K in K-fold cross-validation).
 %                 For leave-one-out, K should be 1. (default 5 for kfold,
 %                 1 for leave-one-out)
@@ -63,7 +63,7 @@ function varargout = mv_classify_across_time(cfg, X, label)
 mv_setDefault(cfg,'classifier','lda');
 mv_setDefault(cfg,'param',[]);
 mv_setDefault(cfg,'metric','acc');
-mv_setDefault(cfg,'CV','none');
+mv_setDefault(cfg,'CV','kfold');
 mv_setDefault(cfg,'repeat',5);
 mv_setDefault(cfg,'time',1:size(X,3));
 mv_setDefault(cfg,'verbose',0);
@@ -181,14 +181,13 @@ if ~strcmp(cfg.CV,'none')
     end
 
 else
-
-    % Initialise classifier outputs
-    cf_output = nan(numel(label), nTime);
-    
     % No cross-validation, just train and test once for each
     % training/testing time. This gives the classification performance for
     % the training set, but it may lead to overfitting and thus to an
     % artifically inflated performance.
+
+    % Initialise classifier outputs
+    cf_output = nan(numel(label), nTime);
     
     % Rebalance data using under-/over-sampling if requested
     if ~strcmp(cfg.balance,'none')
@@ -203,10 +202,10 @@ else
         cf= train_fun(Xtraintest, label, cfg.param);
         
         % Obtain classifier output (labels or dvals)
-        cf_output(:,tt) = mv_get_classifier_output(cfg.output, cf, test_fun, Xtraintest);
+        cf_output(:,tt) = mv_classifier_output(cfg.output, cf, test_fun, Xtraintest);
     end
     
-    % Calculate performance metrics
+    % Calculate classifier performance
     for mm=1:nMetrics
         perf{mm} = mv_classifier_performance(cfg.metric{mm}, cf_output, label);
     end
