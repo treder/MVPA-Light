@@ -96,12 +96,12 @@ end
 h = struct();
 h.ax = gca;
 
-x= cfg.x;
-y= cfg.y;
-
 %% Select samples according to xlim and ylim
-xsel = find(x >= cfg.xlim(1)  & x <= cfg.xlim(2));
-ysel = find(y >= cfg.ylim(1)  & y <= cfg.ylim(2));
+xsel = find(cfg.x >= cfg.xlim(1)  & cfg.x <= cfg.xlim(2));
+ysel = find(cfg.y >= cfg.ylim(1)  & cfg.y <= cfg.ylim(2));
+
+x= cfg.x(xsel);
+y= cfg.y(ysel);
 
 %% Plot data matrix
 axnum=1;
@@ -114,7 +114,7 @@ for rr=1:cfg.nrow
             % Plot the classification performance image here. The y-axis
             % represents training time and the x-axis represents testing
             % time
-            imagesc(cfg.x(xsel), cfg.y(ysel), squeeze(dat(ysel,xsel,axnum)));
+            imagesc(x, y, squeeze(dat(ysel,xsel,axnum)));
             axnum=axnum+1;
         end
     end
@@ -206,6 +206,6 @@ for ii=1:P
 end
 
 %% Set ticks and scale
-set(h.ax, 'YLim',[cfg.y(1) cfg.y(end)]);
+set(h.ax, 'YLim',[y(1) y(end)]);
 set(h.ax, 'XScale',cfg.xscale,'YScale',cfg.yscale);
 
