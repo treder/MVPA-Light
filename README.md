@@ -14,12 +14,12 @@ Download the toolbox or, better, clone it using Git. In Matlab, you can add the 
 addpath(genpath('my-path-to/MVPA-Light/'))
 ```
 
-The Git repository is split into two branches: the `master` branch (recommended) is the stable branch that should always work. `devel` is the development branch that contains new features that are either under construction or not tested.
+The Git repository contains two branches: the `master` branch (recommended) is the stable branch that should always work. `devel` is the development branch that contains new features that are either under construction or not tested.
 
 ## Overview <a name="overview"></a>
 `MVPA-Light` provides functions for the binary classification of neuroimaging data. For Fieldtrip users, the use of the toolbox will be familiar: The first argument to the main functions is a configuration struct `cfg` that contains all the parameters. However, the toolbox does *not* require or use Fieldtrip. `MVPA-Light` is intended to remain small with a readable and well-documented codebase.
 
-Classifiers can be trained and tested directly using the `train_*` and `test_*` functions. For data with a trial structure, such as ERP datasets, `mv_classify_across_time` can be used to obtain classification performance for each time point in a trial. `mv_classify_timextime` implements time generalisation, i.e., training on a specific time point, and testing the classifier on all other time points in a trial. `mv_classify_timextime_two_datasets` is used when training is performed on one dataset and testing is performed on a second dataset.
+Classifiers can be trained and tested directly using the `train_*` and `test_*` functions. For data with a trial structure, such as ERP datasets, `mv_classify_across_time` can be used to obtain classification performance for each time point in a trial. `mv_classify_timextime` implements time generalisation, i.e., training on a specific time point, and testing the classifier on all other time points in a trial. `mv_classify_timextime_two_datasets` is used for time generalisation when training is performed on one dataset and testing is performed on a different dataset.
 Cross-validation, balancing unequal class proportions, and different performance metrics are automatically implemented in these functions.
 
 ## Classification <a name="classification"></a>
@@ -45,7 +45,7 @@ Classifier performance is evaluated on a dataset called *test data*. To this end
 
 * `train_lda`, `test_lda`: Regularised Linear Discriminant Analysis (LDA). For two classes, LDA is equivalent to Fisher's discriminant analysis (FDA). Hence, LDA searches for a projection of the data into 1D such that the class means are separated as far as possible and the within-class variability is as small as possible. To prevent overfitting and assure invertibility of the covariance matrix, the regularisation parameter λ can be varied between λ =0 (no regularisation) and λ=1 (maximum regularisation). It can also be set to λ='auto'. In this case, λ is estimated automatically. For more details on regularised LDA see [[Bla2011]](#Bla2011). LDA has been shown to be formally equivalent to LCMV beamforming and it can be used for recovering time series of ERP sources [[Tre2011]](#Tre2011).
 * `train_svm`, `test_svm`: Support vector machines (SVM). Uses the [LIBSVM package](https://github.com/arnaudsj/libsvm) that needs to be installed.
-* `train_logist`, `test_logist`: Logistic regression classifier using Lucas Parra's implementation.
+* `train_logist`, `test_logist`: Logistic regression classifier using Lucas Parra's implementation. Seel `external/logist.m` for an explanation of the hyperparameters.
 
 #### Classification across time
 Many neuroimaging datasets have a 3-D structure (trials x channels x time). The start of the trial (t=0) typically corresponds to stimulus or response onset. Classification across time can help identify at which time point in a trial discriminative information shows up. To this end, classification is performed across trials, for each time point separately. This is implemented in the function `mv_classify_across_time`. It returns classification performance calculated for each time point in a trial. `mv_plot_1D` can be used to plot the result.
@@ -59,9 +59,9 @@ Classification across time does not give insight into whether information is sha
 
 #### Classifier performance metrics
 
-Classifier output comes in form of decision values (=distances to the hyperplane for linear methods) or directly in form of class labels. In most cases, the researcher is only interested in a performance metric that summarises classifier performance. The following metrics can be calculated by the function `mv_classifier_performance`:
+Classifier output comes in form of decision values (=distances to the hyperplane for linear methods) or directly in form of class labels. However,  one is often only interested in a performance metric that summarises how well the classifier discriminates between the classes. The following metrics can be calculated by the function `mv_classifier_performance`:
 
-* `acc`: Classification accuracy, representing the fraction correctly predicted class labels on the test set.
+* `acc`: Classification accuracy, representing the fraction correctly predicted class labels.
 * `auc`: Area under the ROC curve. An alternative to classification accuracy that is more robust to imbalanced classes and independent of changes to the classifier threshold.
 * `dval`: Average decision value for each class.
 
@@ -70,7 +70,7 @@ Performance metrics can be selected in `mv_classify_across_time` and `mv_classif
 
 #### Cross-validation
 
-To obtain a realistic estimate of classifier performance and control for overfitting, a classifier should be tested on an independent dataset that has not been used for training. In most neuroimaging experiments, there is only one dataset with a restricted number of trials. To make most efficient use of the data, in *k-fold cross-validation* the data is split into k different folds. In each iteration, one of the k folds is held out and used as test set, whereas all other folds are used for training. This is repeated until every fold has been used as test set once. See [[Lemm2011]](#Lemm2011) for a discussion of cross-validation and potential pitfalls.
+To obtain a realistic estimate of classifier performance and control for overfitting, a classifier should be tested on an independent dataset that has not been used for training. In most neuroimaging experiments, there is only one dataset with a restricted number of trials. *K-fold cross-validation* makes efficient use of this data by splitting it into k different folds. In each iteration, one of the k folds is held out and used as test set, whereas all other folds are used for training. This is repeated until every fold has been used as test set once. See [[Lemm2011]](#Lemm2011) for a discussion of cross-validation and potential pitfalls. Cross-validation is controlled by the parameters `cfg.CV`, `cfg.K`, and `cfg.repeat`.
 
 
 ## Examples<a name="examples"></a>
