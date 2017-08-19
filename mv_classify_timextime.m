@@ -87,6 +87,9 @@ else
     mv_setDefault(cfg,'K',1);
 end
 
+% Set non-specified classifier parameters to default
+cfg.param = mv_classifier_defaults(cfg.classifier, cfg.param);
+
 [~,~,label] = mv_check_labels(label);
 
 nTime1 = numel(cfg.time1);

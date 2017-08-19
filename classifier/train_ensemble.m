@@ -55,17 +55,6 @@ function cf = train_ensemble(X,labels,param)
 
 [N,F] = size(X);
 
-% default settings
-mv_setDefault(param,'learner','lda');
-mv_setDefault(param,'learner_param',[]);
-mv_setDefault(param,'nSamples', 0.5);
-mv_setDefault(param,'nFeatures', 0.2);
-mv_setDefault(param,'nLearners', 500);
-mv_setDefault(param,'stratify', false);
-mv_setDefault(param,'replace', 1);
-mv_setDefault(param,'strategy', 'dval');
-mv_setDefault(param,'simplify', false);
-
 % if fractions are given for nFeatures and nLearners, turn them into
 % absolute numbers
 if param.nSamples < 1

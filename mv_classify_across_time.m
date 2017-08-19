@@ -84,6 +84,9 @@ else
     mv_setDefault(cfg,'K',1);
 end
 
+% Set non-specified classifier parameters to default
+cfg.param = mv_classifier_defaults(cfg.classifier, cfg.param);
+
 [~,~,label] = mv_check_labels(label);
 
 nTime = numel(cfg.time);
@@ -97,7 +100,6 @@ N2 = sum(label == -1);
 train_fun = eval(['@train_' cfg.classifier]);
 test_fun = eval(['@test_' cfg.classifier]);
 
-
 %% Prepare performance metrics
 if ~isempty(cfg.metric) && ~iscell(cfg.metric)
     cfg.metric = {cfg.metric};
@@ -108,7 +110,7 @@ perf= cell(nMetrics,1);
 
 %% Classify across time
 
-% Save original data and labels in case we do over/undersampling
+% Save original data and labels in case we do over-/undersampling
 X_orig = X;
 label_orig = label;
 

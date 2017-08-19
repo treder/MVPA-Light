@@ -35,15 +35,6 @@ function [cf,C,lambda,mu1,mu2] = train_lda(X,labels,param)
 
 % (c) Matthias Treder 2017
 
-if ~exist('param','var') || isempty(param)
-    param.lambda = 0;
-elseif ~isstruct(param)
-    % lambda was provided directly
-    tmp = param;
-    param=[];
-    param.lambda= tmp;
-end
-
 idx1= (labels==1);   % logical indices for samples in class 1
 idx2= (labels==-1);  % logical indices for samples in class 2
 

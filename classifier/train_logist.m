@@ -22,19 +22,8 @@ function cf = train_logist(X,labels,param)
 % w            - projection vector (normal to the hyperplane)
 % b            - bias term, setting the threshold 
 
-if nargin < 3 || isempty(param)
-    param=[];
-    param.lambda = [];
-    param.eigvalratio = [];
-else
-    mv_setDefault(param,'lambda',[]);
-    mv_setDefault(param,'eigvalratio',[]);
-end
+[v,~] = logist(X, labels(:)==1, [], 0, param.lambda, param.eigvalratio);
 
-[v,p] = logist(X, labels(:)==1, [], 0, param.lambda, param.eigvalratio);
-
-
-%% Prepare output
 cf= struct();
 cf.classifier= 'Logistic Regression';
 cf.w= v(1:end-1);
