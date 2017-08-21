@@ -8,8 +8,8 @@ function [X,label,labelidx] = mv_balance_classes(X,label,method,replace)
 %Parameters:
 % X              - [number of samples x number of features x number of time points]
 %                  or [number of samples x number of features] data matrix.
-% labels         - [1 x number of samples] vector of class labels containing
-%                  1's (class 1) and -1's (class 2)
+% labels         - [1 x number of samples] vector of class labels (class 1
+%                  must be coded as 1's)
 % method         - 'oversample' or 'undersample'. Alternatively, an integer
 %                  number can be given which will be the number of samples
 %                  in each class. Undersampling or oversampling of each
@@ -48,6 +48,9 @@ function [X,label,labelidx] = mv_balance_classes(X,label,method,replace)
 if nargin<4 || isempty(replace)
     replace = 1;
 end
+
+% Assure that labels come as 1's and -1'
+[~,~,label] = mv_check_labels(label);
 
 N = [sum(label==1), sum(label== -1)];
 % N1 = sum(labels==1);
