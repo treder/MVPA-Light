@@ -24,6 +24,9 @@ function h = mv_plot_1D(cfg, time, dat, err)
 % cross             - Give the line options for horizontal and vertical
 %                     lines forming a crosshair as cell array (default 
 %                     {'--k'}). Set to [] to remove lines
+% bounded           - cell array with additional arguments passed to
+%                     boundedline.m when a plot with errorbars is created
+%                     (default {'alpha'})
 %
 % Returns:
 % h        - struct with handles to the graphical elements 
@@ -42,6 +45,7 @@ mv_setDefault(cfg,'lineorder',{'-' '-' '--' '--' ':'});
 mv_setDefault(cfg,'hor',0.5);
 mv_setDefault(cfg,'ver',0);
 mv_setDefault(cfg,'cross',{'--k'});
+mv_setDefault(cfg,'bounded',{'alpha'});
 
 h = struct();
 h.ax = gca;
@@ -52,7 +56,7 @@ if nargin==4
     % We use boundedline to plot the error as well
     tmp = zeros( size(err,1), 1, size(err,2));
     tmp(:,1,:) = err;
-    h.plt = boundedline(time, dat, tmp);
+    h.plt = boundedline(time, dat, tmp, cfg.bounded{:});
 else
     % Ordinary plot without error
     h.plt = plot(time, dat);
@@ -73,7 +77,7 @@ if ~isempty(cfg.cross)
     hold on
     xl = xlim(gca);
     plot(gca,xl(:), [1 1] * cfg.hor, cfg.cross{:})
-    set(gca,'YLim',yl)
+%     set(gca,'YLim',yl)
 end
 
 %% Add labels and title
