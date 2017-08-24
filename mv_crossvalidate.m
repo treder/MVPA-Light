@@ -1,13 +1,17 @@
-function varargout = mv_classify_across_time(cfg, X, label)
-% Classification across time. A classifier is trained and validate for
-% different time points in the dataset X. Cross-validation should be used
-% to get a realistic estimate of classification performance.
+function varargout = mv_crossvalidate(cfg, X, label)
+% Cross-validation. A classifier is trained and validated for
+% given 2D [samples x features] dataset X. 
+%
+% If the data has a time component as well [samples x features x time] and
+% is 3D, mv_classify_across_time can be used instead to perform
+% cross-validated classification for each time point. mv_classify_timextime
+% can be used for time generalisation.
 %
 % Usage:
-% [perf, ...] = mv_classify_across_time(cfg,X,labels)
+% [perf, ...] = mv_crossvalidate(cfg,X,labels)
 %
 %Parameters:
-% X              - [number of samples x number of features x number of time points]
+% X              - [number of samples x number of features]
 %                  data matrix.
 % labels         - [number of samples] vector of class labels containing
 %                  1's (class 1) and -1's (class 2)
@@ -32,8 +36,6 @@ function varargout = mv_classify_across_time(cfg, X, label)
 % .repeat       - number of times the cross-validation is repeated with new
 %                 randomly assigned folds. Only useful for CV = 'kfold'
 %                 (default 1)
-% .time         - indices of time points (by default all time
-%                 points in X are used)
 % .balance      - for imbalanced data with a minority and a majority class.
 %                 'oversample' oversamples the minority class
 %                 'undersample' undersamples the minority class
@@ -56,7 +58,6 @@ function varargout = mv_classify_across_time(cfg, X, label)
 %                 metrics were requested, multiple output arguments are
 %                 provided.
 %
-% Note: For time x time generalisation, use mv_classify_timextime
 
 % (c) Matthias Treder 2017
 
@@ -65,7 +66,6 @@ mv_setDefault(cfg,'param',[]);
 mv_setDefault(cfg,'metric','acc');
 mv_setDefault(cfg,'CV','kfold');
 mv_setDefault(cfg,'repeat',5);
-mv_setDefault(cfg,'time',1:size(X,3));
 mv_setDefault(cfg,'verbose',0);
 
 if isempty(cfg.metric) || any(ismember({'dval','auc','roc'},cfg.metric))
@@ -89,7 +89,6 @@ cfg.param = mv_classifier_defaults(cfg.classifier, cfg.param);
 
 [~,~,label] = mv_check_labels(label);
 
-nTime = numel(cfg.time);
 nLabel = numel(label);
 
 % Number of samples in the classes
@@ -118,7 +117,7 @@ if ~strcmp(cfg.CV,'none')
     if cfg.verbose, fprintf('Using %s cross-validation (K=%d) with %d repetitions.\n',cfg.CV,cfg.K,cfg.repeat), end
     
     % Initialise classifier outputs
-    cf_output = nan(numel(label), cfg.repeat, nTime);
+    cf_output = nan(numel(label), cfg.repeat);
 
     for rr=1:cfg.repeat                 % ---- CV repetitions ----
         if cfg.verbose, fprintf('\nRepetition #%d. Fold ',rr), end
@@ -150,7 +149,7 @@ if ~strcmp(cfg.CV,'none')
             if cfg.verbose, fprintf('%d ',ff), end
 
             % Train data
-            Xtrain = X(CV.training(ff),:,:,:);
+            Xtrain = X(CV.training(ff),:);
 
             % Get training labels
             trainlabels= label(CV.training(ff));
@@ -161,19 +160,13 @@ if ~strcmp(cfg.CV,'none')
             if strcmp(cfg.balance,'oversample')
                 [Xtrain,trainlabels] = mv_balance_classes(Xtrain,trainlabels,cfg.balance,cfg.replace);
             end
-
-            for tt=1:nTime           % ---- Train and test time ----
-                % Train and test data for time point tt
-                Xtrain_tt= squeeze(Xtrain(:,:,cfg.time(tt)));
-                Xtest= squeeze(X(CV.test(ff),:,cfg.time(tt)));
-
-                % Train classifier
-                cf= train_fun(Xtrain_tt, trainlabels, cfg.param);
-
-                % Obtain classifier output (labels or dvals)
-                cf_output(labelidx(CV.test(ff)),rr,tt) = mv_classifier_output(cfg.output, cf, test_fun, Xtest);
-                
-            end
+          
+            % Train classifier on training data
+            cf= train_fun(Xtrain, trainlabels, cfg.param);
+            
+            % Obtain classifier output (labels or dvals) on test data
+            cf_output(labelidx(CV.test(ff)),rr) = mv_classifier_output(cfg.output, cf, test_fun, X(CV.test(ff),:));
+            
         end
     end
 
@@ -187,25 +180,21 @@ else
     % training/testing time. This gives the classification performance for
     % the training set, but it may lead to overfitting and thus to an
     % artifically inflated performance.
+    if cfg.verbose, fprintf('Training and testing on the same data [no cross-validation]!\n'), end
 
     % Initialise classifier outputs
-    cf_output = nan(numel(label), nTime);
+    cf_output = nan(numel(label), 1);
     
     % Rebalance data using under-/over-sampling if requested
     if ~strcmp(cfg.balance,'none')
         [X,label] = mv_balance_classes(X_orig,label_orig,cfg.balance,cfg.replace);
     end
 
-    for tt=1:nTime          % ---- Train and test time ----
-        % Train and test data
-        Xtraintest= squeeze(X(:,:,cfg.time(tt)));
-
-        % Train classifier
-        cf= train_fun(Xtraintest, label, cfg.param);
-        
-        % Obtain classifier output (labels or dvals)
-        cf_output(:,tt) = mv_classifier_output(cfg.output, cf, test_fun, Xtraintest);
-    end
+    % Train classifier
+    cf= train_fun(X, label, cfg.param);
+    
+    % Obtain classifier output (labels or dvals)
+    cf_output = mv_classifier_output(cfg.output, cf, test_fun, X);
     
     % Calculate classifier performance
     for mm=1:nMetrics

@@ -64,7 +64,7 @@ function varargout = mv_classify_timextime(cfg, X, label)
 mv_setDefault(cfg,'classifier','lda');
 mv_setDefault(cfg,'param',[]);
 mv_setDefault(cfg,'metric','acc');
-mv_setDefault(cfg,'CV','none');
+mv_setDefault(cfg,'CV','kfold');
 mv_setDefault(cfg,'repeat',5);
 mv_setDefault(cfg,'time1',1:size(X,3));
 mv_setDefault(cfg,'time2',1:size(X,3));
@@ -164,7 +164,7 @@ if ~strcmp(cfg.CV,'none')
             % Train data
             Xtrain = X(CV.training(ff),:,:,:);
             
-            % Split labels into training and test
+            % Get training labels
             trainlabels= label(CV.training(ff));
             
             % Oversample data if requested. We need to oversample each
