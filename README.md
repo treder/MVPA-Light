@@ -74,6 +74,20 @@ To obtain a realistic estimate of classifier performance and control for overfit
 
 ## Examples<a name="examples"></a>
 
+This section gives some basic examples. More detailed examples and data can be found in the `examples/` subfolder.
+
+#### Training and testing
+
+
+```Matlab
+# Load example data
+load(epoched1)
+
+
+
+```
+
+
 <!--
 ## Q&A
 
