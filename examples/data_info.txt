@@ -1,0 +1,12 @@
+Datasets taken from the free BCI data repository http://bnci-horizon-2020.eu/database/data-sets
+For more information on the dataset, see http://doc.ml.tu-berlin.de/bbci/BNCIHorizon2020-MusicBCI/BNCI_MusicBCI.pdf and Treder et al. (2014).
+
+Data correspond to subjects VPaak, VPaan, VPgcc
+The "SynthPop" condition has been selected with attended and unattended deviants. The 64 channels have been reduced to 32 channels.
+
+Reference: 
+MS Treder, H Purwins, D Miklody, I Sturm, B Blankertz (2014).
+Decoding auditory attention to instruments in polyphonic music using single-trial EEG classification.
+Journal of neural engineering 11 (2), 026009
+
+

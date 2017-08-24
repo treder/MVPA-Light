@@ -26,10 +26,10 @@ function h = mv_plot_2D(cfg, dat)
 %                     'sym' makes the color values symmetric about a
 %                     reference point (e.g. [-0.7, 0.7] would be symmetric
 %                     about 0. climzero should be set if 'sym' is selected
-%                     (default 'minmax')
+%                     (default 'sym')
 % climzero          - if clim = 'sym' a "zero-point" needs to be defined
 %                     (for instance 0.5 for classification accuracies)
-%                     (default 0)
+%                     (default 0.5)
 % globalclim        - if 1 equalises the clim across all plots (if P>1)
 %                     (default 1)
 % zero              - marks the zero point with a horizontal and vertical
@@ -69,8 +69,8 @@ mv_setDefault(cfg,'ylim',[min(cfg.y), max(cfg.y)]);
 mv_setDefault(cfg,'xlabel','Testing time');
 mv_setDefault(cfg,'ylabel','Training time');
 mv_setDefault(cfg,'title','');
-mv_setDefault(cfg,'clim','maxmin');
-mv_setDefault(cfg,'climzero',0);
+mv_setDefault(cfg,'clim','sym');
+mv_setDefault(cfg,'climzero',0.5);
 mv_setDefault(cfg,'globalclim',1);
 mv_setDefault(cfg,'grid',{'on'});
 mv_setDefault(cfg,'zero',{'--k'});
@@ -169,7 +169,7 @@ end
 
 %% Add colorbar
 if cfg.colorbar
-    if cfg.globalclim && ~isempty(strfind(lower(cfg.cblocation),'outside'))
+    if cfg.globalclim && ~isempty(strfind(lower(cfg.cblocation),'outside')) && P>1
         % We place a single colorbar left/above the first image if
         % location='WestOutside'/'NorthOutside', right/below of the last 
         % image if location='EastOutside'/'Southoutside'

@@ -53,8 +53,8 @@ function varargout = mv_classify_across_time(cfg, X, label)
 %
 % Returns:
 % perf          - [time x 1] vector of classifier performances. If multiple
-%                 metrics were requested, a cell array with vectors of
-%                 classifier performance metrics is provided instead
+%                 metrics were requested, multiple output arguments are
+%                 provided.
 %
 % Note: For time x time generalisation, use mv_classify_timextime
 
@@ -152,7 +152,7 @@ if ~strcmp(cfg.CV,'none')
             % Train data
             Xtrain = X(CV.training(ff),:,:,:);
 
-            % Split labels into training and test
+            % Get training labels
             trainlabels= label(CV.training(ff));
 
             % Oversample data if requested. It is important to oversample
