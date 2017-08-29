@@ -16,6 +16,6 @@ function [label,dval] = test_logreg(cf,X)
 % label         - predicted class labels (1's and -1's)
 % dval          - decision values, i.e. distances to the hyperplane
 
-dval = X*cf.w - cf.b;
+dval = X*cf.w + cf.b; % unlike LDA, b needs to be added here
 label= sign(dval);
 

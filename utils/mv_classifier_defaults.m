@@ -25,8 +25,15 @@ switch(classifier)
         mv_setDefault(param,'lambda','auto');
         
     case 'logist'
+        mv_setDefault(param,'v','mean');
         mv_setDefault(param,'lambda',[]);
         mv_setDefault(param,'eigvalratio',[]);
+
+    case 'logreg'
+        mv_setDefault(param,'alpha',0.01);
+        mv_setDefault(param,'numLambda',100);
+        mv_setDefault(param,'K',5);
+        mv_setDefault(param,'nameval',{});
 
     case 'ensemble'
         mv_setDefault(param,'learner','lda');

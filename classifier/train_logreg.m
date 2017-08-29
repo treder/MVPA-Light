@@ -1,6 +1,11 @@
-function cfy = train_logreg(X,labels,param)
-% Trains a logistic regression classifier. Uses PCA for dimension reduction
-% and regularisation.
+function [cf, b, stats] = train_logreg(X,label,param)
+% Trains a logistic regression classifier with elastic net regularisation.
+% The regularisation parameter lambda controls the strength of the
+% regularisation. The parameter alpha is bounded between 0 and 1. It blends
+% between blends between full L1/lasso regularisation (alpha=1) and
+% L2/ridge regularisation (alpha close to 0). Must be strictly larger than
+% 0. For intermediate values, both L1 and L2 regularisation applies. 
+% Uses lassoglm.
 %
 % Usage:
 % cf = train_logreg(X,labels,param)
@@ -10,43 +15,36 @@ function cfy = train_logreg(X,labels,param)
 %                  training samples
 % labels         - [number of samples] vector of class labels containing 
 %                  1's (class 1) and -1's (class 2)
+%
 % param          - struct with hyperparameters:
-% .nPC           - number of principal components to retain
-%                                OR
-% .fracVar       - the number of PCs is selected such that this fraction 
-%                  of variance is retained. Either nPC or fracVar should be
-%                  set, not both.
-%
-%
-% Note that lambda can also be directly specified by setting params to the
-% lambda value.
-%
+% alpha          - blend between L1 regularisation (alpha=1) and L2
+%                  regularisation (alpha approaches 0). 
+%                  The closer to 1 alpha is set, the more sparse the 
+%                  coefficient vector becomes. If sparsity is not required, 
+%                  a small value of alpha is recommended since it speeds up
+%                  training considerably (default 10^-10)
+% nameval        - a cell array giving additional name-value pairs (e.g. 
+%                  {'LambdaRatio' 100 'Link' 'logit'} passed to lassoglm.
+%                  See the help of lassoglm for an explanation of the
+%                  parameters
+% K              - The hyperparameter lambda controlling the amount of 
+%                  regularisation is found using a grid search based on 
+%                  inner cross-validation. K sets the number of folds for 
+%                  the cross-validation (default 5)
+% numLambda      - the amount of lambda values that are checked during grid
+%                  search
+
 %Output:
 % cf - struct specifying the classifier with the following fields:
-% classifier   - 'lda', type of the classifier
 % w            - projection vector (normal to the hyperplane)
 % b            - bias term, setting the threshold 
-% C            - covariance matrix (possibly regularised)
-% mu1,mu2      - class means
-% N1,N2        - number of samples in classes 1 and 2
 %
 
-if ~exist('cfg','var') || isempty(param)
-    param.lambda = 0;
-elseif ~isstruct(param)
-    % lambda was provided directly
-    param.lambda= param;
-end
+[b, stats] = lassoglm(X, label(:)==1, 'binomial','alpha', param.alpha,...
+    'CV',param.K, 'numLambda',param.numLambda, param.nameval{:}); 
 
-%% Train logistic regression using GLMFIT
-beta= glmfit(X, labels(:)>0 ,'binomial','link','logit');
-
-% beta contains the intercept (beta(1)) and the projection vector w in beta(2:end)
-
-% TODO: correcting bias for unbalanced classes
-
-%% Prepare output
-cfy= struct();
-cfy.classifier= 'Logistic Regression';
-cfy.w= beta(2:end);
-cfy.b= beta(1);
+% Select classifier weights according to the lambda yielding the lowest 
+% deviance
+cf.w= b(:,stats.IndexMinDeviance);
+cf.b= stats.Intercept(stats.IndexMinDeviance);
+cf.best_lambda= stats.LambdaMinDeviance;
