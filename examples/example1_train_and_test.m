@@ -8,10 +8,12 @@ clear all
 % Load data (in /examples folder)
 load('epoched3')
 
-% Create class labels (+1's and -1's)
-label = zeros(nTrial, 1);
-label(attended_deviant)  = 1;   % Class 1: attended deviants
-label(~attended_deviant) = -1;  % Class 2: unattended deviants
+% attenden_deviant contains the information about the trials. Use this to
+% create the true class labels, indicating whether the trial corresponds to
+% an attended deviant (+1) or an unattended deviant (-1).
+truelabel = zeros(nTrial, 1);
+truelabel(attended_deviant)  = 1;   % Class 1: attended deviants
+truelabel(~attended_deviant) = -1;  % Class 2: unattended deviants
 
 %% Let's have a look at the data first: Calculate and plot ERP for attended and unattended deviants
 
@@ -41,7 +43,7 @@ X = squeeze(mean(dat.trial(:,:,ival_idx),3));
 param_lda = mv_classifier_defaults('lda');
 
 % Train an LDA classifier
-cf_lda = train_lda(X, label, param_lda);
+cf_lda = train_lda(X, truelabel, param_lda);
 
 % Test classifier on the same data: the function gives the predicted
 % labels (predlabel) and the decision values (dval) which represent the
@@ -50,10 +52,24 @@ cf_lda = train_lda(X, label, param_lda);
 
 % To calculate classification accuracy, compare the predicted labels to
 % the true labels and take the mean
-fprintf('Classification accuracy: %2.2f\n', mean(predlabel==label))
+fprintf('Classification accuracy: %2.2f\n', mean(predlabel==truelabel))
 
 % Look at the distribution of the decision values. dval should be positive
 % for label +1 (attended deviant) and negative for label -1 (unattended
 % deviant)
 figure
-boxplot(dval, label)
+boxplot(dval, truelabel)
+
+%% -- Logistic regression
+
+param = mv_classifier_defaults('logreg');
+
+cf = train_logreg(X, truelabel, param);
+
+%% ---
+param = mv_classifier_defaults('logist');
+param.eigvalratio = 10^-10;
+param.lambda = 10^10;
+cf = train_logist(X, truelabel, param);
+
+[predlabel, dval] = test_lda(cf_lda, X);

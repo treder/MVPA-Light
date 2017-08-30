@@ -26,10 +26,10 @@ function h = mv_plot_2D(cfg, dat)
 %                     'sym' makes the color values symmetric about a
 %                     reference point (e.g. [-0.7, 0.7] would be symmetric
 %                     about 0. climzero should be set if 'sym' is selected
-%                     (default 'minmax')
+%                     (default 'sym')
 % climzero          - if clim = 'sym' a "zero-point" needs to be defined
 %                     (for instance 0.5 for classification accuracies)
-%                     (default 0)
+%                     (default 0.5)
 % globalclim        - if 1 equalises the clim across all plots (if P>1)
 %                     (default 1)
 % zero              - marks the zero point with a horizontal and vertical
@@ -69,8 +69,8 @@ mv_setDefault(cfg,'ylim',[min(cfg.y), max(cfg.y)]);
 mv_setDefault(cfg,'xlabel','Testing time');
 mv_setDefault(cfg,'ylabel','Training time');
 mv_setDefault(cfg,'title','');
-mv_setDefault(cfg,'clim','maxmin');
-mv_setDefault(cfg,'climzero',0);
+mv_setDefault(cfg,'clim','sym');
+mv_setDefault(cfg,'climzero',0.5);
 mv_setDefault(cfg,'globalclim',1);
 mv_setDefault(cfg,'grid',{'on'});
 mv_setDefault(cfg,'zero',{'--k'});
@@ -96,12 +96,12 @@ end
 h = struct();
 h.ax = gca;
 
-x= cfg.x;
-y= cfg.y;
-
 %% Select samples according to xlim and ylim
-xsel = find(x >= cfg.xlim(1)  & x <= cfg.xlim(2));
-ysel = find(y >= cfg.ylim(1)  & y <= cfg.ylim(2));
+xsel = find(cfg.x >= cfg.xlim(1)  & cfg.x <= cfg.xlim(2));
+ysel = find(cfg.y >= cfg.ylim(1)  & cfg.y <= cfg.ylim(2));
+
+x= cfg.x(xsel);
+y= cfg.y(ysel);
 
 %% Plot data matrix
 axnum=1;
@@ -114,7 +114,7 @@ for rr=1:cfg.nrow
             % Plot the classification performance image here. The y-axis
             % represents training time and the x-axis represents testing
             % time
-            imagesc(cfg.x(xsel), cfg.y(ysel), squeeze(dat(ysel,xsel,axnum)));
+            imagesc(x, y, squeeze(dat(ysel,xsel,axnum)));
             axnum=axnum+1;
         end
     end
@@ -169,7 +169,7 @@ end
 
 %% Add colorbar
 if cfg.colorbar
-    if cfg.globalclim && ~isempty(strfind(lower(cfg.cblocation),'outside'))
+    if cfg.globalclim && ~isempty(strfind(lower(cfg.cblocation),'outside')) && P>1
         % We place a single colorbar left/above the first image if
         % location='WestOutside'/'NorthOutside', right/below of the last 
         % image if location='EastOutside'/'Southoutside'
@@ -194,7 +194,7 @@ end
 for ii=1:P  
     if ~isempty(cfg.xlabel{ii}), h.xlabel(ii) = xlabel(h.ax(ii),cfg.xlabel{ii}); end
     if ~isempty(cfg.ylabel{ii}), h.ylabel(ii) = ylabel(h.ax(ii),cfg.ylabel{ii}); end
-    if ~isempty(cfg.title{ii}), h.title(ii) = title(h.ax(ii),cfg.title{ii},'interpreter','none'); end
+    if ~isempty(cfg.title{ii}), h.title(ii) = title(h.ax(ii),cfg.title{ii}); end
 end
 
 %% Set Y-Dir
@@ -206,6 +206,6 @@ for ii=1:P
 end
 
 %% Set ticks and scale
-set(h.ax, 'YLim',[cfg.y(1) cfg.y(end)]);
+set(h.ax, 'YLim',[y(1) y(end)]);
 set(h.ax, 'XScale',cfg.xscale,'YScale',cfg.yscale);
 

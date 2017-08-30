@@ -1,9 +1,9 @@
 function perf = mv_classifier_performance(metric, cf_output, label, dim)
 %Calculates a classifier performance metric such as classification accuracy
-%based on the classifier output (labels or dvals).
+%based on the classifier output (labels or decision values).
 %
 %Usage:
-%  perf = mv_classifier_performance(metric, cf_output, labels, dim)
+%  perf = mv_classifier_performance(metric, cf_output, label, dim)
 %
 %Parameters:
 % metric            - desired performance metric: 
@@ -13,7 +13,7 @@ function perf = mv_classifier_performance(metric, cf_output, label, dim)
 %                     for each class separately. The first dimension of
 %                     the output refers to the class, ie perf(1,...)
 %                     refers to class +1 and perf(2,...) refers to class -1
-%                     'auc': area under the ROC curve TODO
+%                     'auc': area under the ROC curve
 %                     'roc': ROC curve TODO
 % cf_output         - classifier output (labels or dvals)
 % label             - true class labels
@@ -87,15 +87,14 @@ switch(metric)
             isClass1Idx = find(clabel(:)== 1 & ~nanidx(soidx(:,ii),ii));
             isClass2 = (clabel(:)==-1 & ~nanidx(soidx(:,ii),ii));
             
-            % Count number of FPs with lower value
+            % Count number of False Positives with lower value
             for ix=1:numel(isClass1Idx)
                 perf(1,ii) = perf(1,ii) + sum(isClass2(isClass1Idx(ix)+1:end));
             end
             
-            % Correct by number of TPs*FPs
+            % Correct by number of True Positives * False Positives
             perf(1,ii) = perf(1,ii)/ (numel(isClass1Idx) * sum(isClass2));
-        end
-        
+        end        
 end
 
 % Average across additional dimensions
