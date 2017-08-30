@@ -23,6 +23,7 @@ switch(classifier)
     
     case 'lda'
         mv_setDefault(param,'lambda','auto');
+        mv_setDefault(param,'prob',0);
         
     case 'logist'
         mv_setDefault(param,'v','mean');

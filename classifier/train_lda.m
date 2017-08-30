@@ -1,4 +1,4 @@
-function [cf,C,lambda,mu1,mu2] = train_lda(X,labels,param)
+function [cf,C,lambda,mu1,mu2] = train_lda(X,label,param)
 % Trains a linear discriminant analysis with (optional) shrinkage
 % regularisation of the covariance matrix.
 %
@@ -18,9 +18,11 @@ function [cf,C,lambda,mu1,mu2] = train_lda(X,labels,param)
 %                   If 'auto' then the regularisation parameter is
 %                   calculated automatically using the Ledoit-Wolf formula(
 %                   function cov1para.m)
+% .prob          - if 1, probabilities are returned as decision values. If
+%                  0, the decision values are simply the distance to the
+%                  hyperplane. Calculating probabilities takes more time
+%                  and memory so don't use this unless needed (default 0)
 %
-% Note that lambda can also be directly specified by setting params to the
-% lambda value.
 %
 %Output:
 % cf - struct specifying the classifier with the following fields:
@@ -35,8 +37,8 @@ function [cf,C,lambda,mu1,mu2] = train_lda(X,labels,param)
 
 % (c) Matthias Treder 2017
 
-idx1= (labels==1);   % logical indices for samples in class 1
-idx2= (labels==-1);  % logical indices for samples in class 2
+idx1= (label==1);   % logical indices for samples in class 1
+idx2= (label==-1);  % logical indices for samples in class 2
 
 N1 = sum(idx1);
 N2 = sum(idx2);
@@ -76,7 +78,30 @@ w = C\(mu1-mu2);
 b= w'*(mu1+mu2)/2;
 
 %% Prepare output
-cf= struct('w',w,'b',b);
+cf= struct('w',w,'b',b,'prob',param.prob);
+
+% If probabilities are to be returned as decision values, we need to
+% determine the priors and also save the covariance matrix and the cleass 
+% means
+if param.prob == 1
+    % Calculate posterior probabilities (probability for a sample to be
+    % class 1)
+    
+    % The prior probabilities are calculated from the training
+    % data using the proportion of samples in each class 
+    cf.prior1 = N1/N;
+    cf.prior2 = N2/N;
+    
+%     cf.C = C;
+%     cf.mu1 = mu1;
+%     cf.mu2 = mu2;
+    % Projected standard deviation
+    cf.sigma = sqrt(w' * C * w);
+    
+    % Projected class means
+    cf.m1 = w' * mu1;
+    cf.m2 = w' * mu2;
+end
 
 if nargout>2
     lambda= param.lambda;

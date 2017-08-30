@@ -1,4 +1,4 @@
-function [label,dval,varargout] = test_lda(cf,X)
+function [label,dval] = test_lda(cf,X)
 % Applies an LDA classifier to test data and produces class labels,
 % decision values, and posterior probabilities.
 % 
@@ -14,22 +14,26 @@ function [label,dval,varargout] = test_lda(cf,X)
 %
 %Output:
 % label         - predicted class labels (1's and -1's)
-% dval          - decision values, i.e. distances to the hyperplane
-% post          - posterior class probabilities
+% dval          - decision values, i.e. distances to the hyperplane or
+%                 class probabilities
 
 dval = X*cf.w - cf.b;
 label= sign(dval);
 
-if nargout>2
-    % Calculate posterior probabilities (probability for a sample to be
-    % class 1)
-    
-    % The prior probabilities are calculated from the training
-    % data using the proportion of samples in each class 
-    prior1 = cf.N1/(cf.N1+cf.N2);
-    prior2 = 1 - prior1;
-    
-    prob1= mvnpdf(X',cf.mu1,cf.C);
-    prob2= mvnpdf(X',cf.mu2,cf.C);
-    varargout{1}= prob1*prior1 / (prob1*prior1 + prob2*prior2);
+if cf.prob==1
+    % To obtain posterior probabilities, we evaluate a multivariate normal
+    % pdf at the test data point. As decision values, we output relative
+    % class probabilities for class 1.
+%     prob1= mvnpdf(X, cf.mu1', cf.C);
+%     prob2= mvnpdf(X, cf.mu2', cf.C);
+%     dval= prob1*cf.prior1 ./ (prob1*cf.prior1 + prob2*cf.prior2);
+
+    % For the posterior probability, we do not need to evaluate the
+    % multivariate normal pdf. Instead, we can simply evaluate the 1D
+    % normal pdf after projecting the class means and C onto w - this is
+    % faster
+    prob1= normpdf(X * cf.w, cf.m1, cf.sigma);
+    prob2= normpdf(X * cf.w, cf.m2, cf.sigma);
+    dval= prob1*cf.prior1 ./ (prob1*cf.prior1 + prob2*cf.prior2);
+
 end
