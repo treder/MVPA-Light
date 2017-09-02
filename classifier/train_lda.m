@@ -21,7 +21,9 @@ function [cf,C,lambda,mu1,mu2] = train_lda(X,label,param)
 % .prob          - if 1, probabilities are returned as decision values. If
 %                  0, the decision values are simply the distance to the
 %                  hyperplane. Calculating probabilities takes more time
-%                  and memory so don't use this unless needed (default 0)
+%                  and memory so don't use this unless needed. Also
+%                  accuracies cannot be calculated from probabilities
+%                  since decision values need to be signed (default 0)
 %
 %
 %Output:
@@ -92,15 +94,15 @@ if param.prob == 1
     cf.prior1 = N1/N;
     cf.prior2 = N2/N;
     
-%     cf.C = C;
-%     cf.mu1 = mu1;
-%     cf.mu2 = mu2;
+    cf.C = C;
+    cf.mu1 = mu1;
+    cf.mu2 = mu2;
     % Projected standard deviation
-    cf.sigma = sqrt(w' * C * w);
-    
-    % Projected class means
-    cf.m1 = w' * mu1;
-    cf.m2 = w' * mu2;
+%     cf.sigma = sqrt(w' * C * w);
+%     
+%     % Projected class means
+%     cf.m1 = w' * mu1;
+%     cf.m2 = w' * mu2;
 end
 
 if nargout>2
