@@ -22,7 +22,10 @@ function [cf,C,lambda,mu1,mu2] = train_lda(X,label,param)
 %                  0, the decision values are simply the distance to the
 %                  hyperplane. Calculating probabilities takes more time
 %                  and memory so don't use this unless needed (default 0)
-%
+% .scale         - if 1, the projection vector w is scaled such that the
+%                  mean of class 1 (on the training data) projects onto +1 
+%                  and the mean of class 2 (on the training data) projects
+%                  onto -1
 %
 %Output:
 % cf - struct specifying the classifier with the following fields:
@@ -71,8 +74,13 @@ if (ischar(param.lambda)&&strcmp(param.lambda,'auto')) || param.lambda>0
     
 end
 
-% Get the classifier projection vector (normal to the hyperplane)
+% Classifier weight vector (= normal to the separating hyperplane)
 w = C\(mu1-mu2);
+
+% Scale w such that the class means are projected onto +1 and -1
+if param.scale
+    w = w / ((mu1-mu2)'*w) * 2;
+end
 
 % Bias term determining the classification threshold
 b= w'*(mu1+mu2)/2;
