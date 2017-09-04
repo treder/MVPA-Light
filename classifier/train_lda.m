@@ -5,11 +5,11 @@ function [cf,C,lambda,mu1,mu2] = train_lda(X,label,param)
 % Usage:
 % cf = train_lda(X,labels,<param>)
 % cf = train_lda(X,labels,lambda)
-% 
+%
 %Parameters:
 % X              - [number of samples x number of features] matrix of
 %                  training samples
-% labels         - [number of samples] vector of class labels containing 
+% labels         - [number of samples] vector of class labels containing
 %                  1's (class 1) and -1's (class 2)
 %
 % param          - struct with hyperparameters:
@@ -21,16 +21,17 @@ function [cf,C,lambda,mu1,mu2] = train_lda(X,label,param)
 % .prob          - if 1, probabilities are returned as decision values. If
 %                  0, the decision values are simply the distance to the
 %                  hyperplane. Calculating probabilities takes more time
-%                  and memory so don't use this unless needed. Also
-%                  accuracies cannot be calculated from probabilities
-%                  since decision values need to be signed (default 0)
-%
+%                  and memory so don't use this unless needed (default 0)
+% .scale         - if 1, the projection vector w is scaled such that the
+%                  mean of class 1 (on the training data) projects onto +1
+%                  and the mean of class 2 (on the training data) projects
+%                  onto -1
 %
 %Output:
 % cf - struct specifying the classifier with the following fields:
 % classifier   - 'lda', type of the classifier
 % w            - projection vector (normal to the hyperplane)
-% b            - bias term, setting the threshold 
+% b            - bias term, setting the threshold
 %
 % The following fields can be returned optionally:
 % C            - covariance matrix (possibly regularised)
@@ -57,7 +58,7 @@ mu2= mean(X(idx2,:))';
 % Regularise covariance matrix using shrinkage
 if (ischar(param.lambda)&&strcmp(param.lambda,'auto')) || param.lambda>0
 
-    if ischar(param.lambda)&&strcmp(param.lambda,'auto') 
+    if ischar(param.lambda)&&strcmp(param.lambda,'auto')
         % Here we use the Ledoit-Wolf method to estimate the regularisation
         % parameter analytically.
         % Get samples from each class separately and correct by the class
@@ -70,11 +71,16 @@ if (ischar(param.lambda)&&strcmp(param.lambda,'auto')) || param.lambda>0
         % the same trace as C
         C = (1-param.lambda)* C + param.lambda * eye(size(C,1)) * trace(C)/size(X,2);
     end
-    
+
 end
 
-% Get the classifier projection vector (normal to the hyperplane)
+% Classifier weight vector (= normal to the separating hyperplane)
 w = C\(mu1-mu2);
+
+% Scale w such that the class means are projected onto +1 and -1
+if param.scale
+    w = w / ((mu1-mu2)'*w) * 2;
+end
 
 % Bias term determining the classification threshold
 b= w'*(mu1+mu2)/2;
@@ -83,23 +89,23 @@ b= w'*(mu1+mu2)/2;
 cf= struct('w',w,'b',b,'prob',param.prob);
 
 % If probabilities are to be returned as decision values, we need to
-% determine the priors and also save the covariance matrix and the cleass 
+% determine the priors and also save the covariance matrix and the cleass
 % means
 if param.prob == 1
     % Calculate posterior probabilities (probability for a sample to be
     % class 1)
-    
+
     % The prior probabilities are calculated from the training
-    % data using the proportion of samples in each class 
+    % data using the proportion of samples in each class
     cf.prior1 = N1/N;
     cf.prior2 = N2/N;
-    
+
     cf.C = C;
     cf.mu1 = mu1;
     cf.mu2 = mu2;
     % Projected standard deviation
 %     cf.sigma = sqrt(w' * C * w);
-%     
+%
 %     % Projected class means
 %     cf.m1 = w' * mu1;
 %     cf.m2 = w' * mu2;

@@ -23,8 +23,9 @@ erp_unattended = squeeze(mean(dat.trial(~attended_deviant,:,:)));
 
 % Plot ERP: attended deviants in red, unattended deviants in green. Each
 % line is one EEG channel.
+close
 plot(dat.time, erp_attended, 'r'), hold on
-plot(dat.time, erp_unattended, 'g')
+plot(dat.time, erp_unattended, 'b')
 grid on
 
 %% Train and test classifier
