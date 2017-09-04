@@ -80,12 +80,80 @@ This section gives some basic examples. More detailed examples and data can be f
 
 
 ```Matlab
-# Load example data
-load(epoched1)
+% Load example data
+load('epoched1')
+
+% Get default hyperparameters
+param = mv_classifier_defaults('lda');
+
+% Fetch the data from the 300th time sample
+X = dat.trial(:,:,300);
+
+% Train an LDA classifier
+cf = train_lda(X, truelabel, param);
+
+% Test classifier on the same data
+[predlabel, dval] = test_lda(cf, X);
+```
+
+See `examples/example1_train_and_test.m` for more details.
+
+#### Cross-validation
 
 
+```Matlab
+ccfg = [];
+ccfg.classifier      = 'lda';
+ccfg.param           = struct('lambda','auto');
+ccfg.metric          = 'acc';
+ccfg.CV              = 'kfold';
+ccfg.K               = 5;
+ccfg.repeat          = 3;
+ccfg.balance         = 'undersample';
+ccfg.verbose         = 1;
+
+acc = mv_crossvalidate(ccfg, X, label);
+```
+
+See `examples/example2_crossvalidate.m` for more details.
+
+
+#### Classification across time
+
+
+```Matlab
+ccfg =  [];
+ccfg.CV         = 'kfold';
+ccfg.K          = 5;
+ccfg.repeat     = 5; % 10
+ccfg.classifier = 'lda';
+ccfg.param      = struct('lambda','auto');
+ccfg.verbose    = 1;
+
+acc = mv_classify_across_time(ccfg, dat.trial, label);
 
 ```
+
+See `examples/example3_classify_across_time.m` for more details.
+
+#### Time generalisation (time x time classification)
+
+
+```Matlab
+ccfg =  [];
+ccfg.classifier = 'lda';
+ccfg.param      = struct('lambda','auto');
+ccfg.verbose    = 1;
+ccfg.normalise  = 'demean';
+ccfg.metric     = {'acc' 'auc'};
+
+[acc,auc] = mv_classify_timextime(ccfg, dat.trial, label);
+
+```
+
+See `examples/example4_classify_timextime.m` for more details.
+
+
 
 
 <!--
