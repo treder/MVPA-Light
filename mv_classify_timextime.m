@@ -129,7 +129,8 @@ if ~strcmp(cfg.CV,'none')
     if cfg.verbose, fprintf('Using %s cross-validation (K=%d) with %d repetitions.\n',cfg.CV,cfg.K,cfg.repeat), end
 
     % Initialise classifier outputs
-    cf_output = nan(nLabel, cfg.repeat, nTime1, nTime2);
+    cf_output = cell(cfg.repeat, cfg.K, nTime1);
+    testlabel = cell(cfg.repeat, cfg.K);
 
     for rr=1:cfg.repeat                 % ---- CV repetitions ----
         if cfg.verbose, fprintf('\nRepetition #%d. Fold ',rr), end
@@ -139,7 +140,7 @@ if ~strcmp(cfg.CV,'none')
         % sampled) so randomly repeating the process reduces the variance
         % of the result
         if strcmp(cfg.balance,'undersample')
-            [X,label,labelidx] = mv_balance_classes(X_orig,label_orig,cfg.balance,cfg.replace);
+            [X,label] = mv_balance_classes(X_orig,label_orig,cfg.balance,cfg.replace);
             
         elseif isnumeric(cfg.balance)
             if ~all( cfg.balance <= [N1,N2])
@@ -148,30 +149,27 @@ if ~strcmp(cfg.CV,'none')
             end
             % Sometimes we want to undersample to a specific
             % number (e.g. to match the number of samples across
-            % subconditions). labelidx tells us the original indices of the
-            % subsampled labels so we can store the classifier output at
-            % the right spot in cf_output
-            [X,label,labelidx] = mv_balance_classes(X_orig,label_orig,cfg.balance,cfg.replace);
-        else
-            labelidx = 1:nLabel;
+            % subconditions)
+            [X,label] = mv_balance_classes(X_orig,label_orig,cfg.balance,cfg.replace);
         end
 
         CV= cvpartition(label,cfg.CV,cfg.K);
         
-        for ff=1:cfg.K                      % ---- CV folds ----
-            if cfg.verbose, fprintf('%d ',ff), end
+        for kk=1:cfg.K                      % ---- CV folds ----
+            if cfg.verbose, fprintf('%d ',kk), end
                       
             % Train data
-            Xtrain = X(CV.training(ff),:,:,:);
+            Xtrain = X(CV.training(kk),:,:,:);
             
             % Get training labels
-            trainlabels= label(CV.training(ff));
-            
+            trainlabel= label(CV.training(kk));
+            testlabel{rr,kk} = label(CV.test(kk));
+
             % Oversample data if requested. We need to oversample each
             % training set separately to prevent overfitting (see
             % mv_balance_classes for an explanation)
             if strcmp(cfg.balance,'oversample')
-                [Xtrain,trainlabels] = mv_balance_classes(X_orig,label_orig,cfg.balance,cfg.replace);
+                [Xtrain,trainlabel] = mv_balance_classes(X_orig,label_orig,cfg.balance,cfg.replace);
             end
             
             % ---- Test data ----
@@ -181,11 +179,11 @@ if ~strcmp(cfg.CV,'none')
             % instead of nTime2 times.
             
             % Get test data
-            Xtest= X(CV.test(ff),:,:);
+            Xtest= X(CV.test(kk),:,:);
             
             % permute and reshape into [ (trials x test times) x features]
             Xtest= permute(Xtest, [1 3 2]);
-            Xtest= reshape(Xtest, CV.TestSize(ff)*nTime2, []);
+            Xtest= reshape(Xtest, CV.TestSize(kk)*nTime2, []);
             
             % ---- Training time ----
             for t1=1:nTime1  
@@ -194,19 +192,20 @@ if ~strcmp(cfg.CV,'none')
                 Xtrain_tt= squeeze(Xtrain(:,:,cfg.time1(t1)));
                 
                 % Train classifier
-                cf= train_fun(Xtrain_tt, trainlabels, cfg.param);
+                cf= train_fun(Xtrain_tt, trainlabel, cfg.param);
 
                 % Obtain classifier output (labels or dvals)
-                cf_output(labelidx(CV.test(ff)),rr,t1,:) = reshape( mv_classifier_output(cfg.output, cf, test_fun, Xtest), sum(CV.test(ff)),[]);
+                cf_output{rr,kk,t1} = reshape( mv_classifier_output(cfg.output, cf, test_fun, Xtest), sum(CV.test(kk)),[]);
 
             end
       
         end
     end
 
-    % Calculate classifier performance and average across the repeats
+    % Calculate classifier performance and average across all test sets
+    % (i.e. all repeats and folds)
     for mm=1:nMetrics
-        perf{mm} = mv_classifier_performance(cfg.metric{mm}, cf_output, label_orig, 2);
+        perf{mm} = mv_classifier_performance(cfg.metric{mm}, cf_output, testlabel, [1,2]);
     end
     
 else
