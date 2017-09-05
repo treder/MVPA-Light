@@ -9,7 +9,7 @@ function [X,label,labelidx] = mv_balance_classes(X,label,method,replace)
 % X              - [number of samples x number of features x number of time points]
 %                  or [number of samples x number of features] data matrix.
 % labels         - [1 x number of samples] vector of class labels containing
-%                  1's (class 1) and -1's (class 2)
+%                  1's (class 1) and 2's (class 2)
 % method         - 'oversample' or 'undersample'. Alternatively, an integer
 %                  number can be given which will be the number of samples
 %                  in each class. Undersampling or oversampling of each
@@ -49,15 +49,15 @@ if nargin<4 || isempty(replace)
     replace = 1;
 end
 
-N = [sum(label==1), sum(label== -1)];
-% N1 = sum(labels==1);
-% N2 = sum(labels== -1);
+N = [sum(label==1), sum(label==2)];
 
 %% Determine which class is the minority class
 if N(1) < N(2)
     minorityClass = 1;
+    majorityClass = 2;
 else
-    minorityClass = -1;
+    minorityClass = 2;
+    majorityClass = 1;
 end
 
 %% Oversample/undersample
@@ -77,7 +77,7 @@ if ischar(method) && strcmp(method,'oversample')
     
 elseif ischar(method) && strcmp(method,'undersample')
     % undersample the majority class
-    idxMajority = find(label == -1*minorityClass);
+    idxMajority = find(label == majorityClass);
     idxRm = randperm( max(N(1),N(2)), addRmSamples);
     X(idxMajority(idxRm),:,:)= [];
     label(idxMajority(idxRm))= [];
@@ -97,8 +97,7 @@ elseif isnumeric(method)
     do_undersample = [N(1) N(2)] > num;
 
     for cc=1:2
-        y = (-1)^(cc+1);  % -1 for ii=1 and 1 for cc=2
-        idxClass= find(label == y); % class indices for class cc
+        idxClass= find(label == cc); % class indices for class cc
         
         if do_undersample(cc)
             % We need to undersample this class
