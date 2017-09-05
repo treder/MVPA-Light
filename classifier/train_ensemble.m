@@ -1,18 +1,18 @@
-function cf = train_ensemble(X,labels,param)
+function cf = train_ensemble(cfg,X,labels)
 % Trains an ensemble of classifiers. Uses many classifiers (aka weak
 % learners) trained on subsets of the samples and subsets of the features
 % (random subspaces).
 %
 % Usage:
-% cf = train_ensemble(X,labels,param)
+% cf = train_ensemble(X,labels,cfg)
 % 
 %Parameters:
 % X              - [number of samples x number of features] matrix of
 %                  training samples
 % labels         - [number of samples] vector of class labels containing 
-%                  1's (class 1) and -1's (class 2)
+%                  1's (class 1) and 2's (class 2)
 %
-% param: struct with parameters:
+% cfg: struct with parameters:
 % .nSamples         - number of randomly subselected samples for each
 %                     learner. Can be an integer number or a
 %                     fraction, e.g. 0.1 means that 10% of the training 
@@ -39,7 +39,7 @@ function cf = train_ensemble(X,labels,param)
 %                     are drawn without replacement (default 1)
 % .learner          - type of learning algorithm, e.g. 'lda','logreg' etc. 
 % .learner_param    - struct with further parameters passed on to the learning
-%                     algorithm (e.g. .param.gamma specifies the
+%                     algorithm (e.g. .cfg.gamma specifies the
 %                     regularisation hyperparameter for LDA)
 % .simplify         - for linear classifiers, the operation of the ensemble
 %                     is again equivalent to a single linear classifier.
@@ -55,67 +55,78 @@ function cf = train_ensemble(X,labels,param)
 
 [N,F] = size(X);
 
+% default settings
+mv_setDefault(cfg,'learner','lda');
+mv_setDefault(cfg,'learner_param',[]);
+mv_setDefault(cfg,'nSamples', 0.5);
+mv_setDefault(cfg,'nFeatures', 0.2);
+mv_setDefault(cfg,'nLearners', 500);
+mv_setDefault(cfg,'stratify', false);
+mv_setDefault(cfg,'replace', 1);
+mv_setDefault(cfg,'strategy', 'dval');
+mv_setDefault(cfg,'simplify', false);
+
 % if fractions are given for nFeatures and nLearners, turn them into
 % absolute numbers
-if param.nSamples < 1
-    param.nSamples= round(param.nSamples*N);
+if cfg.nSamples < 1
+    cfg.nSamples= round(cfg.nSamples*N);
 end
-if param.nFeatures < 1
-    param.nFeatures= round(param.nFeatures*F);
+if cfg.nFeatures < 1
+    cfg.nFeatures= round(cfg.nFeatures*F);
 end
 
 % if we want stratification, we need to calculate how many samples of each
 % class we need in the subselected data
-if param.stratify > 0
+if cfg.stratify > 0
     % indices for class 1 and 2
     idx1= find(labels==1);
-    idx2= find(labels==-1);
+    idx2= find(labels==2);
     % class proportions
     N1= numel(idx1);
     N2= numel(idx2);
-    if param.stratify < 1 
+    if cfg.stratify < 1 
         % fraction of desired samples from class 1 is provided
-        p1= param.stratify;
+        p1= cfg.stratify;
     else
         % calculate fraction of desired samples from class 1 from data
         p1= N1/N;
     end
     % number of subselected samples from class 1 and 2
-    Nsub1= round(param.nSamples * p1);
-    Nsub2= param.nSamples - Nsub1;
+    Nsub1= round(cfg.nSamples * p1);
+    Nsub2= cfg.nSamples - Nsub1;
 end
     
 %% Select random features for the learners
-randomFeatures = sparse(false(F,param.nLearners));
-for ll=1:param.nLearners
-    randomFeatures(randperm(F,param.nFeatures),ll)=true;
+randomFeatures = sparse(false(F,cfg.nLearners));
+for ll=1:cfg.nLearners
+    randomFeatures(randperm(F,cfg.nFeatures),ll)=true;
 end
 
 %% Select random samples for the learners
 % We have to consider different cases 
-randomSamples = zeros(param.nSamples,param.nLearners);
-if param.stratify
-     if param.replace
-        for ll=1:param.nLearners
+randomSamples = zeros(cfg.nSamples,cfg.nLearners);
+if cfg.stratify
+     if cfg.replace
+        for ll=1:cfg.nLearners
             randomSamples(1:Nsub1,ll)=idx1(randi(N1,1,Nsub1));
         end
-        for ll=1:param.nLearners
+        for ll=1:cfg.nLearners
             randomSamples(Nsub1+1:end,ll)=idx2(randi(N2,1,Nsub2));
         end
     else % draw without replacement
-        for ll=1:param.nLearners
-            randomSamples(:,ll)=randperm(N,param.nSamples);
+        for ll=1:cfg.nLearners
+            randomSamples(:,ll)=randperm(N,cfg.nSamples);
         end
     end
 % no stratification, draw samples without caring for class labels
 else 
-    if param.replace
-        for ll=1:param.nLearners
-            randomSamples(:,ll)=randi(N,1,param.nSamples);
+    if cfg.replace
+        for ll=1:cfg.nLearners
+            randomSamples(:,ll)=randi(N,1,cfg.nSamples);
         end
     else % draw without replacement
-        for ll=1:param.nLearners
-            randomSamples(:,ll)=randperm(N,param.nSamples);
+        for ll=1:cfg.nLearners
+            randomSamples(:,ll)=randperm(N,cfg.nSamples);
         end
     end
 end
@@ -123,12 +134,12 @@ end
 randomSamples = sort(randomSamples);
 
 %% Train learner ensemble
-cf = struct('randomFeatures',randomFeatures,'strategy',param.strategy,...
-    'nLearners',param.nLearners,'simplify',param.simplify);
-cf.train= eval(['@train_' param.learner ]);
-cf.test= eval(['@test_' param.learner ]);
+cf = struct('randomFeatures',randomFeatures,'strategy',cfg.strategy,...
+    'nLearners',cfg.nLearners,'simplify',cfg.simplify);
+cf.train= eval(['@train_' cfg.learner ]);
+cf.test= eval(['@test_' cfg.learner ]);
 
-if param.simplify
+if cfg.simplify
     % In linear classifiers, the operation of the ensemble is equivalent to
     % the operation of a single classifier with appropriate weight w and
     % threshold b.
@@ -136,20 +147,20 @@ if param.simplify
     % features) and then add up the w's.
     cf.w = zeros(F,1);
     cf.b = 0;
-    for ll=1:param.nLearners
-        tmp = cf.train(X(randomSamples(:,ll),randomFeatures(:,ll)),labels(randomSamples(:,ll)),param.learner_param);
+    for ll=1:cfg.nLearners
+        tmp = cf.train(X(randomSamples(:,ll),randomFeatures(:,ll)),labels(randomSamples(:,ll)),cfg.learner_param);
         cf.w(randomFeatures(:,ll)) = cf.w(randomFeatures(:,ll)) + tmp.w;
         cf.b = cf.b + tmp.b;
     end
-    cf.w = cf.w / param.nLearners;
-    cf.b = cf.b / param.nLearners;
+    cf.w = cf.w / cfg.nLearners;
+    cf.b = cf.b / cfg.nLearners;
 else
     % Initialise struct array of learners
-    cf.classifier(param.nLearners) = cf.train(X(randomSamples(:,param.nLearners),randomFeatures(:,param.nLearners)),labels(randomSamples(:,param.nLearners)),param.learner_param);
+    cf.classifier(cfg.nLearners) = cf.train(X(randomSamples(:,cfg.nLearners),randomFeatures(:,cfg.nLearners)),labels(randomSamples(:,cfg.nLearners)),cfg.learner_param);
     
     % Train all the other learners
-    for ll=1:param.nLearners-1
-        cf.classifier(ll) = cf.train(X(randomSamples(:,ll),randomFeatures(:,ll)),labels(randomSamples(:,ll)),param.learner_param);
+    for ll=1:cfg.nLearners-1
+        cf.classifier(ll) = cf.train(X(randomSamples(:,ll),randomFeatures(:,ll)),labels(randomSamples(:,ll)),cfg.learner_param);
     end
 end
 

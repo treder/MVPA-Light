@@ -13,7 +13,7 @@ function [label,dval] = test_lda(cf,X)
 %                  test samples
 %
 %Output:
-% label         - predicted class labels (1's and -1's)
+% label         - predicted class labels (1's and 2's)
 % dval          - decision values, i.e. distances to the hyperplane or
 %                 class probabilities
 
@@ -23,17 +23,20 @@ label= sign(dval);
 if cf.prob==1
     % To obtain posterior probabilities, we evaluate a multivariate normal
     % pdf at the test data point. As decision values, we output relative
-    % class probabilities for class 1.
-%     prob1= mvnpdf(X, cf.mu1', cf.C);
-%     prob2= mvnpdf(X, cf.mu2', cf.C);
-%     dval= prob1*cf.prior1 ./ (prob1*cf.prior1 + prob2*cf.prior2);
+    % class probabilities for class 1
+    prob1= mvnpdf(X, cf.mu1', cf.C);
+    prob2= mvnpdf(X, cf.mu2', cf.C);
+    dval= prob1*cf.prior1 ./ (prob1*cf.prior1 + prob2*cf.prior2);
 
+    % The following code does not work, since normpdf on the projections
+    % does not yield results that are equivalent to mvnpdf on the
+    % non-projections
     % For the posterior probability, we do not need to evaluate the
     % multivariate normal pdf. Instead, we can simply evaluate the 1D
     % normal pdf after projecting the class means and C onto w - this is
     % faster
-    prob1= normpdf(X * cf.w, cf.m1, cf.sigma);
-    prob2= normpdf(X * cf.w, cf.m2, cf.sigma);
-    dval= prob1*cf.prior1 ./ (prob1*cf.prior1 + prob2*cf.prior2);
+%     prob1= normpdf(X * cf.w, cf.m1, cf.sigma);
+%     prob2= normpdf(X * cf.w, cf.m2, cf.sigma);
+%     dval= prob1*cf.prior1 ./ (prob1*cf.prior1 + prob2*cf.prior2);
 
 end
