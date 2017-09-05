@@ -12,7 +12,7 @@ function perf = mv_classifier_performance(metric, cf_output, label, dim)
 %                     'dval': decision values. Average dvals are calculated
 %                     for each class separately. The first dimension of
 %                     the output refers to the class, ie perf(1,...)
-%                     refers to class +1 and perf(2,...) refers to class -1
+%                     refers to class +1 and perf(2,...) refers to class 2
 %                     'auc': area under the ROC curve
 %                     'roc': ROC curve TODO
 % cf_output         - classifier output (labels or dvals)
@@ -35,8 +35,8 @@ if size(cf_output,1) ~= numel(label)
 end
 
 % Check whether the classifier output is given as predicted labels or 
-% dvals. In the former case, it should consist of -1's and 1's only.
-isLabel = all(ismember( unique(cf_output(~isnan(cf_output))), [-1 1] ));
+% dvals. In the former case, it should consist of 1's and 2's only.
+isLabel = all(ismember( unique(cf_output(~isnan(cf_output))), [1 2] ));
 
 % For some metrics dvals are required
 if isLabel && any(strcmp(metric,{'dval' 'roc' 'auc'}))
@@ -54,8 +54,11 @@ switch(metric)
             % Compare predicted labels to the true labels
             perf = double(bsxfun(@eq, cf_output, label(:)));
         else
+            % We want class 1 labels to be positive, and class 2 labels to
+            % be negative, because then their sign corresponds to the dvals
+            label =  -label + 1.5;
             % We first need to transform the classifier output into labels.
-            % To this end, we multiply the the dvals by the true labels -
+            % To this end, we multiply the the dvals by the transformed labels -
             % for correct classification the product is positive
             perf = double(bsxfun(@times, cf_output, label(:)) > 0);
         end
@@ -68,12 +71,12 @@ switch(metric)
         
     case 'dval'
         % Aggregate across samples, for each class separately 
-        perf = cat(1,nanmean(cf_output(label==1,:,:,:,:,:),1),nanmean(cf_output(label==-1,:,:,:,:,:),1));
+        perf = cat(1,nanmean(cf_output(label==1,:,:,:,:,:),1),nanmean(cf_output(label==2,:,:,:,:,:),1));
         
     case 'auc'
         % AUC can be calculated by sorting the dvals, traversing the
-        % positive examples (class +1) and counting the number of negative
-        % examples (class -1) with lower values
+        % positive examples (class 1) and counting the number of negative
+        % examples (class 2) with lower values
         [cf_output,soidx] = sort(cf_output,'descend');
         
         sz= size(cf_output);
@@ -85,7 +88,7 @@ switch(metric)
             
             % Find all class indices that do not correspond to NaNs
             isClass1Idx = find(clabel(:)== 1 & ~nanidx(soidx(:,ii),ii));
-            isClass2 = (clabel(:)==-1 & ~nanidx(soidx(:,ii),ii));
+            isClass2 = (clabel(:)==2 & ~nanidx(soidx(:,ii),ii));
             
             % Count number of False Positives with lower value
             for ix=1:numel(isClass1Idx)

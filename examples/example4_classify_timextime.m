@@ -5,10 +5,10 @@ clear all
 % Load data (in /examples folder)
 load('epoched3')
 
-% Create class labels (+1's and -1's)
+% Create class labels (1's and 2's)
 label = zeros(nTrial, 1);
 label(attended_deviant)  = 1;   % Class 1: attended deviants
-label(~attended_deviant) = -1;  % Class 2: unattended deviants
+label(~attended_deviant) = 2;   % Class 2: unattended deviants
 
 %% Setup configuration struct
 
