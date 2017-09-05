@@ -54,3 +54,31 @@ figure
 mv_plot_2D(cfg, auc);
 colormap jet
 title('AUC')
+
+%% Generalisation with two datasets
+% The classifier is trained on one dataset, and tested on another dataset.
+% As two datasets, we take two different subjects
+
+% Load data from a different subject (epoched1). This will served as the 
+% test data.
+% The subject loaded above will serve as training data.
+dat2 = load('epoched1');
+label2 = zeros(dat2.nTrial, 1);
+label2(dat2.attended_deviant)  = 1;   % Class 1: attended deviants
+label2(~dat2.attended_deviant) = 2;   % Class 2: unattended deviants
+
+dat2 = dat2.dat;
+
+ccfg =  [];
+ccfg.classifier = 'lda';
+ccfg.param      = struct('lambda','auto');
+ccfg.verbose    = 1;
+ccfg.normalise  = 'demean';  % 'demean' 'none'
+ccfg.metric     = 'acc';
+
+acc = mv_classify_timextime(ccfg, dat.trial, label, dat2.trial, label2);
+
+figure
+mv_plot_2D(cfg, acc);
+colormap jet
+title('Training on epoched3, testing on epoched1')

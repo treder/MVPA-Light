@@ -1,7 +1,9 @@
-function varargout = mv_classify_timextime(cfg, X, label)
+function varargout = mv_classify_timextime(cfg, X, label, X2, label2)
 % Time x time generalisation. A classifier is trained on the training data
 % X and validated on either the same dataset X. Cross-validation is
-% recommended to avoid overfitting.
+% recommended to avoid overfitting. If another dataset X2 is provided, 
+% the classifier is trained on X and tested on X2. No cross-validation is
+% performed in this case.
 %
 % Usage:
 % cf = mv_classify_timextime(cfg,X,labels)
@@ -11,6 +13,9 @@ function varargout = mv_classify_timextime(cfg, X, label)
 %                  data matrix.
 % label          - [number of samples] vector of class labels containing
 %                  1's (class 1) and 2's (class 2)
+% X2, label2     - (optional) second dataset. If provided, the classifier
+%                  is trained on X using label and then tested on X2 using
+%                  label2
 %
 % cfg          - struct with optional parameters:
 % .classifier   - name of classifier, needs to have according train_ and test_
@@ -61,15 +66,20 @@ function varargout = mv_classify_timextime(cfg, X, label)
 
 % (c) Matthias Treder 2017
 
+
 mv_setDefault(cfg,'classifier','lda');
 mv_setDefault(cfg,'param',[]);
 mv_setDefault(cfg,'metric','acc');
 mv_setDefault(cfg,'CV','kfold');
 mv_setDefault(cfg,'repeat',5);
 mv_setDefault(cfg,'time1',1:size(X,3));
-mv_setDefault(cfg,'time2',1:size(X,3));
 mv_setDefault(cfg,'normalise','none');
 mv_setDefault(cfg,'verbose',0);
+
+hasX2 = (nargin==5);
+if hasX2, mv_setDefault(cfg,'time2',1:size(X2,3));
+else      mv_setDefault(cfg,'time2',1:size(X,3));
+end
 
 if isempty(cfg.metric) || any(ismember({'dval','auc','roc'},cfg.metric))
     mv_setDefault(cfg,'output','dval');
@@ -125,7 +135,9 @@ perf= cell(nMetrics,1);
 X_orig = X;
 label_orig = label;
 
-if ~strcmp(cfg.CV,'none')
+if ~strcmp(cfg.CV,'none') && ~hasX2
+    % -------------------------------------------------------
+    % Perform cross-validation on dataset X
     if cfg.verbose, fprintf('Using %s cross-validation (K=%d) with %d repetitions.\n',cfg.CV,cfg.K,cfg.repeat), end
 
     % Initialise classifier outputs
@@ -165,13 +177,13 @@ if ~strcmp(cfg.CV,'none')
             Xtrain = X(CV.training(ff),:,:,:);
             
             % Get training labels
-            trainlabels= label(CV.training(ff));
+            trainlabel= label(CV.training(ff));
             
             % Oversample data if requested. We need to oversample each
             % training set separately to prevent overfitting (see
             % mv_balance_classes for an explanation)
             if strcmp(cfg.balance,'oversample')
-                [Xtrain,trainlabels] = mv_balance_classes(X_orig,label_orig,cfg.balance,cfg.replace);
+                [Xtrain,trainlabel] = mv_balance_classes(X_orig,label_orig,cfg.balance,cfg.replace);
             end
             
             % ---- Test data ----
@@ -194,7 +206,7 @@ if ~strcmp(cfg.CV,'none')
                 Xtrain_tt= squeeze(Xtrain(:,:,cfg.time1(t1)));
                 
                 % Train classifier
-                cf= train_fun(cfg.param, Xtrain_tt, trainlabels);
+                cf= train_fun(cfg.param, Xtrain_tt, trainlabel);
 
                 % Obtain classifier output (labels or dvals)
                 cf_output(labelidx(CV.test(ff)),rr,t1,:) = reshape( mv_classifier_output(cfg.output, cf, test_fun, Xtest), sum(CV.test(ff)),[]);
@@ -211,7 +223,45 @@ if ~strcmp(cfg.CV,'none')
         perf{mm} = mv_classifier_performance(cfg.metric{mm}, cf_output, label_orig, 2);
     end
     
+elseif hasX2
+    % -------------------------------------------------------
+    % A second dataset X2 has been provided. The classifier will be trained
+    % on data X and tested on X2. No cross-validation is performed.
+    if cfg.verbose
+        fprintf('Training on X and testing on X2.\n')
+        if ~strcmp(cfg.CV,'none'), fprintf('No cross-validation is performed, the cross-validation settings are ignored.\n'), end
+    end
+    
+    % Initialise classifier outputs
+    cf_output = nan(size(X2,1), nTime1, nTime2);
+    
+    % permute and reshape into [ (trials x test times) x features]
+    Xtest= permute(X2, [1 3 2]);
+    Xtest= reshape(Xtest, size(X2,1)*nTime2, []);
+    
+    % ---- Training time ----
+    for t1=1:nTime1
+        
+        % Training data for time point t1
+        Xtrain= squeeze(X(:,:,cfg.time1(t1)));
+        
+        % Train classifier
+        cf= train_fun(cfg.param, Xtrain, label);
+        
+        % Obtain classifier output (labels or dvals)
+        cf_output(:,t1,:) = reshape( mv_classifier_output(cfg.output, cf, test_fun, Xtest), size(X2,1),[]);
+        
+    end
+    
+
+    % Calculate classifier performance
+    if cfg.verbose, fprintf('Calculating classifier performance\n'), end
+    for mm=1:nMetrics
+        perf{mm} = mv_classifier_performance(cfg.metric{mm}, cf_output, label2);
+    end
+
 else
+    % -------------------------------------------------------
     % No cross-validation, just train and test once for each
     % training/testing time
     
