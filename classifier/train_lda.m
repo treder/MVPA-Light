@@ -1,18 +1,17 @@
-function [cf,C,lambda,mu1,mu2] = train_lda(X,label,param)
+function [cf,C,lambda,mu1,mu2] = train_lda(cfg,X,label)
 % Trains a linear discriminant analysis with (optional) shrinkage
 % regularisation of the covariance matrix.
 %
 % Usage:
-% cf = train_lda(X,labels,<param>)
-% cf = train_lda(X,labels,lambda)
+% cf = train_lda(cfg,X,labels)
 %
 %Parameters:
 % X              - [number of samples x number of features] matrix of
 %                  training samples
 % labels         - [number of samples] vector of class labels containing
-%                  1's (class 1) and -1's (class 2)
+%                  1's (class 1) and 2's (class 2)
 %
-% param          - struct with hyperparameters:
+% cfg          - struct with hyperparameters:
 % .lambda        - regularisation parameter between 0 and 1 (where 0 means
 %                   no regularisation and 1 means full max regularisation).
 %                   If 'auto' then the regularisation parameter is
@@ -40,8 +39,8 @@ function [cf,C,lambda,mu1,mu2] = train_lda(X,label,param)
 
 % (c) Matthias Treder 2017
 
-idx1= (label==1);   % logical indices for samples in class 1
-idx2= (label==-1);  % logical indices for samples in class 2
+idx1= (label==1);  % logical indices for samples in class 1
+idx2= (label==2);  % logical indices for samples in class 2
 
 N1 = sum(idx1);
 N2 = sum(idx2);
@@ -56,20 +55,20 @@ mu1= mean(X(idx1,:))';
 mu2= mean(X(idx2,:))';
 
 % Regularise covariance matrix using shrinkage
-if (ischar(param.lambda)&&strcmp(param.lambda,'auto')) || param.lambda>0
+if (ischar(cfg.lambda)&&strcmp(cfg.lambda,'auto')) || cfg.lambda>0
 
-    if ischar(param.lambda)&&strcmp(param.lambda,'auto')
+    if ischar(cfg.lambda)&&strcmp(cfg.lambda,'auto')
         % Here we use the Ledoit-Wolf method to estimate the regularisation
         % parameter analytically.
         % Get samples from each class separately and correct by the class
         % means mu1 and mu2 using bsxfun.
-        [C, param.lambda]= cov1para([bsxfun(@minus,X(idx1,:),mu1');bsxfun(@minus,X(idx2,:),mu2')]);
+        [C, cfg.lambda]= cov1para([bsxfun(@minus,X(idx1,:),mu1');bsxfun(@minus,X(idx2,:),mu2')]);
     else
         % Shrinkage parameter is given directly as a number.
         % We write the regularised covariance matrix as a convex combination of
         % the empirical covariance C and an identity matrix scaled to have
         % the same trace as C
-        C = (1-param.lambda)* C + param.lambda * eye(size(C,1)) * trace(C)/size(X,2);
+        C = (1-cfg.lambda)* C + cfg.lambda * eye(size(C,1)) * trace(C)/size(X,2);
     end
 
 end
@@ -78,7 +77,7 @@ end
 w = C\(mu1-mu2);
 
 % Scale w such that the class means are projected onto +1 and -1
-if param.scale
+if cfg.scale
     w = w / ((mu1-mu2)'*w) * 2;
 end
 
@@ -86,12 +85,12 @@ end
 b= w'*(mu1+mu2)/2;
 
 %% Prepare output
-cf= struct('w',w,'b',b,'prob',param.prob);
+cf= struct('w',w,'b',b,'prob',cfg.prob);
 
 % If probabilities are to be returned as decision values, we need to
 % determine the priors and also save the covariance matrix and the cleass
 % means
-if param.prob == 1
+if cfg.prob == 1
     % Calculate posterior probabilities (probability for a sample to be
     % class 1)
 
@@ -112,5 +111,5 @@ if param.prob == 1
 end
 
 if nargout>2
-    lambda= param.lambda;
+    lambda= cfg.lambda;
 end

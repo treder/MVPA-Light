@@ -10,7 +10,7 @@ function varargout = mv_classify_timextime(cfg, X, label)
 % X              - [number of samples x number of features x number of time points]
 %                  data matrix.
 % label          - [number of samples] vector of class labels containing
-%                  1's (class 1) and -1's (class 2)
+%                  1's (class 1) and 2's (class 2)
 %
 % cfg          - struct with optional parameters:
 % .classifier   - name of classifier, needs to have according train_ and test_
@@ -98,7 +98,7 @@ nLabel = numel(label);
 
 % Number of samples in the classes
 N1 = sum(label == 1);
-N2 = sum(label == -1);
+N2 = sum(label == 2);
 
 %% Get train and test functions
 train_fun = eval(['@train_' cfg.classifier]);
@@ -132,7 +132,7 @@ if ~strcmp(cfg.CV,'none')
     cf_output = nan(nLabel, cfg.repeat, nTime1, nTime2);
 
     for rr=1:cfg.repeat                 % ---- CV repetitions ----
-        if cfg.verbose, fprintf('\nRepetition #%d. Fold ',rr), end
+        if cfg.verbose, fprintf('Repetition #%d. Fold ',rr), end
         
         % Undersample data if requested. We undersample the classes within the
         % loop since it involves chance (samples are randomly over-/under-
@@ -194,7 +194,7 @@ if ~strcmp(cfg.CV,'none')
                 Xtrain_tt= squeeze(Xtrain(:,:,cfg.time1(t1)));
                 
                 % Train classifier
-                cf= train_fun(Xtrain_tt, trainlabels, cfg.param);
+                cf= train_fun(cfg.param, Xtrain_tt, trainlabels);
 
                 % Obtain classifier output (labels or dvals)
                 cf_output(labelidx(CV.test(ff)),rr,t1,:) = reshape( mv_classifier_output(cfg.output, cf, test_fun, Xtest), sum(CV.test(ff)),[]);
@@ -202,9 +202,11 @@ if ~strcmp(cfg.CV,'none')
             end
       
         end
+        if cfg.verbose, fprintf('\n'), end
     end
 
     % Calculate classifier performance and average across the repeats
+    if cfg.verbose, fprintf('Calculating classifier performance\n'), end
     for mm=1:nMetrics
         perf{mm} = mv_classifier_performance(cfg.metric{mm}, cf_output, label_orig, 2);
     end
@@ -220,7 +222,7 @@ else
         Xtrain= squeeze(X(:,:,cfg.time1(t1)));
         
         % Train classifier
-        cf= train_fun(Xtrain, label, cfg.param);
+        cf= train_fun(cfg.param, Xtrain, label);
         
         for t2=1:nTime2      % ---- Testing time ----
 
@@ -250,3 +252,5 @@ if nMetrics==0
 else
     varargout(1:nMetrics) = perf;
 end
+
+if cfg.verbose, fprintf('Finished\n'), end

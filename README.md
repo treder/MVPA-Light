@@ -27,7 +27,7 @@ Classifiers can be trained and tested by hand using the `train_*` and `test_*` f
 
 <!---In cognitive neuroscience, the term *decoding* refers to the prediction of experimental conditions or mental states (output) based on multivariate brain data (input). The term *classification* means the same. Note that classification is the standard term in machine learning and many other disciplines whereas decoding is specific to cognitive neuroscience. *Multivariate pattern analysis* (MVPA) is an umbrella term that covers many multivariate methods such classification and related approaches such as Representational Similarity Analysis (RSA). --->
 
-A *classifier* is the main workhorse of MVPA. The input brain data, e.g. channels or voxels, is referred to as *features*, whereas the output data is a *class label*. The classifier takes a feature vector as input and assigns it to a class. In `MVPA-Light`, class labels must be coded as `+1` (for class 1) and `-1` (for class 2).
+A *classifier* is the main workhorse of MVPA. The input brain data, e.g. channels or voxels, is referred to as *features*, whereas the output data is a *class label*. The classifier takes a feature vector as input and assigns it to a class. In `MVPA-Light`, class labels must be coded as `1` (for class 1) and `2` (for class 2).
 
 <!-- *Example*: Assume that in a ERP-based memory paradigm, the goal is to predict whether an item is remembered or forgotten based on 128-channels EEG data. The target is single-trial ERPs at t=700 ms. Then, the feature vector for each trial consists of a 128-elements vector representing the activity at 700 ms for each electrode. Class labels are "remembered" (coded as +1) and "forgotten" (coded as -1). Note that the exact coding does not affect the classification.
 -->
@@ -52,8 +52,7 @@ Many neuroimaging datasets have a 3-D structure (trials x channels x time). The 
 
 #### Time x time generalisation
 
-Classification across time does not give insight into whether information is shared across different time points. For example, is the information that the classifier uses early in a trial (t=80 ms) the same that it uses later (t=300ms)? In time generalisation, this question is answered by training the classifier at a certain time point t. The classifer is then tested at the same time point t but it is also tested at all *other* time points in the trial [[King2014]](#King2014). `mv_classify_timextime` implements time generalisation. It returns a 2D matrix of classification performance, with performance calculated for each combination of training time point and testing time point. If two separate datasets are used, one for training and one for testing, the function `mv_classify_timextime_two_datasets` can be used instead.
-`mv_plot_2D` can be used to plot the result.
+Classification across time does not give insight into whether information is shared across different time points. For example, is the information that the classifier uses early in a trial (t=80 ms) the same that it uses later (t=300ms)? In time generalisation, this question is answered by training the classifier at a certain time point t. The classifer is then tested at the same time point t but it is also tested at all *other* time points in the trial [[King2014]](#King2014). `mv_classify_timextime` implements time generalisation. It returns a 2D matrix of classification performance, with performance calculated for each combination of training time point and testing time point. `mv_plot_2D` can be used to plot the result.
 
 
 #### Classifier performance metrics
@@ -76,21 +75,25 @@ To obtain a realistic estimate of classifier performance and control for overfit
 
 This section gives some basic examples. More detailed examples and data can be found in the `examples/` subfolder.
 
-#### Training and testing
-
+#### Training and testing by hand
 
 ```Matlab
 % Load example data
 load('epoched1')
 
-% Get default hyperparameters
-param = mv_classifier_defaults('lda');
+% Determine the class labels
+truelabel = zeros(nTrial, 1);
+truelabel(attended_deviant)  = 1;
+truelabel(~attended_deviant) = 2;
 
-% Fetch the data from the 300th time sample
-X = dat.trial(:,:,300);
+% Fetch the data from the 100th time sample
+X = dat.trial(:,:,100);
+
+% Get default hyperparameters for the classifier
+cfg_lda = mv_classifier_defaults('lda');
 
 % Train an LDA classifier
-cf = train_lda(X, truelabel, param);
+cf = train_lda(cfg_lda, X, truelabel);
 
 % Test classifier on the same data
 [predlabel, dval] = test_lda(cf, X);

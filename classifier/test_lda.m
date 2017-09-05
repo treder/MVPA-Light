@@ -13,7 +13,7 @@ function [label,dval] = test_lda(cf,X)
 %                  test samples
 %
 %Output:
-% label         - predicted class labels (1's and -1's)
+% label         - predicted class labels (1's and 2's)
 % dval          - decision values, i.e. distances to the hyperplane or
 %                 class probabilities
 

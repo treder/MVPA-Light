@@ -12,7 +12,7 @@ function [labels,dval] = test_ensemble(cf,Xtest)
 %                  test samples
 %
 %Output:
-% label         - predicted class labels (1's and -1's)
+% label         - predicted class labels (1's and 2's)
 % dval          - decision values, i.e. distances to the hyperplane
 
 N= size(Xtest,1);
