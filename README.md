@@ -95,8 +95,12 @@ cfg_lda = mv_classifier_defaults('lda');
 % Train an LDA classifier
 cf = train_lda(cfg_lda, X, truelabel);
 
-% Test classifier on the same data
-[predlabel, dval] = test_lda(cf, X);
+% Test classifier on the same data and get the predicted labels
+predlabel = test_lda(cf, X);
+
+% Calculate classification accuracy
+acc = mv_classifier_performance('acc',predlabel,truelabel)
+
 ```
 
 See `examples/example1_train_and_test.m` for more details.
