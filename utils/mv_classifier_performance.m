@@ -100,12 +100,12 @@ switch(metric)
         end
         
     %%% dval: average decision value for each class -------------------------------
-
     case 'dval'
         % Aggregate across samples, for each class separately
         perf = cat(1,nanmean(cf_output(label==1,:,:,:,:,:),1),nanmean(cf_output(label==-1,:,:,:,:,:),1));
         
     case 'auc'
+    %%% AUC  -------------------------------
         % AUC can be calculated by sorting the dvals, traversing the
         % positive examples (class +1) and counting the number of negative
         % examples (class -1) with lower values
