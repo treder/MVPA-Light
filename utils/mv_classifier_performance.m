@@ -84,22 +84,24 @@ switch(metric)
             fun = @(cfo,lab) mean(bsxfun(@eq,cfo,lab(:)));
         else
             % We want class 1 labels to be positive, and class 2 labels to
-            % be negative, because then their sign corresponds to the dvals
-            %%%label =  -label + 1.5;
+            % be negative, because then their sign corresponds to the sign 
+            % of the dvals. To this end, we transform the labels as 
+            % label =  -label + 1.5 => class 1 will be +0.5 now, class 2
+            % will be -0.5
             % We first need to transform the classifier output into labels.
             % To this end, we create a function that multiplies the the
             % dvals by the true labels - for correct classification the
             % product is positive, so compare whether the result is > 0.
             % Taking the mean of this comparison gives classification
             % performance.
-            fun = @(cfo,lab) mean(bsxfun(@times,cfo,lab(:)) > 0);
+            fun = @(cfo,lab) mean(bsxfun(@times,cfo,-lab(:)+1.5) > 0);
         end
 
         for xx=1:nExtra % Looping across the extra dimensions if cf_output is multi-dimensional
             % We use cellfun to apply the function defined above to each
             % cell. The result is then converted from a cell array to a
             % matrix
-            perf(dimSkipToken{:},xx) = cell2mat(cellfun(fun ,cf_output(dimSkipToken{:},xx), label,'Un',0));
+            perf(dimSkipToken{:},xx) = cell2mat(cellfun(fun, cf_output(dimSkipToken{:},xx), label, 'Un', 0));
         end
 
     %%% dval: average decision value for each class -------------------------------
