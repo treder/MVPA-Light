@@ -39,7 +39,7 @@ ccfg.verbose    = 1;
 acc = mv_classify_across_time(ccfg, dat.trial, label);
 
 close all
-mv_plot_1D([],dat.time,acc)
+mv_plot_1D([],dat.time,acc);
 
 %% Classification across time for all subjects
 nSbj = 3;
