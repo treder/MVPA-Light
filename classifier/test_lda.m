@@ -18,7 +18,7 @@ function [label,dval] = test_lda(cf,X)
 %                 class probabilities
 
 dval = X*cf.w - cf.b;
-label= sign(dval);
+label= double(dval >= 0) + 2*double(dval < 0);
 
 if cf.prob==1
     % To obtain posterior probabilities, we evaluate a multivariate normal
