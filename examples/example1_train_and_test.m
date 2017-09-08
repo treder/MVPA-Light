@@ -55,11 +55,18 @@ cf = train_lda(param, X, truelabel);
 % the true labels and take the mean
 fprintf('Classification accuracy: %2.2f\n', mean(predlabel==truelabel))
 
-% Look at the distribution of the decision values. dval should be positive
+% Calculate AUC
+auc = mv_classifier_performance('auc', dval, truelabel);
+
+% Look at the distribution of the decision values. dvals should be positive
 % for label 1 (attended deviant) and negative for label 2 (unattended
-% deviant)
+% deviant). dval = 0 is the decision boundary
 figure
 boxplot(dval, truelabel)
+hold on
+plot(xlim, [0 0],'k--')
+ylabel('Decision values')
+xlabel('Class')
 
 %% -- Logistic regression
 
