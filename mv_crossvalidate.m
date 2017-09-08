@@ -8,7 +8,7 @@ function varargout = mv_crossvalidate(cfg, X, label)
 % can be used for time generalisation.
 %
 % Usage:
-% [perf, ...] = mv_crossvalidate(cfg,X,labels)
+% [perf, ...] = mv_crossvalidate(cfg,X,label)
 %
 %Parameters:
 % X              - [number of samples x number of features]
