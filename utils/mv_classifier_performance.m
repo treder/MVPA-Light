@@ -20,8 +20,9 @@ function perf = mv_classifier_performance(metric, cf_output, label, dim)
 %                     'roc': ROC curve TODO
 % cf_output         - vector of classifier outputs (labels or dvals). If
 %                     multiple test sets have been validated using
-%                     cross-validation, a cell array should be provided
-%                     with each cell corresponding to one test set.
+%                     cross-validation, a (possibly mult-dimensional) 
+%                     cell array should be provided with each cell 
+%                     corresponding to one test set.
 % label             - vector of true class labels. If multiple test sets
 %                     have been validated using cross-validation, a cell
 %                     array of labels should be provided
@@ -36,10 +37,17 @@ function perf = mv_classifier_performance(metric, cf_output, label, dim)
 % - mv_classify_across_time: 3D [repeats x K x time points] cell array
 % - mv_classify_timextime: 3D [repeat x K x time points] cell array
 %
-%In all three cases, however, the label array is just [repeats x K] since
-%the labels are repeated for all time points. If cf_output has more
-%dimensions than label, the label array is assumed to be identical across
-%the extra dimensions.
+% In all three cases, however, the corresponding label array is just 
+% [repeats x K] since
+% the labels are repeated for all time points. If cf_output has more
+% dimensions than label, the label array is assumed to be identical across
+% the extra dimensions.
+%
+% Each cell should contain a [testlabel x 1] vector of classifier outputs
+% (ie labels or dvals) for the according test set. Alternatively, it can
+% contain a [testlabel x ... x ...] matrix, like the output of
+% mv_classify_timextime. But then all other dimensions need to have the
+% same size.
 %
 %Returns:
 % perf - performance metric
@@ -52,10 +60,12 @@ if ~iscell(cf_output), cf_output={cf_output}; end
 if ~iscell(label), label={label}; end
 
 % Check the size of the cf_output and label. nExtra keeps the number of
-% elements in the extra dimensions if ndims(cf_output) > ndims(label).
-% dimSkipToken then helps us looping across the extra dimensions
+% elements in the extra dimensions if ndims(cf_output) > ndims(label). For
+% instance, if we classify across time, cf_output is [repeats x folds x time] 
+% and label is [repeats x time] so we have 1 extra dimension (time).
 sz_cf_output = size(cf_output);
 nExtra = prod(sz_cf_output(ndims(label)+1:end));
+% dimSkipToken helps us looping across the extra dimensions 
 dimSkipToken = repmat({':'},[1, ndims(label)]);
 
 % Check whether the classifier output is given as predicted labels or
@@ -67,15 +77,14 @@ if isLabel && any(strcmp(metric,{'dval' 'roc' 'auc'}))
     error('To calculate %s, classifier output must be given as dvals not as labels', metric)
 end
 
-perf = nan(sz_cf_output);
-
+perf = cell(sz_cf_output);
 
 % Calculate the performance metric
 switch(metric)
 
-    %%% acc: classification accuracy -------------------------------
     case 'acc'
-
+        %%% ACC: classification accuracy -------------------------------
+       
         if isLabel
             % Compare predicted labels to the true labels. To this end, we
             % create a function that compares the predicted labels to the
@@ -97,44 +106,97 @@ switch(metric)
             fun = @(cfo,lab) mean(bsxfun(@times,cfo,-lab(:)+1.5) > 0);
         end
 
-        for xx=1:nExtra % Looping across the extra dimensions if cf_output is multi-dimensional
-            % We use cellfun to apply the function defined above to each
-            % cell. The result is then converted from a cell array to a
-            % matrix
-            perf(dimSkipToken{:},xx) = cell2mat(cellfun(fun, cf_output(dimSkipToken{:},xx), label, 'Un', 0));
+        % Looping across the extra dimensions if cf_output is multi-dimensional
+        for xx=1:nExtra 
+            % Use cellfun to apply the function defined above to each cell
+            perf(dimSkipToken{:},xx) = cellfun(fun, cf_output(dimSkipToken{:},xx), label, 'Un', 0);
+        end
+        
+    case 'dval'
+        %%% DVAL: average decision value for each class -------------------------------
+
+        perf = cell([sz_cf_output,2]);
+
+        % Aggregate across samples, for each class separately
+        if nExtra == 1
+            perf(dimSkipToken{:},1) = cellfun( @(cfo,lab) nanmean(cfo(lab==1,:,:,:,:,:),1), cf_output, label, 'Un',0);
+            perf(dimSkipToken{:},2) = cellfun( @(cfo,lab) nanmean(cfo(lab==2,:,:,:,:,:),1), cf_output, label, 'Un',0);
+        else
+            for xx=1:nExtra % Looping across the extra dimensions if cf_output is multi-dimensional
+                perf(dimSkipToken{:},xx,1) = cellfun( @(cfo,lab) nanmean(cfo(lab==1,:,:,:,:,:),1), cf_output(dimSkipToken{:},xx), label, 'Un',0);
+                perf(dimSkipToken{:},xx,2) = cellfun( @(cfo,lab) nanmean(cfo(lab==2,:,:,:,:,:),1), cf_output(dimSkipToken{:},xx), label, 'Un',0);
+            end
         end
 
-    %%% dval: average decision value for each class -------------------------------
-    case 'dval'
-        % Aggregate across samples, for each class separately
-        perf = cat(1,nanmean(cf_output(label==1,:,:,:,:,:),1),nanmean(cf_output(label==2,:,:,:,:,:),1));
-
     case 'auc'
+        %%% AUC: area under the ROC curve -------------------------------
         % AUC can be calculated by sorting the dvals, traversing the
         % positive examples (class 1) and counting the number of negative
         % examples (class 2) with lower values
-        [cf_output,soidx] = sort(cf_output,'descend');
-
-        sz= size(cf_output);
-        perf= zeros([1, sz(2:end)]);
-
-        % Calculate AUC for each column of cf_output
-        for ii=1:prod(sz(2:end))
-            clabel = label(soidx(:,ii));
-
-            % Find all class indices that do not correspond to NaNs
-            isClass1Idx = find(clabel(:)== 1 & ~nanidx(soidx(:,ii),ii));
-            isClass2 = (clabel(:)==2 & ~nanidx(soidx(:,ii),ii));
-
-            % Count number of False Positives with lower value
-            for ix=1:numel(isClass1Idx)
-                perf(1,ii) = perf(1,ii) + sum(isClass2(isClass1Idx(ix)+1:end));
-            end
-
-            % Correct by number of True Positives * False Positives
-            perf(1,ii) = perf(1,ii)/ (numel(isClass1Idx) * sum(isClass2));
+        
+%         [cf_output,soidx] = sort(cf_output,'descend');
+% 
+%         sz= size(cf_output);
+%         perf= zeros([1, sz(2:end)]);
+% 
+%         % Calculate AUC for each column of cf_output
+%         for ii=1:prod(sz(2:end))
+%             clabel = label(soidx(:,ii));
+% 
+%             % Find all class indices
+%             isClass1Idx = find(clabel(:)== 1);
+%             isClass2 = (clabel(:)==2 );
+% 
+%             % Count number of False Positives with lower value
+%             for ix=1:numel(isClass1Idx)
+%                 perf(1,ii) = perf(1,ii) + sum(isClass2(isClass1Idx(ix)+1:end));
+%             end
+% 
+%             % Correct by number of True Positives * False Positives
+%             perf(1,ii) = perf(1,ii)/ (numel(isClass1Idx) * sum(isClass2));
+%         end
+        
+        % There is different ways to calculate AUC. An efficient one for
+        % our purpose is to sort the label vector in an ascending fashion,
+        % the dvals are later sorted accordingly using soidx.
+        [label, soidx] = cellfun(@(lab) sort(lab,'ascend'), label, 'Un',0);
+        N1 = cellfun( @(lab) {sum(lab==1)}, label);
+        N2 = cellfun( @(lab) {sum(lab==2)}, label);
+        for xx=1:nExtra
+            % Sort decision values using the indices of the sorted labels.
+            % Add a bunch of :'s to make sure that we preserve the other
+            % (possible) dimensions
+            cf_so = cellfun(@(c,so) c(so,:,:,:,:,:) , cf_output(dimSkipToken{:},xx), soidx, 'Un',0);
+            % Use cellfun to perform the following operation within each
+            % cell:
+            % For each class 1 sample, we count how many class 2 exemplars 
+            % have a lower decision value than this sample. If there is a 
+            % tie (dvals equal for two exemplars of different classes), 
+            % we add 0.5. Dividing that number by the #class 1 x #class 2
+            % (n1*n2) gives the AUC
+            perf(dimSkipToken{:},xx) = cellfun(@(c,n1,n2) (sum(arrayfun(@(ii) (sum(c(ii)>c(n1+1:end)) + 0.5*sum(c(ii)==c(n1+1:end)) ), 1:n1))/(n1*n2)), cf_so, N1,N2, 'Un',0);
         end
 end
+
+% Convert cell array to matrix. Since each cell can also contain a multi-
+% dimensional array instead of a scalar, we need to make sure that these
+% arrays are correctly appended as extra dimensions.
+nd = find(size(perf{1})>1,1,'last'); % Number of non-singleton dimensions
+if nd>1
+    % Extra singleton dimensions within the cells. To cope with this, we
+    % prepend the dimensions of the cell array as extra singleton
+    % dimensions. Eg. for a [5 x 2] cell array, we do something like 
+    % perf{1}(1,1,:) = perf{1} so that the content of the cell is pushed to
+    % dimensions 3 and higher
+    dimSkip1 = repmat({1},[1, ndims(perf)]);
+    innerCellSkip = repmat({':'},[1, nd-1]);
+    tmp = [];
+    for ii=1:numel(perf)
+        tmp(dimSkip1{:},innerCellSkip{:}) = perf{ii};
+        perf{ii} = tmp;
+    end
+end
+perf = cell2mat(perf);
 
 % Average across requested dimensions
 for nn=1:numel(dim)
