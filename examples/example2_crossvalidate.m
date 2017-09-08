@@ -26,6 +26,7 @@ ccfg.CV              = 'kfold';
 ccfg.K               = 5;
 ccfg.repeat          = 3;
 ccfg.balance         = 'undersample';
+ccfg.metric          = 'auc';
 ccfg.verbose         = 1;
 
 acc = mv_crossvalidate(ccfg, X, label);
@@ -33,14 +34,17 @@ acc = mv_crossvalidate(ccfg, X, label);
 fprintf('\nClassification accuracy: %2.2f%%\n', 100*acc)
 
 %% Comparing cross-validation to train-test on the same data
-% Select only 29 first samples
-label29 = label(1:29);
-X29 = X(1:29,:);
+% Select only the first samples
+nReduced = 29;
+label_reduced = label(1:nReduced);
+X_reduced = X(1:nReduced,:);
 
 ccfg= [];
 ccfg.verbose      = 1;
-acc = mv_crossvalidate(ccfg, X29, label29);
+acc = mv_crossvalidate(ccfg, X_reduced, label_reduced);
 
 ccfg.CV     = 'none';
-acc29 = mv_crossvalidate(ccfg, X29, label29);
+acc_reduced = mv_crossvalidate(ccfg, X_reduced, label_reduced);
 
+fprintf('Performance using %d samples with cross-validation: %2.2f%%\n', nReduced, 100*acc)
+fprintf('Performance using %d samples without cross-validation (overfitting): %2.2f%%\n', nReduced, 100*acc_reduced)

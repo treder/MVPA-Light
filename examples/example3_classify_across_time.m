@@ -30,10 +30,11 @@ grid on
 ccfg =  [];
 ccfg.CV         = 'kfold';
 ccfg.K          = 5;
-ccfg.repeat     = 5; % 10
+ccfg.repeat     = 5;
 ccfg.classifier = 'lda';
 ccfg.param      = struct('lambda','auto');
 ccfg.verbose    = 1;
+ccfg.metric     = 'acc';
 
 %% Classification across time
 acc = mv_classify_across_time(ccfg, dat.trial, label);

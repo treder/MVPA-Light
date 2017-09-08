@@ -57,7 +57,7 @@ title('AUC')
 
 %% Generalisation with two datasets
 % The classifier is trained on one dataset, and tested on another dataset.
-% As two datasets, we take two different subjects
+% As two datasets, two different subjects are taken. 
 
 % Load data from a different subject (epoched1). This will served as the 
 % test data.
@@ -76,9 +76,21 @@ ccfg.verbose    = 1;
 ccfg.normalise  = 'demean';  % 'demean' 'none'
 ccfg.metric     = 'acc';
 
-acc = mv_classify_timextime(ccfg, dat.trial, label, dat2.trial, label2);
+acc31 = mv_classify_timextime(ccfg, dat.trial, label, dat2.trial, label2);
+
+% Reverse the analysis: train the classifier on epoched1, test on epoched3
+acc13 = mv_classify_timextime(ccfg, dat2.trial, label2, dat.trial, label);
 
 figure
-mv_plot_2D(cfg, acc);
+cfg =[];
+cfg.y = dat.time; cfg.x = dat2.time;
+mv_plot_2D(cfg, acc31 );
 colormap jet
 title('Training on epoched3, testing on epoched1')
+
+figure
+cfg.x = dat.time; cfg.y = dat2.time;
+mv_plot_2D(cfg, acc13 );
+colormap jet
+title('Training on epoched1, testing on epoched3')
+
