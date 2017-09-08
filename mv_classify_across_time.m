@@ -176,12 +176,8 @@ if ~strcmp(cfg.CV,'none')
         if cfg.verbose, fprintf('\n'), end
     end
 
-    % Calculate classifier performance and average across all test sets
-    % (i.e. all repeats and folds)
-    if cfg.verbose, fprintf('Calculating classifier performance\n'), end
-    for mm=1:nMetrics
-        perf{mm} = mv_classifier_performance(cfg.metric{mm}, cf_output, label_orig, 2);
-    end
+    % Average classification performance across repeats and test folds
+    avdim = [1,2];
 
 else
     % No cross-validation, just train and test once for each
@@ -208,17 +204,19 @@ else
         cf_output(:,tt) = mv_classifier_output(cfg.output, cf, test_fun, Xtraintest);
     end
 
-    % Calculate classifier performance
-    for mm=1:nMetrics
-        perf{mm} = mv_classifier_performance(cfg.metric{mm}, cf_output, label);
-    end
+    testlabel = label;
+    avdim = [];
 end
 
 if nMetrics==0
     % If no metric was requested, return the raw classifier output
     varargout{1} = cf_output;
 else
-    varargout(1:nMetrics) = perf;
+    % Calculate classifier performance, for each selected metric separately
+    if cfg.verbose, fprintf('Calculating classifier performance... '), end
+    varargout = cell(nMetrics,1);
+    for mm=1:nMetrics
+        varargout{mm} = mv_classifier_performance(cfg.metric{mm}, cf_output, testlabel, avdim);
+    end
+    if cfg.verbose, fprintf('finished\n'), end
 end
-
-if cfg.verbose, fprintf('Finished\n'), end

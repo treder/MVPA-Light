@@ -145,7 +145,7 @@ if ~strcmp(cfg.CV,'none') && ~hasX2
     % Initialise classifier outputs
     cf_output = cell(cfg.repeat, cfg.K, nTime1);
     testlabel = cell(cfg.repeat, cfg.K);
-
+    
     for rr=1:cfg.repeat                 % ---- CV repetitions ----
         if cfg.verbose, fprintf('Repetition #%d. Fold ',rr), end
 
@@ -193,11 +193,11 @@ if ~strcmp(cfg.CV,'none') && ~hasX2
             % instead of nTime2 times.
 
             % Get test data
-            Xtest= X(CV.test(ff),:,:);
+            Xtest= X(CV.test(kk),:,:);
 
             % permute and reshape into [ (trials x test times) x features]
             Xtest= permute(Xtest, [1 3 2]);
-            Xtest= reshape(Xtest, CV.TestSize(ff)*nTime2, []);
+            Xtest= reshape(Xtest, CV.TestSize(kk)*nTime2, []);
 
             % ---- Training time ----
             for t1=1:nTime1
@@ -209,16 +209,15 @@ if ~strcmp(cfg.CV,'none') && ~hasX2
                 cf= train_fun(cfg.param, Xtrain_tt, trainlabel);
 
                 % Obtain classifier output (labels or dvals)
-                cf_output{rr,kk,t1} = reshape( mv_classifier_output(cfg.output, cf, test_fun, Xtest), sum(CV.test(ff)),[]);
-
+                cf_output{rr,kk,t1} = reshape( mv_classifier_output(cfg.output, cf, test_fun, Xtest), sum(CV.test(kk)),[]);
             end
 
         end
         if cfg.verbose, fprintf('\n'), end
     end
 
-    testlabel = label_orig;
-    avdim = 2;
+    % Average classification performance across repeats and test folds
+    avdim= [1,2];
 
 elseif hasX2
     % -------------------------------------------------------

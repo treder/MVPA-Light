@@ -169,6 +169,7 @@ if ~strcmp(cfg.CV,'none')
         if cfg.verbose, fprintf('\n'), end
     end
     
+    % Average classification performance across repeats and test folds
     avdim = [1,2];
 
 else
@@ -206,4 +207,3 @@ else
     if cfg.verbose, fprintf('finished\n'), end
 end
 
-if cfg.verbose, fprintf('Finished\n'), end
