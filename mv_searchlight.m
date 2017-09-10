@@ -1,18 +1,18 @@
-function varargout = mv_searchlight(cfg, X, label)
+function varargout = mv_searchlight(cfg, X, clabel)
 % Classification using a feature searchlight approach. To this end,
 % classification is performed on each feature separately. Neighbouring
 % features can enter the classification together when a matrix specifying
 % the neighbours is provided.
 %
 % Usage:
-% [perf, ...] = mv_searchlight(cfg,X,label)
+% [perf, ...] = mv_searchlight(cfg,X,clabel)
 %
 %Parameters:
 % X              - [samples x features] data matrix or a 
 %                  [samples x features x time] matrix. In the latter case,
 %                  all time points corresponding to a feature are 
 %                  used as features.
-% labels         - [number of samples] vector of class labels containing
+% clabel         - [samples x 1] vector of class labels containing
 %                  1's (class 1) and 2's (class 2)
 %
 % cfg          - struct with parameters:
@@ -87,7 +87,7 @@ for ff=1:nFeat
     Xfeat = reshape(X(:,neighbourhood,:), N, []);
     
     % Perform cross-validation
-    [tmp_perf{:}] = mv_crossvalidate(tmp_cfg, Xfeat, label);
+    [tmp_perf{:}] = mv_crossvalidate(tmp_cfg, Xfeat, clabel);
     
     % Store results
     for mm=1:nMetric

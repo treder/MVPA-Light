@@ -1,4 +1,4 @@
-function varargout = mv_crossvalidate(cfg, X, label)
+function varargout = mv_crossvalidate(cfg, X, clabel)
 % Cross-validation. A classifier is trained and validated for
 % given 2D [samples x features] dataset X.
 %
@@ -8,12 +8,11 @@ function varargout = mv_crossvalidate(cfg, X, label)
 % can be used for time generalisation.
 %
 % Usage:
-% [perf, ...] = mv_crossvalidate(cfg,X,label)
+% [perf, ...] = mv_crossvalidate(cfg,X,clabel)
 %
 %Parameters:
-% X              - [number of samples x number of features]
-%                  data matrix.
-% labels         - [number of samples] vector of class labels containing
+% X              - [samples x features] data matrix
+% clabel         - [samples x 1] vector of class labels containing
 %                  1's (class 1) and 2's (class 2)
 %
 % cfg          - struct with hyperparameters:
@@ -71,7 +70,7 @@ mv_setDefault(cfg,'verbose',0);
 if isempty(cfg.metric) || any(ismember({'dval','auc','roc'},cfg.metric))
     mv_setDefault(cfg,'output','dval');
 else
-    mv_setDefault(cfg,'output','label');
+    mv_setDefault(cfg,'output','clabel');
 end
 
 % Balance the data using oversampling or undersampling
@@ -87,13 +86,13 @@ end
 % Set non-specified classifier parameters to default
 cfg.param = mv_classifier_defaults(cfg.classifier, cfg.param);
 
-[~,~,label] = mv_check_labels(label);
+[~,~,clabel] = mv_check_labels(clabel);
 
-nLabel = numel(label);
+nLabel = numel(clabel);
 
 % Number of samples in the classes
-N1 = sum(label == 1);
-N2 = sum(label == 2);
+N1 = sum(clabel == 1);
+N2 = sum(clabel == 2);
 
 %% Get train and test functions
 train_fun = eval(['@train_' cfg.classifier]);
@@ -111,7 +110,7 @@ perf= cell(nMetrics,1);
 
 % Save original data and labels in case we do over-/undersampling
 X_orig = X;
-label_orig = label;
+label_orig = clabel;
 
 if ~strcmp(cfg.CV,'none')
     if cfg.verbose, fprintf('Using %s cross-validation (K=%d) with %d repetitions.\n',cfg.CV,cfg.K,cfg.repeat), end
@@ -128,7 +127,7 @@ if ~strcmp(cfg.CV,'none')
         % sampled) so randomly repeating the process reduces the variance
         % of the result
         if strcmp(cfg.balance,'undersample')
-            [X,label] = mv_balance_classes(X_orig,label_orig,cfg.balance,cfg.replace);
+            [X,clabel] = mv_balance_classes(X_orig,label_orig,cfg.balance,cfg.replace);
         elseif isnumeric(cfg.balance)
             if ~all( cfg.balance <= [N1,N2])
                 error(['cfg.balance is larger [%d] than the samples in one of the classes [%d, %d]. ' ...
@@ -137,10 +136,10 @@ if ~strcmp(cfg.CV,'none')
             % Sometimes we want to undersample to a specific
             % number (e.g. to match the number of samples across
             % subconditions)
-            [X,label] = mv_balance_classes(X_orig,label_orig,cfg.balance,cfg.replace);
+            [X,clabel] = mv_balance_classes(X_orig,label_orig,cfg.balance,cfg.replace);
         end
 
-        CV= cvpartition(label,cfg.CV,cfg.K);
+        CV= cvpartition(clabel,cfg.CV,cfg.K);
 
         for kk=1:cfg.K                      % ---- CV folds ----
             if cfg.verbose, fprintf('%d ',kk), end
@@ -148,9 +147,9 @@ if ~strcmp(cfg.CV,'none')
             % Get train data
             Xtrain = X(CV.training(kk),:);
 
-            % Get training labels
-            trainlabel= label(CV.training(kk));
-            testlabel{rr,kk} = label(CV.test(kk));
+            % Get train and test labels
+            trainlabel= clabel(CV.training(kk));
+            testlabel{rr,kk} = clabel(CV.test(kk));
 
             % Oversample data if requested. It is important to oversample
             % only the *training* data to prevent overfitting (see
@@ -181,16 +180,16 @@ else
 
     % Rebalance data using under-/over-sampling if requested
     if ~strcmp(cfg.balance,'none')
-        [X,label] = mv_balance_classes(X_orig,label_orig,cfg.balance,cfg.replace);
+        [X,clabel] = mv_balance_classes(X_orig,label_orig,cfg.balance,cfg.replace);
     end
 
     % Train classifier
-    cf= train_fun(cfg.param, X, label);
+    cf= train_fun(cfg.param, X, clabel);
 
     % Obtain classifier output (labels or dvals)
     cf_output = mv_classifier_output(cfg.output, cf, test_fun, X);
 
-    testlabel = label;
+    testlabel = clabel;
     avdim = [];
 end
 
