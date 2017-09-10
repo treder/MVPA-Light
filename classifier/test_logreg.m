@@ -1,4 +1,4 @@
-function [label,dval] = test_logreg(cf,X)
+function [clabel,dval] = test_logreg(cf,X)
 % Applies an Logistic Regression classifier to test data and produces class labels,
 % decision values.
 % 
@@ -13,9 +13,9 @@ function [label,dval] = test_logreg(cf,X)
 %                  test samples
 %
 %Output:
-% label         - predicted class labels (1's and -1's)
+% clabel        - predicted class labels (1's and 2's)
 % dval          - decision values, i.e. distances to the hyperplane
 
 dval = X*cf.w + cf.b; % unlike LDA, b needs to be added here
-label= double(dval >= 0) + 2*double(dval < 0);
+clabel= double(dval >= 0) + 2*double(dval < 0);
 

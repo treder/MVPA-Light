@@ -1,4 +1,4 @@
-function [labels,dval] = test_ensemble(cf,Xtest)
+function [clabel,dval] = test_ensemble(cf,Xtest)
 % Applies an ensemble classifier to test data and produces class labels 
 % and decision values.
 % 
@@ -12,7 +12,7 @@ function [labels,dval] = test_ensemble(cf,Xtest)
 %                  test samples
 %
 %Output:
-% label         - predicted class labels (1's and 2's)
+% clabel        - predicted class labels (1's and 2's)
 % dval          - decision values, i.e. distances to the hyperplane
 
 N= size(Xtest,1);
@@ -23,7 +23,7 @@ if cf.simplify
     % If the ensemble consists of linear classifier, we can simply apply
     % one weight vector w and one threshold b
     dval = Xtest * cf.w - cf.b;
-    labels = sign(dval);
+    clabel = sign(dval);
 else
     
     % Collect the predictions from the learners
@@ -38,15 +38,15 @@ else
     % Pool the predictions to make a decision
     if strcmp(cf.strategy,'vote')
         S= sum(label_en,2);
-        labels= sign(S);
+        clabel= sign(S);
         % In case of draws, we randomly choose a label
         draws = find(S == 0);
-        labels(draws) = sign(randn(numel(draws),1));
+        clabel(draws) = sign(randn(numel(draws),1));
         dval= nan(N,1);  % we have no decision values
         
     elseif strcmp(cf.strategy,'dval')
         dval= mean(dval_en,2);
-        labels= sign(dval);
+        clabel= sign(dval);
         
     end
     

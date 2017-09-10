@@ -1,14 +1,13 @@
-function [cf,C,lambda,mu1,mu2] = train_lda(cfg,X,label)
+function [cf,C,lambda,mu1,mu2] = train_lda(cfg,X,clabel)
 % Trains a linear discriminant analysis with (optional) shrinkage
 % regularisation of the covariance matrix.
 %
 % Usage:
-% cf = train_lda(cfg,X,labels)
+% cf = train_lda(cfg,X,clabel)
 %
 %Parameters:
-% X              - [number of samples x number of features] matrix of
-%                  training samples
-% labels         - [number of samples] vector of class labels containing
+% X              - [samples x features] matrix of training samples
+% clabel         - [samples x 1] vector of class labels containing
 %                  1's (class 1) and 2's (class 2)
 %
 % cfg          - struct with hyperparameters:
@@ -39,8 +38,8 @@ function [cf,C,lambda,mu1,mu2] = train_lda(cfg,X,label)
 
 % (c) Matthias Treder 2017
 
-idx1= (label==1);  % logical indices for samples in class 1
-idx2= (label==2);  % logical indices for samples in class 2
+idx1= (clabel==1);  % logical indices for samples in class 1
+idx2= (clabel==2);  % logical indices for samples in class 2
 
 N1 = sum(idx1);
 N2 = sum(idx2);

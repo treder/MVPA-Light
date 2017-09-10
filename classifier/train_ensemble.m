@@ -1,15 +1,14 @@
-function cf = train_ensemble(cfg,X,labels)
+function cf = train_ensemble(cfg,X,clabel)
 % Trains an ensemble of classifiers. Uses many classifiers (aka weak
 % learners) trained on subsets of the samples and subsets of the features
 % (random subspaces).
 %
 % Usage:
-% cf = train_ensemble(X,labels,cfg)
+% cf = train_ensemble(X,clabel,cfg)
 % 
 %Parameters:
-% X              - [number of samples x number of features] matrix of
-%                  training samples
-% labels         - [number of samples] vector of class labels containing 
+% X              - [samples x features] matrix of training samples
+% clabel         - [samples x 1] vector of class labels containing 
 %                  1's (class 1) and 2's (class 2)
 %
 % cfg: struct with parameters:
@@ -79,8 +78,8 @@ end
 % class we need in the subselected data
 if cfg.stratify > 0
     % indices for class 1 and 2
-    idx1= find(labels==1);
-    idx2= find(labels==2);
+    idx1= find(clabel==1);
+    idx2= find(clabel==2);
     % class proportions
     N1= numel(idx1);
     N2= numel(idx2);
@@ -148,7 +147,7 @@ if cfg.simplify
     cf.w = zeros(F,1);
     cf.b = 0;
     for ll=1:cfg.nLearners
-        tmp = cf.train(X(randomSamples(:,ll),randomFeatures(:,ll)),labels(randomSamples(:,ll)),cfg.learner_param);
+        tmp = cf.train(X(randomSamples(:,ll),randomFeatures(:,ll)),clabel(randomSamples(:,ll)),cfg.learner_param);
         cf.w(randomFeatures(:,ll)) = cf.w(randomFeatures(:,ll)) + tmp.w;
         cf.b = cf.b + tmp.b;
     end
@@ -156,11 +155,11 @@ if cfg.simplify
     cf.b = cf.b / cfg.nLearners;
 else
     % Initialise struct array of learners
-    cf.classifier(cfg.nLearners) = cf.train(X(randomSamples(:,cfg.nLearners),randomFeatures(:,cfg.nLearners)),labels(randomSamples(:,cfg.nLearners)),cfg.learner_param);
+    cf.classifier(cfg.nLearners) = cf.train(X(randomSamples(:,cfg.nLearners),randomFeatures(:,cfg.nLearners)),clabel(randomSamples(:,cfg.nLearners)),cfg.learner_param);
     
     % Train all the other learners
     for ll=1:cfg.nLearners-1
-        cf.classifier(ll) = cf.train(X(randomSamples(:,ll),randomFeatures(:,ll)),labels(randomSamples(:,ll)),cfg.learner_param);
+        cf.classifier(ll) = cf.train(X(randomSamples(:,ll),randomFeatures(:,ll)),clabel(randomSamples(:,ll)),cfg.learner_param);
     end
 end
 

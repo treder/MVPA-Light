@@ -1,4 +1,4 @@
-function [label,dval,post] = lda_classifier(Xtrain,labels,Xtest,gamma)
+function [clabel,dval,post] = lda_classifier(Xtrain,clabel,Xtest,gamma)
 % Linear discriminant analysis. Convenience function that does training and
 % testing in one go.
 % 
@@ -6,10 +6,9 @@ function [label,dval,post] = lda_classifier(Xtrain,labels,Xtest,gamma)
 % [label,dval,post] = lda_classifier(train,labels,test,gamma)
 % 
 %Parameters:
-% Xtrain         - [number of samples x number of features] matrix of
-%                  training samples
-% labels         - [number of samples] vector of class labels containing 
-%                  1's (class 1) and -1's (class 2)
+% Xtrain         - [samples x features] matrix of training samples
+% clabel         - [number of samples] vector of class labels containing 
+%                  1's (class 1) and 2's (class 2)
 % Xtest          - [number of samples x number of features] matrix of
 %                  test samples
 %Optional parameters:
@@ -20,7 +19,7 @@ function [label,dval,post] = lda_classifier(Xtrain,labels,Xtest,gamma)
 %                   function cov1para.m)
 %
 %Output:
-% label         - predicted class labels (1's and -1's)
+% clabel        - predicted class labels (1's and 2's)
 % dval          - decision values, i.e. distances to the hyperplane
 % post          - posterior class probabilities
 
@@ -36,11 +35,11 @@ if ~exist('gamma','var') || isempty(gamma)
 end
 
 % Train LDA
-cf = train_lda(struct('gamma',gamma),Xtrain,labels);
+cf = train_lda(struct('gamma',gamma),Xtrain,clabel);
 
 % Test LDA
 if nargout < 3
-    [label,dval] = test_lda(cf,Xtest);
+    [clabel,dval] = test_lda(cf,Xtest);
 else
-    [label,dval,post] = test_lda(cf,Xtest);
+    [clabel,dval,post] = test_lda(cf,Xtest);
 end

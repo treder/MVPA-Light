@@ -1,12 +1,11 @@
-function cfy = train_svm(X,labels,param)
+function cfy = train_svm(X,clabel,param)
 % Trains a support vector machine.
 % Usage:
-% cfy = train_svm(X,labels,param)
+% cfy = train_svm(X,clabel,param)
 % 
 %Parameters:
-% X              - [number of samples x number of features] matrix of
-%                  training samples
-% labels         - [number of samples] vector of class labels containing 
+% X              - [samples x features] matrix of training samples
+% clabel         - [samples x 1] vector of class labels containing 
 %                  1's (class 1) and -1's (class 2)
 %
 % param          - optional struct with hyperparameters passed on to the svmtrain
@@ -49,7 +48,7 @@ if isfield(param,'quiet') && param.quiet==1
 end
 
 % Call LIBSVM training function
-model = svmtrain(double(labels(:)), double(X),par);
+model = svmtrain(double(clabel(:)), double(X),par);
 
 %% Prepare output
 cfy= struct();

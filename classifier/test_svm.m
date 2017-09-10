@@ -10,9 +10,11 @@ function [labels,dval] = test_svm(cf,X)
 %                  test samples
 %
 %Output:
-% label         - predicted class labels (1's and -1's)
+% clabel        - predicted class labels (1's and 2's)
 % dval          - decision values, i.e. distances to the hyperplane
 
 par= ['-q']; % no output
 
 [labels,~,dval] = svmpredict(zeros(size(X,1),1),X,cf.model,par);
+
+%% FIX TODO ENSURE class labels are 1 and 2 (not 1 and -1) !!!

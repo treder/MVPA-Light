@@ -1,14 +1,13 @@
-function cf = train_logist(X,label,param)
+function cf = train_logist(X,clabel,param)
 % Trains a logistic regression classifier. This is a wrapper for Lucas
 % Parra's logist.m function.
 %
 % Usage:
-% cf = train_logist(X,labels,param)
+% cf = train_logist(X,clabel,param)
 % 
 %Parameters:
-% X              - [number of samples x number of features] matrix of
-%                  training samples
-% labels         - [number of samples] vector of class labels containing 
+% X              - [samples x features] matrix of training samples
+% clabel         - [samples x 1] vector of class labels containing 
 %                  1's (class 1) and 2's (class 2)
 %
 % param          - struct with hyperparameters (see logist.m for
@@ -27,13 +26,13 @@ function cf = train_logist(X,label,param)
 
 if ischar(param.v) && strcmp(param.v,'mean')
     % Normal is initialised as the vector between the class means
-    param.v= mean(X(label==1,:)) - mean(X(label==2,:));
+    param.v= mean(X(clabel==1,:)) - mean(X(clabel==2,:));
     param.v = param.v(:)/norm(param.v);
     % Intercept is the projected grand mean projected onto v
-    param.v(end+1) = 0.5*(mean(X(label==1,:)) + mean(X(label==2,:))) * param.v;
+    param.v(end+1) = 0.5*(mean(X(clabel==1,:)) + mean(X(clabel==2,:))) * param.v;
 end
 
-[v,~] = logist(X, label(:)==1, param.v, 0, param.lambda, param.eigvalratio);
+[v,~] = logist(X, clabel(:)==1, param.v, 0, param.lambda, param.eigvalratio);
 
 cf= struct();
 cf.classifier= 'Logistic Regression';

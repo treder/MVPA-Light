@@ -1,14 +1,13 @@
-function cfy = train_rf(X,labels,param)
-% Trains a Random Forest using Matlab's TreeBagger.
+function cfy = train_rf(X,clabel,param)
+% Trains a Random Forest using MATLAB's TreeBagger.
 %
 % Usage:
-% cfy = train_rf(X,labels,<param>)
+% cfy = train_rf(X,clabel,<param>)
 % 
 %Parameters:
-% X             - [number of samples x number of features] matrix of
-%                 training samples
-% labels        - [number of samples] vector of class labels containing 
-%                 1's (class 1) and -1's (class 2)
+% X             - [samples x features] matrix of training samples
+% clabel        - [samples x 1] vector of class labels containing 
+%                 1's (class 1) and 2's (class 2)
 %
 % param         - struct with hyperparameters (help TreeBagger for a
 %                  parameter list)
@@ -29,9 +28,9 @@ for ii=1:numel(fn)
     nameval{ii*2}= param.(fn{ii});
 end
 
-mv_check_labels(labels);
+mv_check_labels(clabel);
 
-model = TreeBagger(numtree,X,labels);
+model = TreeBagger(numtree,X,clabel);
 
 %% Prepare output
 cfy= struct();

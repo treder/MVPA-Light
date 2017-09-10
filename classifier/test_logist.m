@@ -1,4 +1,4 @@
-function [label,dval] = test_logist(cf,X)
+function [clabel,dval] = test_logist(cf,X)
 % Applies a logistic regression classifier.
 % 
 % Usage:
@@ -12,8 +12,8 @@ function [label,dval] = test_logist(cf,X)
 %                  test samples
 %
 %Output:
-% label         - predicted class labels (1's and -1's)
+% clabel        - predicted class labels (1's and 2's)
 % dval          - decision values, i.e. distances to the hyperplane
 
 dval = X*cf.w - cf.b;
-label= sign(dval);
+clabel= sign(dval);
