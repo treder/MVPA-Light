@@ -1,7 +1,4 @@
-%%% In example 1, training and testing was performed on the same data. This
-%%% can lead to overfitting and an inflated measure of classification
-%%% accuracy. The function mv_crossvalidate is used for this purpose.
-
+%%% Perform searchlight classification: classify 
 close all
 clear all
 

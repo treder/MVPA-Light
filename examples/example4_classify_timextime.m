@@ -6,9 +6,9 @@ clear all
 load('epoched3')
 
 % Create class labels (1's and 2's)
-label = zeros(nTrial, 1);
-label(attended_deviant)  = 1;   % Class 1: attended deviants
-label(~attended_deviant) = 2;   % Class 2: unattended deviants
+clabel = zeros(nTrial, 1);
+clabel(attended_deviant)  = 1;   % Class 1: attended deviants
+clabel(~attended_deviant) = 2;   % Class 2: unattended deviants
 
 %% Setup configuration struct
 
@@ -23,7 +23,7 @@ ccfg.verbose    = 1;
 ccfg.normalise  = 'demean';  % 'demean' 'none'
 ccfg.metric     = {'acc' 'auc'};
 
-[acc,auc]= mv_classify_timextime(ccfg, dat.trial, label);
+[acc,auc]= mv_classify_timextime(ccfg, dat.trial, clabel);
 
 
 %% Plot time generalisation matrix
@@ -43,7 +43,7 @@ title('AUC')
 
 %% Compare accuracy/AUC when no normalisation is performed
 ccfg.normalise  = 'none';
-[acc,auc]= mv_classify_timextime(ccfg, dat.trial, label);
+[acc,auc]= mv_classify_timextime(ccfg, dat.trial, clabel);
 
 figure
 mv_plot_2D(cfg, acc);
@@ -76,10 +76,10 @@ ccfg.verbose    = 1;
 ccfg.normalise  = 'demean';  % 'demean' 'none'
 ccfg.metric     = 'acc';
 
-acc31 = mv_classify_timextime(ccfg, dat.trial, label, dat2.trial, label2);
+acc31 = mv_classify_timextime(ccfg, dat.trial, clabel, dat2.trial, label2);
 
 % Reverse the analysis: train the classifier on epoched1, test on epoched3
-acc13 = mv_classify_timextime(ccfg, dat2.trial, label2, dat.trial, label);
+acc13 = mv_classify_timextime(ccfg, dat2.trial, label2, dat.trial, clabel);
 
 figure
 cfg =[];

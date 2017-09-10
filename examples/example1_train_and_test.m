@@ -59,7 +59,7 @@ fprintf('Classification accuracy: %2.2f\n', mean(predlabel==truelabel))
 auc = mv_classifier_performance('auc', dval, truelabel);
 
 % Look at the distribution of the decision values. dvals should be positive
-% for label 1 (attended deviant) and negative for label 2 (unattended
+% for clabel 1 (attended deviant) and negative for clabel 2 (unattended
 % deviant). dval = 0 is the decision boundary
 figure
 boxplot(dval, truelabel)
@@ -70,16 +70,16 @@ xlabel('Class')
 
 %% -- Logistic regression
 
-param = mv_classifier_defaults('logreg');
+cfg_lr = mv_classifier_defaults('logreg');
 
-cf = train_logreg(X, truelabel, param);
+cf = train_logreg(cfg_lr, X, truelabel);
 
 [predlabel, dval] = test_logreg(cf, X);
 fprintf('Classification accuracy: %2.2f\n', mean(predlabel==truelabel))
 
 %% ---
-param = mv_classifier_defaults('logist');
-param.eigvalratio = 10^-10;
-param.lambda = 10^10;
-cf = train_logist(X, truelabel, param);
+cfg_lr = mv_classifier_defaults('logist');
+cfg_lr.eigvalratio = 10^-10;
+cfg_lr.lambda = 10^10;
+cf = train_logist(cfg_lr, X, truelabel);
 
