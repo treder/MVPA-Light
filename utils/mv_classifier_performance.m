@@ -162,6 +162,17 @@ switch(metric)
         [clabel, soidx] = cellfun(@(lab) sort(lab,'ascend'), clabel, 'Un',0);
         N1 = cellfun( @(lab) {sum(lab==1)}, clabel);
         N2 = cellfun( @(lab) {sum(lab==2)}, clabel);
+        
+        % Anonymous function gtfun takes a specific row cii and checks how many
+        % times the value (corresponding to class label 1) in one column is greater than the value in the
+        % rows of the submatrix cn1 (corresponding to the class labels 2). Ties are weighted by 0.5. This gives a
+        % count for each column separately. 
+        % cii and cn1 represent the possibly matrix-sized content of a cell
+        % of cf_output
+        gtfun = @(cii, cn1) (sum(bsxfun(@gt, cii, cn1) + 0.5*bsxfun(@eq,cii,cn1) ));
+        % arrsum repeats gtfun for each sample in matrix c corresponding to
+        % class 1. The counts are then summed across the class 1 samples 
+        arrsum =  @(c,n1) sum(cell2mat(   arrayfun(@(ii) gtfun(c(ii,:,:,:),c(n1+1:end,:,:,:)), 1:n1,'Un',0)'    ) );
         for xx=1:nExtra
             % Sort decision values using the indices of the sorted labels.
             % Add a bunch of :'s to make sure that we preserve the other
@@ -173,8 +184,10 @@ switch(metric)
             % have a lower decision value than this sample. If there is a 
             % tie (dvals equal for two exemplars of different classes), 
             % we add 0.5. Dividing that number by the #class 1 x #class 2
-            % (n1*n2) gives the AUC
-            perf(dimSkipToken{:},xx) = cellfun(@(c,n1,n2) (sum(arrayfun(@(ii) (sum(c(ii)>c(n1+1:end)) + 0.5*sum(c(ii)==c(n1+1:end)) ), 1:n1))/(n1*n2)), cf_so, N1,N2, 'Un',0);
+            % (n1*n2) gives the AUC.
+            % We do this by applying the above-defined arrsum to every cell
+            % in cf_output and then normalising by (n1*n2)
+            perf(dimSkipToken{:},xx) = cellfun(@(c,n1,n2) arrsum(c,n1)/(n1*n2), cf_so, N1,N2, 'Un',0);
         end
 end
 
