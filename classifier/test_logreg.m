@@ -17,5 +17,5 @@ function [label,dval] = test_logreg(cf,X)
 % dval          - decision values, i.e. distances to the hyperplane
 
 dval = X*cf.w + cf.b; % unlike LDA, b needs to be added here
-label= sign(dval);
+label= double(dval >= 0) + 2*double(dval < 0);
 
