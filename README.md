@@ -82,9 +82,9 @@ This section gives some basic examples. More detailed examples and data can be f
 load('epoched1')
 
 % Determine the class labels
-truelabel = zeros(nTrial, 1);
-truelabel(attended_deviant)  = 1;
-truelabel(~attended_deviant) = 2;
+clabel = zeros(nTrial, 1);
+clabel(attended_deviant)  = 1;
+clabel(~attended_deviant) = 2;
 
 % Fetch the data from the 100th time sample
 X = dat.trial(:,:,100);
@@ -93,13 +93,13 @@ X = dat.trial(:,:,100);
 cfg_lda = mv_classifier_defaults('lda');
 
 % Train an LDA classifier
-cf = train_lda(cfg_lda, X, truelabel);
+cf = train_lda(cfg_lda, X, clabel);
 
 % Test classifier on the same data and get the predicted labels
 predlabel = test_lda(cf, X);
 
 % Calculate classification accuracy
-acc = mv_classifier_performance('acc',predlabel,truelabel)
+acc = mv_classifier_performance('acc',predlabel,clabel)
 
 ```
 
@@ -119,7 +119,7 @@ ccfg.repeat          = 3;
 ccfg.balance         = 'undersample';
 ccfg.verbose         = 1;
 
-acc = mv_crossvalidate(ccfg, X, label);
+acc = mv_crossvalidate(ccfg, X, clabel);
 ```
 
 See `examples/example2_crossvalidate.m` for more details.
@@ -137,7 +137,7 @@ ccfg.classifier = 'lda';
 ccfg.param      = struct('lambda','auto');
 ccfg.verbose    = 1;
 
-acc = mv_classify_across_time(ccfg, dat.trial, label);
+acc = mv_classify_across_time(ccfg, dat.trial, clabel);
 
 ```
 
@@ -154,7 +154,7 @@ ccfg.verbose    = 1;
 ccfg.normalise  = 'demean';
 ccfg.metric     = {'acc' 'auc'};
 
-[acc,auc] = mv_classify_timextime(ccfg, dat.trial, label);
+[acc,auc] = mv_classify_timextime(ccfg, dat.trial, clabel);
 
 ```
 
