@@ -74,10 +74,12 @@ param = mv_classifier_defaults('logreg');
 
 cf = train_logreg(X, truelabel, param);
 
+[predlabel, dval] = test_logreg(cf, X);
+fprintf('Classification accuracy: %2.2f\n', mean(predlabel==truelabel))
+
 %% ---
 param = mv_classifier_defaults('logist');
 param.eigvalratio = 10^-10;
 param.lambda = 10^10;
 cf = train_logist(X, truelabel, param);
 
-[predlabel, dval] = test_lda(cf, X);

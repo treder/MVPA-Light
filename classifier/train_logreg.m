@@ -1,14 +1,15 @@
-function [cf, b, stats] = train_logreg(X,label,param)
+function [cf, b, stats] = train_logreg(cfg,X,label)
 % Trains a logistic regression classifier with elastic net regularisation.
 % The regularisation parameter lambda controls the strength of the
 % regularisation. The parameter alpha is bounded between 0 and 1. It blends
 % between blends between full L1/lasso regularisation (alpha=1) and
 % L2/ridge regularisation (alpha close to 0). Must be strictly larger than
 % 0. For intermediate values, both L1 and L2 regularisation applies. 
-% Uses lassoglm.
+%
+% Uses the MATLAB function lassoglm.
 %
 % Usage:
-% cf = train_logreg(X,labels,param)
+% cf = train_logreg(cfg,X,label)
 % 
 %Parameters:
 % X              - [number of samples x number of features] matrix of
@@ -40,8 +41,8 @@ function [cf, b, stats] = train_logreg(X,label,param)
 % b            - bias term, setting the threshold 
 %
 
-[b, stats] = lassoglm(X, label(:)==1, 'binomial','alpha', param.alpha,...
-    'CV',param.K, 'numLambda',param.numLambda, param.nameval{:}); 
+[b, stats] = lassoglm(X, label(:)==1, 'binomial','alpha', cfg.alpha,...
+    'CV',cfg.K, 'numLambda',cfg.numLambda, cfg.nameval{:}); 
 
 % Select classifier weights according to the lambda yielding the lowest 
 % deviance

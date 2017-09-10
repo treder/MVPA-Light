@@ -1,5 +1,4 @@
 %%% Train and test logistic regression.
-
 close all
 clear all
 
@@ -33,9 +32,6 @@ alphas = [10.^[-10:-1], 0.2, 0.5, 1];
 acc = zeros(numel(alphas),1);
 time = zeros(numel(alphas),1);
 
-% Get default parameters for logistic regression
-param = mv_classifier_defaults('logreg');
-
 % Setup cfg for cross-validation
 cfg = [];
 cfg.classifier  = 'logreg';
@@ -43,12 +39,15 @@ cfg.K           = 5;
 cfg.repeat      = 2;
 cfg.balance     = 'undersample';
 
+% Get default parameters for logistic regression
+cfg.param = mv_classifier_defaults('logreg');
+
+% Run cross-validation for different alpha values
 for aa=1:numel(alphas)
     fprintf('Lambda=%2.6f\n',alphas(aa))
     
     % Vary the lambda parameter
-    param.alpha = alphas(aa);
-    cfg.param = param;
+    cfg.param.alpha = alphas(aa);
     
     tic
     acc(aa) = mv_crossvalidate(cfg, X, label);
@@ -57,30 +56,28 @@ end
 
 figure
 subplot(1,2,1)
-%     semilogx(alphas, acc)
-    plot(alphas, acc)
-    xlabel('Alpha'),ylabel('Classification accuracy')
+    semilogx(alphas, acc)
+    xlabel('Alpha'),ylabel('Accuracy')
+    title('Classification performance as a function of alpha')
 subplot(1,2,2)
     semilogx(alphas, time)
     xlabel('Alpha'),ylabel('Computation time [s]')
-    
-    
-%% Hyperparameter lambda: Deviance and sparsity
+
+%% Hyperparameter lambda: Effects on deviance and sparsity
 %%% If alpha is set to an intermediate or large value e.g. alpha > 0.2, the
 %%% coefficient vector tends to become more sparse. The amount of sparsity
 %%% (=number of zero coefficients) is determined by the amount of
 %%% regularisation lambda.
 
 param = mv_classifier_defaults('logreg');
-param.alpha = 10^-8;%0.5;
+param.alpha = 10^-1; %0.001;
 
-[cf, b, stats] = train_logreg(X,label,param);
+[cf, b, stats] = train_logreg(param,X,label);
+
+lassoPlot(b,stats,'plottype','CV');
 
 figure
-subplot(1,2,1),
-    lassoPlot(b,stats,'plottype','CV');
-    title('Deviance as a function of lambda')
-subplot(1,2,2),
-    semilogx(stats.lambda, sum(b))
-    title('Sparsity as a function of lambda')
-    xlabel('Lambda'),ylabel('Nr. of zero coefficients')
+semilogx(stats.Lambda, sum(b~=0)/size(b,1))
+title('Sparsity as a function of lambda')
+xlabel('Lambda'),ylabel('Fraction of zero coefficients')
+
