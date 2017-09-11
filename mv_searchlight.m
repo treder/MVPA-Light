@@ -44,19 +44,17 @@ mv_setDefault(cfg,'max',Inf);
 mv_setDefault(cfg,'metric',{'auc'});
 mv_setDefault(cfg,'verbose',0);
 
-if ~iscell(cfg.metric)
-    cfg.metric = {cfg.metric};
-end
+if ~isempty(cfg.metric) && ~iscell(cfg.metric), cfg.metric = {cfg.metric}; end
+nMetric = numel(cfg.metric);
 
 [N, nFeat, ~] = size(X);
-nMetric = numel(cfg.metric);
 
 %% Prepare metrics
 perf = cell(nMetric,1);
 tmp_perf  = cell(nMetric,1);  % holds the results for one feature iteration
 
 % Initialise performances
-for ii=1:nMetric
+for mm=1:nMetric
     perf{mm} = nan(nFeat,1);
 end
 
