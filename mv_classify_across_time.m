@@ -73,6 +73,8 @@ else
     mv_setDefault(cfg,'output','clabel');
 end
 
+if ~isempty(cfg.metric) && ~iscell(cfg.metric), cfg.metric = {cfg.metric}; end
+
 % Balance the data using oversampling or undersampling
 mv_setDefault(cfg,'balance','none');
 mv_setDefault(cfg,'replace',1);
@@ -213,9 +215,7 @@ if nMetrics==0
 else
     % Calculate classifier performance, for each selected metric separately
     if cfg.verbose, fprintf('Calculating classifier performance... '), end
-    varargout = cell(nMetrics,1);
-    for mm=1:nMetrics
-        varargout{mm} = mv_classifier_performance(cfg.metric{mm}, cf_output, testlabel, avdim);
-    end
+    varargout = cell(numel(cfg.metric),1);
+    [varargout{:}] = mv_classifier_performance(cfg.metric, cf_output, testlabel, avdim);
     if cfg.verbose, fprintf('finished\n'), end
 end
