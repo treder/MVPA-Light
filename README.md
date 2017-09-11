@@ -115,32 +115,25 @@ See `examples/example1_train_and_test.m` for more details.
 ```Matlab
 ccfg = [];
 ccfg.classifier      = 'lda';
-ccfg.param           = struct('lambda','auto');
 ccfg.metric          = 'acc';
 ccfg.CV              = 'kfold';
 ccfg.K               = 5;
-ccfg.repeat          = 3;
-ccfg.balance         = 'undersample';
+ccfg.repeat          = 2;
 ccfg.verbose         = 1;
 
+% Perform 5-fold cross-validation with 2 repetitions.
+% As classification performance measure we request accuracy (acc).
 acc = mv_crossvalidate(ccfg, X, clabel);
 ```
 
 See `examples/example2_crossvalidate.m` for more details.
 
-
 #### Classification across time
 
-
 ```Matlab
-ccfg =  [];
-ccfg.CV         = 'kfold';
-ccfg.K          = 5;
-ccfg.repeat     = 5; % 10
-ccfg.classifier = 'lda';
-ccfg.param      = struct('lambda','auto');
-ccfg.verbose    = 1;
 
+% Classify across time using default settings
+ccfg =  [];
 acc = mv_classify_across_time(ccfg, dat.trial, clabel);
 
 ```
@@ -152,11 +145,8 @@ See `examples/example3_classify_across_time.m` for more details.
 
 ```Matlab
 ccfg =  [];
-ccfg.classifier = 'lda';
-ccfg.param      = struct('lambda','auto');
-ccfg.verbose    = 1;
 ccfg.normalise  = 'demean';
-ccfg.metric     = {'acc' 'auc'};
+ccfg.metric     = {'acc' 'auc'}; % request both accuracy and AUC
 
 [acc,auc] = mv_classify_timextime(ccfg, dat.trial, clabel);
 
