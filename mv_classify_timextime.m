@@ -1,4 +1,4 @@
-function varargout = mv_classify_timextime(cfg, X, label, X2, label2)
+function varargout = mv_classify_timextime(cfg, X, clabel, X2, clabel2)
 % Time x time generalisation. A classifier is trained on the training data
 % X and validated on either the same dataset X. Cross-validation is
 % recommended to avoid overfitting. If another dataset X2 is provided,
@@ -6,14 +6,13 @@ function varargout = mv_classify_timextime(cfg, X, label, X2, label2)
 % performed in this case since the datasets are assumed to be independent.
 %
 % Usage:
-% perf = mv_classify_timextime(cfg,X,label,<X2, label2>)
+% perf = mv_classify_timextime(cfg,X,clabel,<X2, clabel2>)
 %
 %Parameters:
-% X              - [number of samples x number of features x number of time points]
-%                  data matrix.
-% label          - [number of samples] vector of class labels containing
+% X              - [samples x features x time points] data matrix
+% clabel         - [samples x 1] vector of class labels containing
 %                  1's (class 1) and 2's (class 2)
-% X2, label2     - (optional) second dataset with associated labels. If
+% X2, clabel2    - (optional) second dataset with associated labels. If
 %                  provided, the classifier is trained on X and tested on
 %                  X2 using
 %
@@ -85,7 +84,7 @@ end
 if isempty(cfg.metric) || any(ismember({'dval','auc','roc'},cfg.metric))
     mv_setDefault(cfg,'output','dval');
 else
-    mv_setDefault(cfg,'output','label');
+    mv_setDefault(cfg,'output','clabel');
 end
 
 % Balance the data using oversampling or undersampling
@@ -101,15 +100,15 @@ end
 % Set non-specified classifier parameters to default
 cfg.param = mv_classifier_defaults(cfg.classifier, cfg.param);
 
-[~,~,label] = mv_check_labels(label);
+[~,~,clabel] = mv_check_labels(clabel);
 
 nTime1 = numel(cfg.time1);
 nTime2 = numel(cfg.time2);
-nLabel = numel(label);
+nLabel = numel(clabel);
 
 % Number of samples in the classes
-N1 = sum(label == 1);
-N2 = sum(label == 2);
+N1 = sum(clabel == 1);
+N2 = sum(clabel == 2);
 
 %% Get train and test functions
 train_fun = eval(['@train_' cfg.classifier]);
@@ -133,7 +132,7 @@ nMetrics = numel(cfg.metric);
 
 % Save original data and labels in case we do over/undersampling
 X_orig = X;
-label_orig = label;
+label_orig = clabel;
 
 if ~strcmp(cfg.CV,'none') && ~hasX2
     % -------------------------------------------------------
@@ -154,7 +153,7 @@ if ~strcmp(cfg.CV,'none') && ~hasX2
         % sampled) so randomly repeating the process reduces the variance
         % of the result
         if strcmp(cfg.balance,'undersample')
-            [X,label] = mv_balance_classes(X_orig,label_orig,cfg.balance,cfg.replace);
+            [X,clabel] = mv_balance_classes(X_orig,label_orig,cfg.balance,cfg.replace);
 
         elseif isnumeric(cfg.balance)
             if ~all( cfg.balance <= [N1,N2])
@@ -164,10 +163,10 @@ if ~strcmp(cfg.CV,'none') && ~hasX2
             % Sometimes we want to undersample to a specific
             % number (e.g. to match the number of samples across
             % subconditions)
-            [X,label] = mv_balance_classes(X_orig,label_orig,cfg.balance,cfg.replace);
+            [X,clabel] = mv_balance_classes(X_orig,label_orig,cfg.balance,cfg.replace);
         end
 
-        CV= cvpartition(label,cfg.CV,cfg.K);
+        CV= cvpartition(clabel,cfg.CV,cfg.K);
 
         for kk=1:cfg.K                      % ---- CV folds ----
             if cfg.verbose, fprintf('%d ',kk), end
@@ -175,9 +174,9 @@ if ~strcmp(cfg.CV,'none') && ~hasX2
             % Train data
             Xtrain = X(CV.training(kk),:,:,:);
 
-            % Get training labels
-            trainlabel= label(CV.training(kk));
-            testlabel{rr,kk} = label(CV.test(kk));
+            % Get train and test labels
+            trainlabel= clabel(CV.training(kk));
+            testlabel{rr,kk} = clabel(CV.test(kk));
 
             % Oversample data if requested. We need to oversample each
             % training set separately to prevent overfitting (see
@@ -242,14 +241,14 @@ elseif hasX2
         Xtrain= squeeze(X(:,:,cfg.time1(t1)));
 
         % Train classifier
-        cf= train_fun(cfg.param, Xtrain, label);
+        cf= train_fun(cfg.param, Xtrain, clabel);
 
         % Obtain classifier output (labels or dvals)
         cf_output(:,t1,:) = reshape( mv_classifier_output(cfg.output, cf, test_fun, Xtest), size(X2,1),[]);
 
     end
 
-    testlabel = label2;
+    testlabel = clabel2;
     avdim = [];
 
 else
@@ -265,7 +264,7 @@ else
         Xtrain= squeeze(X(:,:,cfg.time1(t1)));
 
         % Train classifier
-        cf= train_fun(cfg.param, Xtrain, label);
+        cf= train_fun(cfg.param, Xtrain, clabel);
 
         for t2=1:nTime2      % ---- Testing time ----
 
@@ -276,7 +275,7 @@ else
             predlabels = test_fun(cf,Xtest);
 
             % Sum number of correctly predicted labels
-            acc(t1,t2)= acc(t1,t2) + sum(predlabels(:) == label(:));
+            acc(t1,t2)= acc(t1,t2) + sum(predlabels(:) == clabel(:));
         end
     end
 
@@ -285,7 +284,7 @@ else
    % Calculate classifier performance
     if cfg.verbose, fprintf('Calculating classifier performance... '), end
     for mm=1:nMetrics
-        perf{mm} = mv_classifier_performance(cfg.metric{mm}, cf_output, label);
+        perf{mm} = mv_classifier_performance(cfg.metric{mm}, cf_output, clabel);
     end
     avdim = [];
 

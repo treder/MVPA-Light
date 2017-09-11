@@ -1,9 +1,9 @@
-function [label,dval] = test_lda(cf,X)
+function [clabel,dval] = test_lda(cf,X)
 % Applies an LDA classifier to test data and produces class labels,
 % decision values, and posterior probabilities.
 % 
 % Usage:
-% [labels,dval,post] = test_lda(cf,X)
+% [clabel,dval,post] = test_lda(cf,X)
 % 
 %Parameters:
 % cf             - struct describing the classifier obtained from training 
@@ -13,12 +13,12 @@ function [label,dval] = test_lda(cf,X)
 %                  test samples
 %
 %Output:
-% label         - predicted class labels (1's and 2's)
+% clabel        - predicted class labels (1's and 2's)
 % dval          - decision values, i.e. distances to the hyperplane or
 %                 class probabilities
 
 dval = X*cf.w - cf.b;
-label= double(dval >= 0) + 2*double(dval < 0);
+clabel= double(dval >= 0) + 2*double(dval < 0);
 
 if cf.prob==1
     % To obtain posterior probabilities, we evaluate a multivariate normal

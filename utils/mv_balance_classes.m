@@ -1,14 +1,14 @@
-function [X,label,labelidx] = mv_balance_classes(X,label,method,replace)
+function [X,clabel,labelidx] = mv_balance_classes(X,clabel,method,replace)
 %Balances data with imbalanced classes by oversampling the minority class
 %or undersampling the majority class.
 %
 %Usage:
-% [X,labels] = mv_balance_classes(X,labels,method,replace)
+% [X,labels] = mv_balance_classes(X,clabel,method,replace)
 %
 %Parameters:
-% X              - [number of samples x number of features x number of time points]
-%                  or [number of samples x number of features] data matrix.
-% labels         - [1 x number of samples] vector of class labels containing
+% X              - [samples x features x time points] or
+%                  [samples x features] data matrix.
+% clabel         - [samples x 1] vector of class labels containing
 %                  1's (class 1) and 2's (class 2)
 % method         - 'oversample' or 'undersample'. Alternatively, an integer
 %                  number can be given which will be the number of samples
@@ -49,7 +49,7 @@ if nargin<4 || isempty(replace)
     replace = 1;
 end
 
-N = [sum(label==1), sum(label==2)];
+N = [sum(clabel==1), sum(clabel==2)];
 
 %% Determine which class is the minority class
 if N(1) < N(2)
@@ -66,21 +66,21 @@ labelidx = 1:sum(N);
 
 if ischar(method) && strcmp(method,'oversample')
     % oversample the minority class
-    idxMinority = find(label == minorityClass);
+    idxMinority = find(clabel == minorityClass);
     if replace
         idxAdd = randi( min(N(1),N(2)), addRmSamples, 1);
     else
         idxAdd = randperm( min(N(1),N(2)), addRmSamples);
     end
     X= cat(1,X, X(idxMinority(idxAdd),:,:));
-    label(end+1:end+addRmSamples)= label(idxMinority(idxAdd));
+    clabel(end+1:end+addRmSamples)= clabel(idxMinority(idxAdd));
     
 elseif ischar(method) && strcmp(method,'undersample')
     % undersample the majority class
-    idxMajority = find(label == majorityClass);
+    idxMajority = find(clabel == majorityClass);
     idxRm = randperm( max(N(1),N(2)), addRmSamples);
     X(idxMajority(idxRm),:,:)= [];
-    label(idxMajority(idxRm))= [];
+    clabel(idxMajority(idxRm))= [];
     labelidx(idxMajority(idxRm))= [];
     
 elseif isnumeric(method)
@@ -97,13 +97,13 @@ elseif isnumeric(method)
     do_undersample = [N(1) N(2)] > num;
 
     for cc=1:2
-        idxClass= find(label == cc); % class indices for class cc
+        idxClass= find(clabel == cc); % class indices for class cc
         
         if do_undersample(cc)
             % We need to undersample this class
             idxRm = randperm( N(cc), N(cc)-num );
             X(idxClass(idxRm),:,:)= [];
-            label(idxClass(idxRm))= [];
+            clabel(idxClass(idxRm))= [];
             labelidx(idxClass(idxRm))= [];
         else
             % We need to oversample this class
@@ -114,7 +114,7 @@ elseif isnumeric(method)
                     idxAdd = randperm( N(cc), num-N(cc));
                 end
                 X= cat(1,X, X(idxClass(idxAdd),:,:));
-                label(end+1:end+num-N(cc))= label(idxClass(idxAdd));
+                clabel(end+1:end+num-N(cc))= clabel(idxClass(idxAdd));
             end
         end
     end

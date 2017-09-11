@@ -6,8 +6,8 @@ function out = mv_classifier_output(output, cf, test_fun, Xtest)
 % out = mv_get_classifier_output(output, cf, test_fun, Xtest)
 %
 %Parameters:
-% output            - output type, 'label' (predicted labels) or 'dval'
-%                     (decision values)
+% output            - output type, 'clabel' (predicted class labels) or 
+%                     'dval' (decision values)
 % cf                - classifier, output of a train_* function
 % test_fun          - classifier test function, a test_* function
 % Xtest             - [nSamples x nFeatures] test data
@@ -16,7 +16,7 @@ function out = mv_classifier_output(output, cf, test_fun, Xtest)
 % out - classifier outputs of the desired type
 
 switch(output)
-    case 'label'
+    case 'clabel'
         % Obtain the predicted class labels
         out = test_fun(cf,Xtest);
                
