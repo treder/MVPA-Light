@@ -43,8 +43,12 @@ Classifier performance is evaluated on a dataset called *test data*. To this end
 #### Classifiers
 
 * `train_lda`, `test_lda`: Regularised Linear Discriminant Analysis (LDA). For two classes, LDA is equivalent to Fisher's discriminant analysis (FDA). Hence, LDA searches for a projection of the data into 1D such that the class means are separated as far as possible and the within-class variability is as small as possible. To prevent overfitting and assure invertibility of the covariance matrix, the regularisation parameter λ can be varied between λ=0 (no regularisation) and λ=1 (maximum regularisation). It can also be set to λ='auto'. In this case, λ is estimated automatically. For more details on regularised LDA see [[Bla2011]](#Bla2011). LDA has been shown to be formally equivalent to LCMV beamforming and it can be used for recovering time series of ERP sources [[Tre2011]](#Tre2011).
+* `train_ensemble`, `test_ensemble`: Uses an ensemble of classifiers trained on random subsets of the features and random subsets of the samples. Can use any classifier with train/test functions as a learner.
+
+<!--
 * `train_svm`, `test_svm`: Support vector machines (SVM). Uses the [LIBSVM package](https://github.com/arnaudsj/libsvm) that needs to be installed.
 * `train_logist`, `test_logist`: Logistic regression classifier using Lucas Parra's implementation. See `external/logist.m` for an explanation of the hyperparameters.
+-->
 
 #### Classification across time
 Many neuroimaging datasets have a 3-D structure (trials x channels x time). The start of the trial (t=0) typically corresponds to stimulus or response onset. Classification across time can help identify at which time point in a trial discriminative information shows up. To this end, classification is performed across trials, for each time point separately. This is implemented in the function `mv_classify_across_time`. It returns classification performance calculated for each time point in a trial. `mv_plot_1D` can be used to plot the result.
