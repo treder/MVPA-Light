@@ -6,9 +6,9 @@ clear all
 load('epoched3')
 
 % Create class labels (1's and 2's)
-label = zeros(nTrial, 1);
-label(attended_deviant)  = 1;   % Class 1: attended deviants
-label(~attended_deviant) = 2;   % Class 2: unattended deviants
+clabel = zeros(nTrial, 1);
+clabel(attended_deviant)  = 1;   % Class 1: attended deviants
+clabel(~attended_deviant) = 2;   % Class 2: unattended deviants
 
 %% Calculate and plot ERP for attended and unattended deviants
 
@@ -34,13 +34,14 @@ ccfg.repeat     = 5;
 ccfg.classifier = 'lda';
 ccfg.param      = struct('lambda','auto');
 ccfg.verbose    = 1;
-ccfg.metric     = 'acc';
+ccfg.metric     = 'auc';
 
 %% Classification across time
-acc = mv_classify_across_time(ccfg, dat.trial, label);
+acc = mv_classify_across_time(ccfg, dat.trial, clabel);
 
 close all
 mv_plot_1D([],dat.time,acc)
+ylabel(ccfg.metric)
 
 %% Classification across time for all subjects
 nSbj = 3;
@@ -55,12 +56,12 @@ for nn=1:nSbj
     load(['epoched' num2str(nn)] )
     
     % Create class labels (1's and 2's)
-    label = zeros(nTrial, 1);
-    label(attended_deviant)  = 1;   % Class 1: attended deviants
-    label(~attended_deviant) = 2;   % Class 2: unattended deviants
+    clabel = zeros(nTrial, 1);
+    clabel(attended_deviant)  = 1;   % Class 1: attended deviants
+    clabel(~attended_deviant) = 2;   % Class 2: unattended deviants
     
     % Run classification across time
-    [acc{nn}, auc{nn}] = mv_classify_across_time(ccfg, dat.trial, label);
+    [acc{nn}, auc{nn}] = mv_classify_across_time(ccfg, dat.trial, clabel);
 end
 
 acc = cat(2,acc{:});

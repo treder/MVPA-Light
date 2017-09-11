@@ -9,9 +9,9 @@ clear all
 load('epoched3')
 
 % Create class labels (1's and 2's)
-label = zeros(nTrial, 1);
-label(attended_deviant)  = 1;   % Class 1: attended deviants
-label(~attended_deviant) = 2;   % Class 2: unattended deviants
+clabel = zeros(nTrial, 1);
+clabel(attended_deviant)  = 1;   % Class 1: attended deviants
+clabel(~attended_deviant) = 2;   % Class 2: unattended deviants
 
 % Average activity in 0.6-0.8 interval (see example 1)
 ival_idx = find(dat.time >= 0.6 & dat.time <= 0.8);
@@ -29,14 +29,14 @@ ccfg.balance         = 'undersample';
 ccfg.metric          = 'auc';
 ccfg.verbose         = 1;
 
-acc = mv_crossvalidate(ccfg, X, label);
+acc = mv_crossvalidate(ccfg, X, clabel);
 
 fprintf('\nClassification accuracy: %2.2f%%\n', 100*acc)
 
 %% Comparing cross-validation to train-test on the same data
 % Select only the first samples
 nReduced = 29;
-label_reduced = label(1:nReduced);
+label_reduced = clabel(1:nReduced);
 X_reduced = X(1:nReduced,:);
 
 ccfg= [];
