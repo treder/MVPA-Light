@@ -1,12 +1,19 @@
 function [cf, b, stats] = train_logreg(cfg,X,clabel)
-% Trains a logistic regression classifier with elastic net regularisation.
-% The regularisation parameter lambda controls the strength of the
-% regularisation. The parameter alpha is bounded between 0 and 1. It blends
-% between blends between full L1/lasso regularisation (alpha=1) and
-% L2/ridge regularisation (alpha close to 0). Must be strictly larger than
-% 0. For intermediate values, both L1 and L2 regularisation applies. 
+% Trains a logistic regression classifier. To avoid overfitting, L2
+% regularisation is used.
+% To avoid overfitting, L1 or L2 regularisation can be used. L2
+% regularisation penalises by the L2 norm of the weight vector w, or w'*w,
+% whereas L1 regularisation penalises by its L1 norm, |w|.
+% Unless a sparse w is needed, 
+% Note that either 
 %
-% Uses the MATLAB function lassoglm.
+% 
+
+% In regularised logistic regression, the loss function can be defined as:
+%      L(w,lambda) = SUM log(1+exp(-yi*w*xi)) + lambda * ||w||^2
+%
+% where w is the coefficient vector and lambda is the regularisation
+% strength, and yi = {-1,+1} are the class labels.
 %
 % Usage:
 % cf = train_logreg(cfg,X,clabel)
@@ -16,23 +23,10 @@ function [cf, b, stats] = train_logreg(cfg,X,clabel)
 % clabel         - [samples x 1] vector of class labels containing 
 %                  1's (class 1) and 2's (class 2)
 %
-% param          - struct with hyperparameters:
-% alpha          - blend between L1 regularisation (alpha=1) and L2
-%                  regularisation (alpha approaches 0). 
-%                  The closer to 1 alpha is set, the more sparse the 
-%                  coefficient vector becomes. If sparsity is not required, 
-%                  a small value of alpha is recommended since it speeds up
-%                  training considerably (default 10^-10)
-% nameval        - a cell array giving additional name-value pairs (e.g. 
-%                  {'LambdaRatio' 100 'Link' 'logit'} passed to lassoglm.
-%                  See the help of lassoglm for an explanation of the
-%                  parameters
-% K              - The hyperparameter lambda controlling the amount of 
-%                  regularisation is found using a grid search based on 
-%                  inner cross-validation. K sets the number of folds for 
-%                  the cross-validation (default 5)
-% numLambda      - the amount of lambda values that are checked during grid
-%                  search
+% cfg          - struct with hyperparameters:
+% L2           - 
+% L1           - lambda regularisation parameter using 
+
 
 %Output:
 % cf - struct specifying the classifier with the following fields:
@@ -40,11 +34,44 @@ function [cf, b, stats] = train_logreg(cfg,X,clabel)
 % b            - bias term, setting the threshold 
 %
 
-[b, stats] = lassoglm(X, clabel(:)==1, 'binomial','alpha', cfg.alpha,...
-    'CV',cfg.K, 'numLambda',cfg.numLambda, cfg.nameval{:}); 
+% Reference:
+% RE Fan, KW Chang, CJ Hsieh, XR Wang, CJ Lin (2008).
+% LIBLINEAR: A library for large linear classification
+% Journal of machine learning research 9 (Aug), 1871-1874
 
-% Select classifier weights according to the lambda yielding the lowest 
-% deviance
-cf.w= b(:,stats.IndexMinDeviance);
-cf.b= stats.Intercept(stats.IndexMinDeviance);
-cf.best_lambda= stats.LambdaMinDeviance;
+% Matthias Treder 2017
+
+idx1 = (clabel == 1);
+idx2 = (clabel == 2);
+
+mv_setDefault(cfg,'normalise',1);
+mv_setDefault(cfg,'intercept',1);
+mv_setDefault(cfg,'CV',1);
+% mv_setDefault(cfg,'lambda',2.^[-10:10]);
+mv_setDefault(cfg,'lambda',1);
+
+lambda = cfg.lambda;
+
+if cfg.normalise
+    X = zscore(X);
+end
+
+% We can reduce exp(-yi*w*xi) to exp(w*xi) by multiplying class 1 samples
+% by -1
+X(idx1,:) = -X(idx1,:);
+
+% Augment X with intercept
+if cfg.intercept
+    X = cat(2,X, ones(size(X,1),1));
+end
+
+% Take vector connecting the class means as initial guess for speeding up
+% convergence
+w0 = mean(X(idx1,:)) -  mean(X(idx2,:));
+w0 = w0 / norm(w0);
+
+% Objective function
+logfun = @(w) sum(log(1+exp(X*w))) + lambda * w'*w;
+
+
+cf.b = 0;
