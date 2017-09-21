@@ -55,14 +55,19 @@ function cf = train_logreg(cfg,X0,clabel)
 % (c) Matthias Treder 2017
 
 X0= double(X0);
-lambda = cfg.lambda;
 [N, nFeat] = size(X0);
+
+lambda = cfg.lambda;
+cf = [];
 
 N1 = sum(clabel==1);
 N2 = sum(clabel==2);
 
-if cfg.normalise
-    X0 = zscore(X0);
+if cfg.zscore
+    cf.zscore = 1;
+    [X0,cf.mean,cf.std] = zscore(X0);
+else
+    cf.zscore = 0;
 end
 
 % Need class labels 1 and -1
@@ -123,9 +128,6 @@ fun = @(w) lr_objective_tanh(w);
 if numel(cfg.lambda)>1
     CV = cvpartition(N,'KFold',cfg.K);
     ws = zeros(nFeat, numel(cfg.lambda));
-    
-    iter_tmp = zeros(numel(cfg.lambda),1);
-    delta_tmp = zeros(numel(cfg.lambda),1);
     acc = zeros(numel(cfg.lambda),1);
 
     if cfg.plot
@@ -134,7 +136,6 @@ if numel(cfg.lambda)>1
         delta_tmp = zeros(numel(cfg.lambda),1);
         iter = zeros(numel(cfg.lambda),1);
         delta = zeros(numel(cfg.lambda),1);
-        
     end
     
     for ff=1:cfg.K
@@ -149,15 +150,15 @@ if numel(cfg.lambda)>1
             if cfg.plot
                 % Need to acquire diagnostic information as well
                 if ll==1
-                    [ws(:,ll),iter_tmp(ll),delta(ll)] = TrustRegionNewton(fun, w0, cfg.tolerance, cfg.max_iter,ll);
+                    [ws(:,ll),iter_tmp(ll),delta(ll)] = TrustRegionDogleg(fun, w0, cfg.tolerance, cfg.max_iter,ll);
                 else
-                    [ws(:,ll),iter_tmp(ll),delta(ll)] = TrustRegionNewton(fun, ws(:,ll-1), cfg.tolerance, cfg.max_iter,ll);
+                    [ws(:,ll),iter_tmp(ll),delta(ll)] = TrustRegionDogleg(fun, ws(:,ll-1), cfg.tolerance, cfg.max_iter,ll);
                 end
             else
                 if ll==1
-                    ws(:,ll) = TrustRegionNewton(fun, w0, cfg.tolerance, cfg.max_iter,ll);
+                    ws(:,ll) = TrustRegionDogleg(fun, w0, cfg.tolerance, cfg.max_iter,ll);
                 else
-                    ws(:,ll) = TrustRegionNewton(fun, ws(:,ll-1), cfg.tolerance, cfg.max_iter,ll);
+                    ws(:,ll) = TrustRegionDogleg(fun, ws(:,ll-1), cfg.tolerance, cfg.max_iter,ll);
                 end
             end
         end
@@ -198,10 +199,9 @@ YX = Y*X0;
 sumyx = sum(YX)';
 X = X0;
 
-w = TrustRegionNewton(fun, w0, cfg.tolerance, cfg.max_iter, 1);
+w = TrustRegionDogleg(fun, w0, cfg.tolerance, cfg.max_iter, 1);
 
 %% Set up classifier
-cf = [];
 if cfg.intercept
     cf.w = w(1:end-1);
     cf.b = w(end);
@@ -209,7 +209,6 @@ else
     cf.w = w;
     cf.b = 0;
 end
-
 
 %%
 %%% Logistic regression objective function. Given w, data X and

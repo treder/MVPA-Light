@@ -16,6 +16,11 @@ function [clabel,dval] = test_logreg(cf,X)
 % clabel        - predicted class labels (1's and 2's)
 % dval          - decision values, i.e. distances to the hyperplane
 
+if cf.zscore
+    X = bsxfun(@minus, X, cf.mean);
+    X = bsxfun(@rdivide, X, cf.std);
+end
+
 dval = X*cf.w + cf.b; % unlike LDA, b needs to be added here
 clabel= double(dval >= 0) + 2*double(dval < 0);
 
