@@ -1,4 +1,4 @@
-function [w,iter] = TrustRegionNewton(fun,w,tol,max_iter)
+function [w,iter,delta] = TrustRegionNewton(fun,w,tolerance,max_iter,ll)
 % Implementation of a Trust Region (TR) Newton algorithm for solving 
 % non-linear equations of the type 
 %
@@ -29,8 +29,9 @@ function [w,iter] = TrustRegionNewton(fun,w,tol,max_iter)
 %                g: corresponding gradient vector (first output)
 %                H: corresponding Hessian matrix  (second output)
 % w         - start vector
-% tol       - tolerance, when norm of gradient is smaller the algorithm stops
-% max_iter - maximum number of iterations
+% tolerance - stopping criterion. When the gradient is lower than tolerance
+%             in the infinity norm, iteration stops
+% max_iter  - maximum number of iterations
 %
 % Reference:
 % Lin C, Weng R, Keerthi S (2007). Trust region Newton methods for
@@ -45,6 +46,8 @@ function [w,iter] = TrustRegionNewton(fun,w,tol,max_iter)
 
 
 % (c) Matthias Treder 2017
+
+iter = 0;
 
 % Parameters for updating the iterates
 eta1 = 0.05;  % 0.05  0.25
@@ -63,24 +66,23 @@ step = 0;
 norm_step = 0;
 
 % Get gradient and Hessian matrix for our starting point
-[g,H] = fun(w);
+% [g,H] = fun(w);
+[obj,g,H] = fun(w);
 
 norm_g = sqrt(g'*g);
 
 % Squared norm of the gradient is our objective value (since then d/df obj yields g)
-obj = 0.5 * g' * g;
+% obj = 0.5 * g' * g;
+    
+if norm(g,Inf) < tolerance
+    return
+end
 
 % Outer loop: A trust region is defined. A quadratic approximation is used
 % to model the function within the trust region. A conjugate gradient
 % procedure then finds the optimum of the quadratic approximation,
 % constrained by the size of the region (delta).
-for iter = 1:max_iter
-    
-    %%% --------------------------------------------- 
-    %%% Check stopping criterium
-    if obj < tol
-        break
-    end
+while iter < max_iter
     
     %%% --------------- Dogleg
     % Solve the Trust Region subproblem using a dogleg approach: this gives
@@ -91,10 +93,11 @@ for iter = 1:max_iter
     w_new = w + step;
 
     % Get function value and Jacobian matrix for our starting point
-    [G_new,H_new] = fun(w_new);
+    [obj_new,G_new,H_new] = fun(w_new);
+%     [G_new,H_new] = fun(w_new);
     
     % Evaluate objective at new point
-    obj_new = 0.5 * (G_new' * G_new);
+%     obj_new = 0.5 * (G_new' * G_new);
 
     %%% --------------------------------------------- 
     %%% Calculate actual and predicted reduction and their ratio. The
@@ -102,7 +105,7 @@ for iter = 1:max_iter
     %%% in the region spanned by delta is good - if it is good or
     %%% exceptionally bad, we need to adapt delta to change the trust
     %%% region size (see below)
-    ratio = (obj - obj_new)/ obj_pred;
+    ratio = (obj - obj_new) / obj_pred;
     
     %%% --------------------------------------------- 
     %%% Accept or reject step:
@@ -132,11 +135,19 @@ for iter = 1:max_iter
 
     % delta_max is a ceiling
     delta = min(delta, delta_max);
+       
+    iter = iter + 1;
+    %%% --------------------------------------------- 
+    %%% Check stopping criterium
+    if norm(g,Inf) < tolerance
+        break
+    end
 
 end
 
-if iter == max_iter
-    warning('Maximum number of iterations (%d) reached, stopping...',max_iter)
+if (iter == max_iter)
+%     warning('Maximum number of iterations (%d) reached, stopping...',max_iter)
+    warning('Maximum number of iterations (%d) reached at iteration #%d, stopping...',max_iter,ll)
 end
 
     %% ---- DOGLEG algorithm ----
