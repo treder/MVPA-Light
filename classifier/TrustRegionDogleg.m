@@ -1,8 +1,8 @@
-function [w,iter,delta] = TrustRegionNewton(fun,w,tolerance,max_iter,ll)
-% Implementation of a Trust Region (TR) Newton algorithm for solving 
+function [w,iter,delta] = TrustRegionDogleg(fun,w,tolerance,max_iter,ll)
+% Implementation of a Trust Region (TR) Dogleg algorithm for solving 
 % non-linear equations of the type 
 %
-%       f_lambda(W) = 0
+%       f(W) = 0
 %
 % In TR approaches, the objective function is locally approximated by a
 % simpler function (typically a quadratic expansion). The approximation is
@@ -33,6 +33,7 @@ function [w,iter,delta] = TrustRegionNewton(fun,w,tolerance,max_iter,ll)
 %             in the infinity norm, iteration stops
 % max_iter  - maximum number of iterations
 %
+
 % Reference:
 % Lin C, Weng R, Keerthi S (2007). Trust region Newton methods for
 % large-scale logistic regression. Proceedings of the 24th international
@@ -42,7 +43,7 @@ function [w,iter,delta] = TrustRegionNewton(fun,w,tolerance,max_iter,ll)
 % fun       - function handle, yielding three outputs for input point w:
 %                f: function value at w
 %                g: corresponding gradient vector
-%                h: corresponding Hessian matrix
+%                H: corresponding Hessian matrix
 
 
 % (c) Matthias Treder 2017
@@ -78,10 +79,7 @@ if norm(g,Inf) < tolerance
     return
 end
 
-% Outer loop: A trust region is defined. A quadratic approximation is used
-% to model the function within the trust region. A conjugate gradient
-% procedure then finds the optimum of the quadratic approximation,
-% constrained by the size of the region (delta).
+% ---- Start iterations ----
 while iter < max_iter
     
     %%% --------------- Dogleg
@@ -142,7 +140,6 @@ while iter < max_iter
     if norm(g,Inf) < tolerance
         break
     end
-
 end
 
 if (iter == max_iter)
