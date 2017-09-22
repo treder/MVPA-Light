@@ -58,7 +58,7 @@ for mm=1:nMetric
     perf{mm} = nan(nFeat,1);
 end
 
-%% Define neighbours included by a stepsize of nbstep
+%% Find the neighbours included by a stepsize of nbstep
 if isempty(cfg.nb) || cfg.nbstep == 0
     % Do not include neighbours: each feature is only neighbour to itself
     cfg.nb = eye(nFeat); 

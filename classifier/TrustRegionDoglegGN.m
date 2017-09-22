@@ -2,7 +2,7 @@ function [w,iter,delta] = TrustRegionDoglegGN(fun,w,tolerance,max_iter,ll)
 % Implementation of a Trust Region (TR) Dogleg algorithm for solving 
 % non-linear equations of the type 
 %
-%       f(W) = 0
+%       F(W) = 0
 %
 % In TR approaches, the objective function is locally approximated by a
 % simpler function (typically a quadratic expansion). The approximation is
@@ -10,20 +10,21 @@ function [w,iter,delta] = TrustRegionDoglegGN(fun,w,tolerance,max_iter,ll)
 % region. The quadratic expansion gives rise to a quadratic subproblem at
 % each iteration
 %
-%              step <- arg min      f + f' * step + 0.5 * step' * J * step
-%                      subject to   ||step|| <= delta
+%          step <- arg min      f + f' * step + 0.5 * step' * H * step
+%                  subject to   ||step|| <= delta
 %
-% where f is the current function value, f the gradient and J the Hessian.
+% where f is the current function value, f the gradient and H the Hessian.
 % This subproblem is solved using the Dogleg approach consisting of the
 % following steps:
 % 1) calculate Cauchy step (steepest descent) solving the quadratic
 %    problem. If ||step|| > delta we go up until the delta border and quit
-% 2) if ||step|| <= delta we calculate the Newtons step: If
-%    ||newton_step|| <= delta we make it and are done
+% 2) if ||step|| <= delta we calculate the Gauss-Newton step: If
+%    ||gauss_newton_step|| <= delta we make it and are done
 % 3) if ||newton_step|| > delta we first make the Cauchy step and then the
-%   Newton step until we hit the border (two linear steps forming a dog leg)
+%   Newton step until we hit the border. This yields two linear steps which
+%   allegedly look like a dog leg.
 %
-% Usage: [w,iter] = TrustRegionNewton(fun,w,tol,max_iter)
+% Usage: [w,iter] = TrustRegionNewtonGN(fun,w,tol,max_iter)
 %
 % fun       - function handle to the gradient function, yielding 
 %                f: corresponding gradient vector (first output)
@@ -33,11 +34,6 @@ function [w,iter,delta] = TrustRegionDoglegGN(fun,w,tolerance,max_iter,ll)
 %             in the infinity norm, iteration stops
 % max_iter  - maximum number of iterations
 %
-
-% Reference:
-% Lin C, Weng R, Keerthi S (2007). Trust region Newton methods for
-% large-scale logistic regression. Proceedings of the 24th international
-% conference on Machine learning - ICML '07. pp: 561-568
 
 % (c) Matthias Treder 2017
 
@@ -160,23 +156,24 @@ end
         % step is tau = ||f||^3 / (f'*J*f). tau must not be larger than 1
         % (since we would get out of the trust region otherwise)
 
-        % The Hessian matrix would be needed for the denominator. But we 
-        % approximate the Hessian by the Jacobian H = (J'*J)
-        tau = min(delta, norm_grad^3 / (grad' * (J'*J) * grad) );
+        % The Hessian matrix is needed for the denominator. We 
+        % approximate the Hessian using the Jacobian: H = (J'*J), so 
+        % grad' * H * grad leads to the term in the next line
+        tau = min(delta, norm_grad^3 / ( (J*grad)' * (J*grad) ));
         step = -tau * grad / norm_grad;
         norm_step = tau;
         
         % Accept Cauchy step if it takes us at least to the border of the
         % region. In this case, we do not need to calculate the Newton
-        % direction (the second part of the dog leg). If tau < 1, Cauchy
-        % ends within the trust region and we might have to add the
-        % Newton step on top.
+        % direction (the second part of the dog leg). If tau < delta, Cauchy
+        % ends within the trust region and we have to consider the
+        % Gauss-Newton step on top.
         if tau < delta-eps
             % GAUSS-NEWTON STEP
             % Cauchy step left us within the Trust Region: We try a 
-            % Gauss-Newton 
-            % step: if it leaves us within the region too, we make the 
-            % Newton step directly and we are done.
+            % Gauss-Newton step: if it leaves us within the region too, 
+            % we ignore Cauchy and make the Newton step directly. Otherwise
+            % we take the dogleg step.
             
             % Need to multiply by the pinv of J: since J is Hermitian, this
             % is equal to the inverse of J
@@ -204,7 +201,7 @@ end
         end
         
         % Predicted 
-        obj_pred= - grad'* step - 0.5 * step' * (J'*J) * step;
+        obj_pred= - grad'* step - 0.5 * (J*step)' * (J*step);
     end
 
    
