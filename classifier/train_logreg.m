@@ -1,7 +1,7 @@
-function cf = train_logreg(cfg,X0,clabel)
-% Trains a logistic regression classifier. To avoid overfitting, L2
-% regularisation is used.
-% 
+function cf = train_logreg(cfg,X,clabel)
+% Trains a logistic regression classifier with L2 regularisation. It is
+% recommended that X (the data) is z-scored to avoid numerical issues for
+% optimisation.
 %
 % Usage:
 % cf = train_logreg(cfg,X,clabel)
@@ -12,12 +12,10 @@ function cf = train_logreg(cfg,X0,clabel)
 %                  1's (class 1) and 2's (class 2)
 %
 % cfg          - struct with hyperparameters:
-% zscore       - zscores the training data. Since the loss function
-%                  involves exp, this assures that the data behaves nicely.
-%                  The scaling will be saved in the classifier and applied
-%                  to the test set (in test_logreg). 
-%                  This option can be set to 0 if the data has been
-%                  z-scored already (default 1)
+% zscore         - zscores the training data. The scaling will be saved in 
+%                  the classifier and applied to the test set (in test_logreg). 
+%                  This option is not required if the data has been
+%                  z-scored already (default 0)
 % intercept      - augments the data with an intercept term (recommended)
 %                  (default 1). If 0, the intercept is assumed to be 0
 % lambda         - regularisation hyperparameter controlling the magnitude
@@ -25,7 +23,6 @@ function cf = train_logreg(cfg,X0,clabel)
 %                  used for regularisation. If a vector of values is given,
 %                  5-fold cross-validation is used to test all the values
 %                  in the vector and the best one is selected 
-%                  (default  ???)
 %                  
 % Logistic regression introduces a non-linearity over the linear regression
 % term f(x) = w * x + b by means of the sigmoid function s(x) = 1/(1+e^-x),
@@ -45,23 +42,15 @@ function cf = train_logreg(cfg,X0,clabel)
 % cf - struct specifying the classifier with the following fields:
 % w            - projection vector (normal to the hyperplane)
 % b            - bias term, setting the threshold 
-%
-
-% Reference:
-% RE Fan, KW Chang, CJ Hsieh, XR Wang, CJ Lin (2008).
-% LIBLINEAR: A library for large linear classification
-% Journal of machine learning research 9 (Aug), 1871-1874
 
 % (c) Matthias Treder 2017
 
-X0= double(X0);
-[N, nFeat] = size(X0);
+X= double(X);
+[N, nFeat] = size(X);
+X0 = X;
 
 lambda = cfg.lambda;
 cf = [];
-
-N1 = sum(clabel==1);
-N2 = sum(clabel==2);
 
 if cfg.zscore
     cf.zscore = 1;
@@ -70,7 +59,7 @@ else
     cf.zscore = 0;
 end
 
-% Need class labels 1 and -1
+% Need class labels 1 and -1 here
 clabel(clabel == 2) = -1;
 
 % Stack labels in diagonal matrix for matrix multiplication during
@@ -93,15 +82,24 @@ I = eye(nFeat);
 
 % cfg.lambda = logspace(-10,2,50);
 
-fun = @(w) lr_objective_tanh(w);
-% fun = @(w) lr_objective(w);
+%% FSOLVE
 % fun = @(w) lr_gradient_tanh(w);
-% fun = @(w) lr_gradient(w);
+% 
+% X = X0;
+% YX = Y*X;
+% sumyx = sum(YX)';
+% 
+% lambda = 1;
+% lambda = 5.3367e-05;
+% 
+% [w_fsolve,~,~,stat] = fsolve(@(w) lr_gradient(w), w0, cfg.optim);
+% 
+% [w,iter] = TrustRegionDoglegGN(fun, w0, cfg.tolerance, cfg.max_iter, 1);
 
 %% FSOLVE - 5-fold CV
 % K = 5;
 % CV = cvpartition(N,'KFold',K);
-% ws = zeros(nFeat, numel(lambdas));
+% ws_fsolve = zeros(nFeat, numel(cfg.lambda));
 % fun = @(w) lr_gradient_tanh(w);
 % 
 % tic
@@ -112,17 +110,23 @@ fun = @(w) lr_objective_tanh(w);
 %     % Sum of samples needed for the gradient
 %     sumyx = sum(YX)';
 % 
-%     for ll=1:numel(lambdas)
-%         lambda = lambdas(ll);
+%     for ll=1:numel(cfg.lambda)
+%         lambda = cfg.lambda(ll);
 %         if ll==1
-%             ws(:,ll) = fsolve(@(w) lr_gradient(w), w0, cfg.optim);
+%             ws_fsolve(:,ll) = fsolve(@(w) lr_gradient(w), w0, cfg.optim);
 %         else
-%             ws(:,ll) = fsolve(@(w) lr_gradient(w), ws(:,ll-1), cfg.optim);
+%             ws_fsolve(:,ll) = fsolve(@(w) lr_gradient(w), ws_fsolve(:,ll-1), cfg.optim);
 %         end
 %         
 %     end
 % end
 % toc
+
+
+% fun = @(w) lr_objective_tanh(w);
+% fun = @(w) lr_objective(w);
+% fun = @(w) lr_gradient_tanh(w);
+fun = @(w) lr_gradient(w);
 
 %% Find best lambda using cross-validation
 if numel(cfg.lambda)>1
@@ -150,20 +154,22 @@ if numel(cfg.lambda)>1
             if cfg.plot
                 % Need to acquire diagnostic information as well
                 if ll==1
-                    [ws(:,ll),iter_tmp(ll),delta(ll)] = TrustRegionDogleg(fun, w0, cfg.tolerance, cfg.max_iter,ll);
+                    [ws(:,ll),iter_tmp(ll),delta(ll)] = TrustRegionDoglegGN(fun, w0, cfg.tolerance, cfg.max_iter,ll);
                 else
-                    [ws(:,ll),iter_tmp(ll),delta(ll)] = TrustRegionDogleg(fun, ws(:,ll-1), cfg.tolerance, cfg.max_iter,ll);
+                    [ws(:,ll),iter_tmp(ll),delta(ll)] = TrustRegionDoglegGN(fun, ws(:,ll-1), cfg.tolerance, cfg.max_iter,ll);
                 end
             else
                 if ll==1
-                    ws(:,ll) = TrustRegionDogleg(fun, w0, cfg.tolerance, cfg.max_iter,ll);
+                    ws(:,ll) = TrustRegionDoglegGN(fun, w0, cfg.tolerance, cfg.max_iter,ll);
                 else
-                    ws(:,ll) = TrustRegionDogleg(fun, ws(:,ll-1), cfg.tolerance, cfg.max_iter,ll);
+                    ws(:,ll) = TrustRegionDoglegGN(fun, ws(:,ll-1), cfg.tolerance, cfg.max_iter,ll);
                 end
             end
         end
-        delta = delta + delta_tmp;
-        iter = iter + iter_tmp;
+        if cfg.plot
+            delta = delta + delta_tmp;
+            iter = iter + iter_tmp;
+        end
         
         cl = clabel(CV.test(ff));
         acc = acc + sum( (X0(CV.test(ff),:) * ws) .* cl(:) > 0)' / CV.TestSize(ff);
@@ -180,11 +186,17 @@ if numel(cfg.lambda)>1
     % Diagnostic plots if requested
     if cfg.plot
         figure,
-        nCol =3;
-        subplot(1,nCol,1),imagesc(C); title({'Mean correlation' 'between w''s'}),xlabel('lambda#')
-        subplot(1,nCol,2),plot(delta),title({'Mean trust region' 'size at termination'}),xlabel('lambda#')
-        subplot(1,nCol,3),plot(iter_tmp),title({'Mean number' 'of iterations'}),xlabel('lambda#')
+        nCol=3; nRow=1;
+        subplot(nRow,nCol,1),imagesc(C); title({'Mean correlation' 'between w''s'}),xlabel('lambda#')
+        subplot(nRow,nCol,2),plot(delta),title({'Mean trust region' 'size at termination'}),xlabel('lambda#')
+        subplot(nRow,nCol,3),plot(iter_tmp),title({'Mean number' 'of iterations'}),xlabel('lambda#')
         
+        % Plot regularisation path (for the last training fold)
+        figure
+        for ii=1:nFeat, semilogx(cfg.lambda,ws(ii,:),'-'), hold all, end
+        plot(xlim,[0,0],'k-'),title('Regularisation path for last iteration'),xlabel('lambda#')
+        
+        % Plot cross-validated classification performance
         figure
         semilogx(cfg.lambda,acc)
         title([num2str(cfg.K) '-fold cross-validation performance'])
@@ -199,7 +211,12 @@ YX = Y*X0;
 sumyx = sum(YX)';
 X = X0;
 
-w = TrustRegionDogleg(fun, w0, cfg.tolerance, cfg.max_iter, 1);
+% fun = @(w) lr_objective_tanh(w);
+% fun = @(w) lr_objective(w);
+fun = @(w) lr_gradient_tanh(w);
+% fun = @(w) lr_gradient(w);
+
+w = TrustRegionDoglegGN(fun, w0, cfg.tolerance, cfg.max_iter, 1);
 
 %% Set up classifier
 if cfg.intercept
@@ -237,7 +254,6 @@ end
         % Hessian
         if nargout>2
             h = lambda * I + (X' .* (sigma .* (1 - sigma))') * X;
-            % h = lambda * I + X' * diag(sigma .* (1 - sigma)) * X;
         end
     end
 
@@ -256,7 +272,6 @@ end
         % Hessian
         if nargout>2
             H = lambda * I + (X'.*(sigma .* (1 - sigma))') * X;
-            % h = lambda * I + X' * diag(sigma .* (1 - sigma)) * X;
         end
     end
 
@@ -264,8 +279,6 @@ end
     function [g,h] = lr_gradient(w)
         % Directly provide the gradient and solve for zeros
 %         sigma = 1./1+exp(-YX*w);
-%         sig = 1./(1+exp(-YX*w));
-        
         sigma = logreg_fix(YX*w);
         
         % Gradient

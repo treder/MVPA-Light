@@ -32,14 +32,18 @@ switch(classifier)
         mv_setDefault(param,'eigvalratio',[]);
 
     case 'logreg'
-        mv_setDefault(param,'normalise',0);
+        mv_setDefault(param,'zscore',0);
         mv_setDefault(param,'intercept',1);
-        % mv_setDefault(param,'lambda',2.^[-10:10]);
         mv_setDefault(param,'lambda',1);
+        mv_setDefault(param,'max_iter',400);
+        mv_setDefault(param,'tolerance',1e-8);
+        mv_setDefault(param,'K',5);
+        mv_setDefault(param,'plot',0);
+       
         mv_setDefault(param,'optim',optimoptions('fsolve','Algorithm',...
             'trust-region-dogleg',...
             'SpecifyObjectiveGradient',true,'Display','none') );
-
+        
     case 'logreg_matlab'
         mv_setDefault(param,'alpha',0.01);
         mv_setDefault(param,'numLambda',100);
