@@ -6,6 +6,8 @@ function varargout = mv_check_labels(clabel)
 % l2        - second label
 % labels    - fixed labels with 1's and 2's
 
+clabel = clabel(:);
+
 % Check the labels
 u=unique(clabel);
 if numel(u)~= 2

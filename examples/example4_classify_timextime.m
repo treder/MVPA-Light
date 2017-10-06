@@ -4,6 +4,7 @@ clear all
 
 % Load data (in /examples folder)
 load('epoched3')
+dat.trial = double(dat.trial);
 
 % Create class labels (1's and 2's)
 clabel = zeros(nTrial, 1);

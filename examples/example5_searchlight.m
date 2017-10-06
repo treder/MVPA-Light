@@ -1,47 +1,104 @@
-%%% Perform searchlight classification: classify 
-close all
-clear all
+%%% Perform searchlight classification: classification is repeated for each
+%%% electrode separately. As a result, we can plot classification
+%%% performance as a topography. 
+%%%
+%%% In addition to considering each electrode in isolution we also consider
+%%% an electrode and its direct neighbours - this is the 'searchlight'
+%%%
+%%% Note: This example requires FieldTrip, since we define the
+%%% neighbourhood structure using a FieldTrip function. If you do not use
+%%% FieldTrip, you can replace the next cell with your own code for
+%%% building a neighbourhood matrix and then run the rest of the code.
 
-% Load data (in /examples folder)
-load('epoched3')
+[dat, clabel] = load_example_data('epoched3');
 
-% Create class labels (1's and 2's)
-clabel = zeros(nTrial, 1);
-clabel(attended_deviant)  = 1;   % Class 1: attended deviants
-clabel(~attended_deviant) = 2;   % Class 2: unattended deviants
+nChan = numel(dat.label);
 
-% Average activity in 0.6-0.8 interval (see example 1)
-ival_idx = find(dat.time >= 0.6 & dat.time <= 0.8);
-X = squeeze(mean(dat.trial(:,:,ival_idx),3));
+% We want to classify focus on the 300-500 ms window
+time_idx = find(dat.time >= 0.3  &  dat.time <= 0.5);
 
-%% Cross-validation
-ccfg = [];
-ccfg.classifier      = 'lda';
-ccfg.param           = struct('lambda','auto');
-ccfg.metric          = 'acc';
-ccfg.CV              = 'kfold';
-ccfg.K               = 5;
-ccfg.repeat          = 3;
-ccfg.balance         = 'undersample';
-ccfg.metric          = 'auc';
-ccfg.verbose         = 1;
+%% Set up matrix of neighbours [requires Fieldtrip]
+% Here, we use Fieldtrip to obtain the label layout and the neighbours
+cfg = [];
+% cfg.method      = 'triangulation';  %'distance'
+cfg.method      = 'distance';
+cfg.neighbourdist = 0.195;
+cfg.layout      = 'EasycapM1';
+cfg.feedback    = 'yes';
+cfg.channel     = dat.label;
+neighbours= ft_prepare_neighbours(cfg);
 
-acc = mv_crossvalidate(ccfg, X, clabel);
+% Create neighbours matrix
+nb_mat = zeros(nChan);
 
-fprintf('\nClassification accuracy: %2.2f%%\n', 100*acc)
+for ii=1:nChan
+    
+    % Find index of current channel in neighbours array
+    idx = find(ismember({neighbours.label},dat.label{ii}));
+    
+    % Find indices of its neighbours in dat.label
+    idx_nb = find(ismember(dat.label, neighbours(idx).neighblabel))';
+    
+    % We only take 2 neighbours
+    nb_mat(ii,[ii, idx_nb]) = 1;
 
-%% Comparing cross-validation to train-test on the same data
-% Select only the first samples
-nReduced = 29;
-label_reduced = clabel(1:nReduced);
-X_reduced = X(1:nReduced,:);
+end
 
-ccfg= [];
-ccfg.verbose      = 1;
-acc = mv_crossvalidate(ccfg, X_reduced, label_reduced);
+figure,
+imagesc(nb_mat)
+set(gca,'XTickLabel',dat.label(get(gca,'XTick')))
+set(gca,'YTickLabel',dat.label(get(gca,'YTick')))
+title('Neighbourhood matrix')
+grid on
 
-ccfg.CV     = 'none';
-acc_reduced = mv_crossvalidate(ccfg, X_reduced, label_reduced);
+%% Searchlight analysis
+cfg = [];
+cfg.nb          = nb_mat;
+cfg.average     = 1;
 
-fprintf('Performance using %d samples with cross-validation: %2.2f%%\n', nReduced, 100*acc)
-fprintf('Performance using %d samples without cross-validation (overfitting): %2.2f%%\n', nReduced, 100*acc_reduced)
+maxstep = 2;        % maximum neighbourhood size
+auc = cell(1,maxstep);
+
+%%% Start classification 
+%%% - In the first iteration, nbstep = 0, i.e. only an electrode alone is
+%%%   considered
+%%% - In the second iteration, nbstep = 1, and an electrode as well as its
+%%%   direct neighbours are considered
+%%% - In the third iteration, nbstep = 2, so an electrode, its direct
+%%%   neighbours, and the neighbours of the neighbours are considered
+for nbstep=0:maxstep
+    cfg.nbstep  = nbstep;
+%     cfg.max     = nbstep + 2;
+    auc{nbstep+1} = mv_searchlight(cfg, dat.trial(:,:,time_idx), clabel);
+end
+
+%% Plot classification performance as a topography [requires Fieldtrip]
+
+% Get layout with electrode positions
+cfg = [];
+cfg.layout      = 'EasycapM1';
+cfg.channel     = dat.label;
+lay = ft_prepare_layout(cfg);
+
+% Remove SCALE and COMNT
+rm_idx = find(ismember(lay.label,{'COMNT' 'SCALE'}));
+lay.pos(rm_idx,:)=[];
+lay.width(rm_idx,:)=[];
+lay.height(rm_idx,:)=[];
+lay.label(rm_idx)=[];
+
+% Plot topography and electrode layout
+clf
+nRow= 1; nCol = maxstep+1;
+for ii=1:maxstep+1
+    subplot(nRow,nCol,ii)
+    
+    ft_plot_topo(lay.pos(:,1), lay.pos(:,2), auc{ii}, ...
+        'mask',lay.mask,'datmask',[],'interplim','mask');
+    ft_plot_lay(lay,'box','no','label','no','point','yes','pointsymbol','o','pointcolor','k','pointsize',4)
+    
+    colorbar('location','southoutside')
+    title(sprintf('nbstep = %d',ii-1))
+    colormap jet
+end
+

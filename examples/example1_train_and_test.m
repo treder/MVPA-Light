@@ -2,19 +2,9 @@
 %%% crossvalidation and classification across time functions provided by
 %%% MVPA-Light
 
-close all
-clear all
-
-% Load data (in /examples folder)
-load('epoched3')
-dat.trial = double(dat.trial);
-
-% attenden_deviant contains the information about the trials. Use this to
-% create the true class labels, indicating whether the trial corresponds to
-% an attended deviant (1) or an unattended deviant (2).
-clabel = zeros(nTrial, 1);
-clabel(attended_deviant)  = 1;  % Class 1: attended deviants
-clabel(~attended_deviant) = 2;  % Class 2: unattended deviants
+% Before running the code, cd into the examples subfolder or add it to your
+% path temporally
+[dat, clabel] = load_example_data('epoched3');
 
 %% Let's have a look at the data first: Calculate and plot ERP for attended and unattended deviants
 
@@ -74,8 +64,9 @@ param_lr = mv_classifier_defaults('logreg');
 param_lr.lambda = logspace(-6,3,100); % 2
 param_lr.plot = 1;
 param_lr.tolerance = 1e-6;
-
+param_lr.polyorder = 3;
 tic
+rng(1)
 cf = train_logreg(param_lr, X, clabel);
 toc
 [predlabel, dval] = test_logreg(cf, X);

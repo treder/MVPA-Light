@@ -1,9 +1,9 @@
 %%% Classification across time using the mv_classify_across_time function
-
 clear all
 
 % Load data (in /examples folder)
 load('epoched3')
+dat.trial = double(dat.trial);
 
 % Create class labels (1's and 2's)
 clabel = zeros(nTrial, 1);
@@ -44,16 +44,21 @@ cfg_LDA.metric     = 'auc';
 % we setup a configuration struct for logreg as well.
 cfg_LR =  cfg_LDA;
 cfg_LR.classifier = 'logreg';
-cfg_LR.param      = struct('lambda',1);
+cfg_LR.param      = struct('lambda',logspace(-6,2,10));
+
+cfg_SVM =  cfg_LDA;
+cfg_SVM.classifier = 'svm';
+cfg_SVM.param      = struct('lambda',logspace(-6,2,10));
 
 %% Classification across time
 acc_LDA = mv_classify_across_time(cfg_LDA, dat.trial, clabel);
 acc_LR = mv_classify_across_time(cfg_LR, dat.trial, clabel);
+acc_SVM = mv_classify_across_time(cfg_SVM, dat.trial, clabel);
 
 close all
-mv_plot_1D([],dat.time,cat(2,acc_LDA,acc_LR))
+mv_plot_1D([],dat.time,cat(2,acc_LDA,acc_LR,acc_SVM))
 ylabel(cfg_LDA.metric)
-legend({'LDA' 'LR'})
+legend({'LDA' 'LR' 'SVM'})
 
 %% Classification across time for all subjects
 nSbj = 3;
