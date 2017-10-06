@@ -2,7 +2,9 @@ function cf = train_svm(cfg,X,clabel)
 % Trains a linear support vector machine (SVM). The avoid overfitting, the
 % classifier weights are penalised using an Euclidean penalty (L2
 % regularisation). 
-% It is recommended that the data is z-scored.
+% It is recommended that the data is z-scored (so the mean across channels
+% is 0 and the variance across channels 1, for each sample/time
+% point/epoch).
 %
 % Usage:
 % cf = train_svm(cfg,X,clabel)
@@ -26,18 +28,23 @@ function cf = train_svm(cfg,X,clabel)
 %                  in the vector and the best one is selected
 %
 % BACKGROUND:
-% Linear SVM is trained by minimising the Hinge loss function:
+% Linear SVM is trained by minimising the following loss function:
+%
+%       f(w) = SUM hinge(w,xi,yi) + lambda * ||w||^2
+%
+% where w is the classifier weights, x is the feature vector, and y is the
+% class label, lambda is the regularisation hyperparameter for the L2 
+% penalty ||w||^2. The sum runs across samples xi with labels yi. The hinge 
+% loss function is defined as
 %
 %          hinge(w,x,y) = max(0, 1 - w'x * y)
 %
-% where w is the classifier weights, x is the feature vector, and y is the
-% class label. Including the L2 penalty, this leads to the optimisation
-% problem
+% Obviously, w is then given as the solution to the optimisation problem
 % 
-%  w =: arg min  SUM hinge(w,x,y) + lambda * ||w||^2
+%  w =: arg min  f(w)
 %
-% where the summing is across samples. This is a convex optimisation 
-% problem that can be solved by unconstrained minimisation.
+% This is a convex optimisation problem that can be solved by unconstrained 
+% minimisation.
 %
 % IMPLEMENTATION DETAILS:
 % The above problem is convex but the loss function is not smooth. Hence,
@@ -54,21 +61,34 @@ function cf = train_svm(cfg,X,clabel)
 % introduced a more generalised smooth hinge using higher order
 % polynomials to better approximate hinge loss. 
 %
-% However, a closer approximation can be achieved by stretching/squashing
-% the quadratic function without resorting to higher-order polynomials,
-% which is what I use here:
+% However, the gradient is not differentiable and hence the Hessian does
+% not exist, precluding the use of Hessian-based methods such as the Trust
+% Region Dogleg algorithm. Therefore, a different approach is followed
+% here: The hinge loss function is polynomially interpolated in an interval
+% z1 < 1 < z2 with [z1,z2] centered on 1 (z2 = 2 - z1). It is required that, 
+% at the intersection point z1 and z2, the polynomial agrees with the hinge 
+% loss in function value and in first and second derivatives. This gives 
+% rise to 6 constraints, hence a 5-th order polynomial is required. For z1 
+% and z2 defined as above this reduces to a 4-th order polynomial p(z). The
+% smoothed hinge loss is given as
 %
-%                         0                    if z >= 1
-% modified_hinge(z) =  { -1/(2(d-1)) (z-1)^2   if d < z < 1
-%                        (1+d)/2 - z           if z <= d
+%             p(z)      if z1 < z < z2
+% s(z) =    { hinge(z)  otherwise
 %
-% Here, the quadratic interpolation is limited to the [d,0] interval for
-% 0<=d<1, giving a better approximation to the hinge loss.
-%
+% In MVPA-Light, the polynomial is calculated in the function mv_classifier_defaults.
 % Since the loss function is now smooth, a Trust Region Dogleg algorithm 
-% (TrustRegionDoglegGN.m) is used to
-% optimise w. The difference of the class means serves as initial estimate
-% for w. 
+% (TrustRegionDoglegGN.m) is used to optimise w. The difference of the class means serves as initial estimate
+% for w.
+%
+% Using the smoothed hinge loss s(z) instead of hinge(z), we calculate the
+% gradient and Hessian given by
+%
+% grad f(w)  =  SUM s'(w'xi * yi) + lambda w
+%
+% hess f(w)  =  X * D * X' + lambda I
+%
+% where X is a matrix with xi's as columns, D is a diagonal matrix with 
+% Dii = s''(w'xi * yi) as elements, and I is the identity matrix.
 %
 %Reference:
 %Rennie and Srebro (2005). Loss Functions for Preference Levels: Regression 
@@ -86,7 +106,7 @@ function cf = train_svm(cfg,X,clabel)
 X0 = X;
 
 lambda = cfg.lambda;
-d = cfg.hinge_c;
+
 cf = [];
 
 if cfg.zscore
@@ -105,7 +125,7 @@ Y = diag(clabel);
 
 % Take vector connecting the class means as initial guess for speeding up
 % convergence
-w0 = double(mean(X0(clabel==1,:))) -  double(mean(X0(clabel==-1,:)));
+w0 = double(mean(X0(clabel == 1,:))) -  double(mean(X0(clabel == -1,:)));
 w0 = w0' / norm(w0);
 
 % Augment X with intercept
@@ -117,11 +137,15 @@ end
 
 I = eye(nFeat);
 
-% cfg.lambda = logspace(-10,2,50);
+% Coefficients of 1st and 2nd derivative for the polynomial interpolation
+% part of the smoothed hinge
+d1_poly = cfg.d1_poly;
+d2_poly = [cfg.d2_poly];
+% d2_poly = [0; cfg.d2_poly];
 
-%% Define some constants used in the modified hinge loss function
-mod_hinge1 = - 0.5 /(cfg.hinge_c - 1);
-mod_hinge2 = (1 + cfg.hinge_c) / 2; 
+z1 = cfg.z1;
+z2 = cfg.z2;
+ONE = ones(N,1);
 
 % absorb the class labels into X
 YX = Y*X0;
@@ -155,7 +179,8 @@ YX = Y*X0;
 % fun = @(w) lr_objective_tanh(w);
 % fun = @(w) lr_objective(w);
 % fun = @(w) lr_gradient_tanh(w);
-fun = @(w) lr_gradient(w);
+
+fun = @(w) grad_and_hess(w);
 
 %% Find best lambda using cross-validation
 if numel(cfg.lambda)>1
@@ -178,18 +203,19 @@ if numel(cfg.lambda)>1
         % Create predictor matrix for quadratic polynomial approximation 
         % of the regularisation path
         polyvec = 0:cfg.polyorder;
-        qpred = cfg.lambda(:) .^ polyvec;
+        % Use the log of the lambda's to get a better conditioned matrix
+        qpred = (log(cfg.lambda(:))) .^ polyvec;
     end
-    
+
     % --- Start cross-validation ---
     for ff=1:cfg.K
         % Training data
         X = X0(CV.training(ff),:);
         YX = Y(CV.training(ff),CV.training(ff))*X;
-        
-        % Sum of samples needed for the gradient
-        sumyxN = sum(YX)'/N;
-        
+
+        d1_s_hinge  = zeros(1,CV.TrainSize(ff));
+        d2_s_hinge  = zeros(CV.TrainSize(ff),1);
+
         % --- Loop through lambdas ---
         for ll=1:numel(cfg.lambda)
             lambda = cfg.lambda(ll);
@@ -197,18 +223,19 @@ if numel(cfg.lambda)>1
             % Warm-starting the initial w: wstart
             if ll==1
                 wstart = w0;
-            elseif cfg.predict_regularisation_path && ll>cfg.polyorder+1
+            elseif cfg.predict_regularisation_path ...
+                    && ll>cfg.polyorder+1      % we need enough terms already calculated
                 % Fit polynomial to regularisation path
                 % and predict next w(lambda_k)
                 quad = qpred(ll-cfg.polyorder-1:ll-1,:)\(ws(:,ll-cfg.polyorder-1:ll-1)');
-                wstart = (lambda.^polyvec * quad)';
+                wstart = ( log(lambda).^polyvec * quad)';
             else
                 % Use the result obtained in the previous step lambda_k-1
                 wstart = ws(:,ll-1);
             end
             if cfg.plot
                 wspred(:,ll)= wstart;
-                [ws(:,ll),iter_tmp(ll),delta(ll)] = TrustRegionDoglegGN(fun, wstart, cfg.tolerance, cfg.max_iter,ll);
+                [ws(:,ll),iter_tmp(ll),delta(ll)] = TrustRegionDoglegGN(fun, wstart, cfg.tolerance, cfg.max_iter, ll);
             else
                 ws(:,ll) = TrustRegionDoglegGN(fun, wstart, cfg.tolerance, cfg.max_iter,ll);
             end
@@ -253,18 +280,19 @@ if numel(cfg.lambda)>1
         % Plot first two dimensions
         figure
         plot(ws(1,:),ws(2,:),'ko-')
-        hold all, plot(wspred(1,2:end),wspred(2,2:end),'o')
-        hold on, plot(wslin(1,2:end),wslin(2,2:end),'gd')
+        hold all, plot(wspred(1,2:end),wspred(2,2:end),'+')
         
     end
 end
 
 %% Train classifier on the full training data (using the optimal lambda)
 YX = Y*X0;
-sumyxN = sum(YX)'/N;
 X = X0;
 
-fun = @(w) lr_gradient_tanh(w);
+% Will contain the values of the 1st and 2nd derivative of smoothed hinge
+% evaluated at the data points
+d1_s_hinge  = zeros(1,N);
+d2_s_hinge  = zeros(N,1);
 
 w = TrustRegionDoglegGN(fun, w0, cfg.tolerance, cfg.max_iter, 1);
 
@@ -282,47 +310,63 @@ end
 %%% and smooth hinge functions are provided. Only the gradient and
 %%% Hessians (latter functions) are needed for optimisation.
 
-    function f = hinge(w)
-        % Loss. Note: gradient and Hessian are not defined for hinge loss 
-        % (non-smooth)
-        f =  max(0, 1 - w'*X);
-        % Add L2 penalty
-        f = f + lambda * 0.5 * (w'*w);
-    end
+% function f = hinge(w)
+%     % Loss. Note: gradient and Hessian are not defined for hinge loss 
+%     % (non-smooth)
+%     f =  max(0, 1 - w'*YX);
+%     % Add L2 penalty
+%     f = f + lambda * 0.5 * (w'*w);
+% end
 
-    function f = smooth_hinge(w)
-        % Smooth hinge loss according to Rennie and Srebro (2005)
-        f =  zeros(1, N);
-        z = YX*w;
-        f( z<=0 ) = 0.5 - z(z<=0);
-        f( (z>0 & z<1) ) = 0.5 * ((1 - z(z>0 & z<1)).^2);
+% function f = smooth_hinge(w)
+%     % Smooth hinge loss according to Rennie and Srebro (2005)
+%     f =  zeros(1, N);
+%     z = YX*w;
+%     f( z<=0 ) = 0.5 - z(z<=0);
+%     f( (z>0 & z<1) ) = 0.5 * ((1 - z(z>0 & z<1)).^2);
+% 
+%     % Add L2 penalty
+%     f = f + lambda * 0.5 * (w'*w);
+% end
 
-        % Add L2 penalty
-        f = f + lambda * 0.5 * (w'*w);
-    end
+% function s1 = poly_hinge(z)
+%     % Smoothed hinge loss with a polynomial interpolation in the interval
+%     % z1 < 1 < z2.
+%     s1 = zeros(N,1);
+%     s1(z <= z1) = 1-z;    % this part is from the original hinge
+%     s1(z > z1  &  z < z2) = cfg.a * z;
+% end
 
-    function f = modified_hinge(w)
-        % Modification of smooth hinge with a shorter interpolation
-        % interval (closer match with non-smooth hinge)
-        f =  zeros(1, N);
-        z = YX*w;
-        f( d<=z & z<1 ) = mod_hinge1 * (z(d<=z & z<1) - 1).^2;
-        f( z<=d ) = mod_hinge2 - z(z<=d);
+function [g,H] = grad_and_hess(w)
+    % Gradient and Hessian of loss function f(w). Uses smoothed version of 
+    % hinge loss calculated by poly_hinge.
+    % For optimisation, only gradient and Hessian are required.
+    z = YX*w;
+
+    % Indices of samples that are passed through the polynomial
+    % interpolation term
+    interp_idx = (z > z1  &  z < z2);
+
+    % 1st derivative of of smoothed hinge loss
+    d1_s_hinge(:) = 0;
+    d1_s_hinge(z <= z1) = -1;                       % this part is from the original hinge
+    d1_s_hinge(interp_idx) = polyval(d1_poly, z(interp_idx));    % this is the polynomial interpolation of the 1st derivative of smoothed hinge
+
+    % Gradient
+    g = (d1_s_hinge * YX)' + lambda * w;
+
+    % Hessian of loss function (serves here as gradient)
+    if nargout>1
+        d2_s_hinge(:) = 0;
+        d2_s_hinge(interp_idx) = polyval(d2_poly, z(interp_idx)); % this is the polynomial interpolation of the 2nd derivative of smoothed hinge
         
-        % Add L2 penalty
-        f = f + lambda * 0.5 * (w'*w);
+        H = (X .* d2_s_hinge)' * X + lambda * I;
     end
 
-    function [g,h] = modified_hinge_gradient(w)
-        % Gradient and Hessian of the modified hinge
-        f =  zeros(1, N);
-        z = 1 - YX*w;
-        f( cfg.hinge_c <= z & z<1 ) = mod_hinge1 * (z-1).^2;
-        f( z <= cfg.hinge_c ) = mod_hinge2 - z;
-    end
+end
 
-
-%%% Plot loss functions
+%%% Plot loss functions: set a stop marker in the code above and then run
+%%% the code below to see the three loss functions in comparison
 % w = 1;
 % YX = linspace(-1,3,N);
 % lambda = 0;
@@ -332,6 +376,7 @@ end
 % plot(YX, smooth_hinge(w))
 % plot(YX, modified_hinge(w))
 % legend({'Hinge' 'Smooth hinge' 'Modified hinge'})
+
 
 end
 
