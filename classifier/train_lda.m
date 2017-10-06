@@ -53,23 +53,26 @@ C= N1/N * cov(X(idx1,:)) + N2/N * cov(X(idx2,:));
 mu1= mean(X(idx1,:))';
 mu2= mean(X(idx2,:))';
 
+lambda = cfg.lambda;
+    
 % Regularise covariance matrix using shrinkage
-if (ischar(cfg.lambda)&&strcmp(cfg.lambda,'auto')) || cfg.lambda>0
-
-    if ischar(cfg.lambda)&&strcmp(cfg.lambda,'auto')
-        % Here we use the Ledoit-Wolf method to estimate the regularisation
-        % parameter analytically.
-        % Get samples from each class separately and correct by the class
-        % means mu1 and mu2 using bsxfun.
-        [C, cfg.lambda]= cov1para([bsxfun(@minus,X(idx1,:),mu1');bsxfun(@minus,X(idx2,:),mu2')]);
-    else
-        % Shrinkage parameter is given directly as a number.
-        % We write the regularised covariance matrix as a convex combination of
-        % the empirical covariance C and an identity matrix scaled to have
-        % the same trace as C
-        C = (1-cfg.lambda)* C + cfg.lambda * eye(size(C,1)) * trace(C)/size(X,2);
-    end
-
+if (ischar(lambda)&&strcmp(lambda,'auto'))
+    % Here we use the Ledoit-Wolf method to estimate the regularisation
+    % parameter analytically.
+    % Get samples from each class separately and correct by the class
+    % means mu1 and mu2 using bsxfun.
+    [C, lambda]= cov1para([bsxfun(@minus,X(idx1,:),mu1');bsxfun(@minus,X(idx2,:),mu2')]);
+    
+elseif numel(lambda)==1
+    % Shrinkage parameter is given directly as a number.
+    % We write the regularised covariance matrix as a convex combination of
+    % the empirical covariance C and an identity matrix scaled to have
+    % the same trace as C
+    C = (1-lambda)* C + lambda * eye(size(C,1)) * trace(C)/size(X,2);
+    
+elseif ~ischar(lambda) && numel(lambda)>1
+    % Multipe lambdas given: perform tuning using a grid search
+    tune_hyperparameter_lda;
 end
 
 % Classifier weight vector (= normal to the separating hyperplane)
@@ -84,15 +87,16 @@ end
 b= w'*(mu1+mu2)/2;
 
 %% Prepare output
-cf= struct('w',w,'b',b,'prob',cfg.prob);
+cf= struct('w',w,'b',b,'prob',cfg.prob,'lambda',lambda);
 
-% If probabilities are to be returned as decision values, we need to
-% determine the priors and also save the covariance matrix and the cleass
-% means
 if cfg.prob == 1
-    % Calculate posterior probabilities (probability for a sample to be
-    % class 1)
-
+    % If probabilities are to be returned as decision values, we need to
+    % determine the priors and also save the covariance matrix and the cleass
+    % means. This consumes extra time and memory so keep prob = 0 unless 
+    % you need it.
+    % The goal is to calculate posterior probabilities (probability for a 
+    % sample to be class 1).
+    
     % The prior probabilities are calculated from the training
     % data using the proportion of samples in each class
     cf.prior1 = N1/N;
@@ -101,14 +105,11 @@ if cfg.prob == 1
     cf.C = C;
     cf.mu1 = mu1;
     cf.mu2 = mu2;
+    
     % Projected standard deviation
 %     cf.sigma = sqrt(w' * C * w);
 %
 %     % Projected class means
 %     cf.m1 = w' * mu1;
 %     cf.m2 = w' * mu2;
-end
-
-if nargout>2
-    lambda= cfg.lambda;
 end

@@ -5,15 +5,15 @@ function cf = train_logreg(cfg,X,clabel)
 %
 % Usage:
 % cf = train_logreg(cfg,X,clabel)
-% 
+%
 %Parameters:
 % X              - [samples x features] matrix of training samples
-% clabel         - [samples x 1] vector of class labels containing 
+% clabel         - [samples x 1] vector of class labels containing
 %                  1's (class 1) and 2's (class 2)
 %
 % cfg          - struct with hyperparameters:
-% zscore         - zscores the training data. The scaling will be saved in 
-%                  the classifier and applied to the test set (in test_logreg). 
+% zscore         - zscores the training data. The scaling will be saved in
+%                  the classifier and applied to the test set (in test_logreg).
 %                  This option is not required if the data has been
 %                  z-scored already (default 0)
 % intercept      - augments the data with an intercept term (recommended)
@@ -22,34 +22,52 @@ function cf = train_logreg(cfg,X,clabel)
 %                  of regularisation. If a single value is given, it is
 %                  used for regularisation. If a vector of values is given,
 %                  5-fold cross-validation is used to test all the values
-%                  in the vector and the best one is selected 
-%                  
+%                  in the vector and the best one is selected
+%
+% BACKGROUND:
 % Logistic regression introduces a non-linearity over the linear regression
 % term f(x) = w * x + b by means of the sigmoid function s(x) = 1/(1+e^-x),
 % hence:       s(f(x)) = 1 / ( 1 + e^-f(x) )
-% and fits the sigmoid function to the data. The log likelihood function
+% and fits the sigmoid function to the data. Logistic regression is a
+% linear function of the log-odds and directly models class probabilities.
+% The log likelihood function
 % including a L2 regularisation term can be arranged as
 %
 %      L(w,lambda) = SUM log(1+exp(-yi*w*xi)) + lambda * ||w||^2
 %
 % where w is the coefficient vector and lambda is the regularisation
 % strength, yi = {-1,+1} are the class labels, and xi the samples. This is
-% a convex optimisation problem that is solved by unconstrained
-% minimisation using Matlab's fsolve.
+% a convex optimisation problem that can be solved by unconstrained
+% minimisation.
 %
-% 
+% IMPLEMENTATION DETAILS:
+% A Trust Region Dogleg algorithm (TrustRegionDoglegGN.m) is used to
+% optimise w. The difference of the class means is used as initial estimate
+% for w. Hyperparameter optimisation is very costly, since the classifier
+% has to be trained for each value of the hyperparameter. To reduce the
+% number of iterations, warm starts are used wherein the next w is
+% initialised (w_init) as follows:
+% - in iteration 1, w_init is the difference between the class means 
+% - in iterations 2 and 3, w_init is initialised by the previous w's (w_1
+%   and w_2)
+% - in iterations 4+, if predict_regularisation_path=1, then w_init is 
+%   initialised by a predicted w: for the
+%   k-th iteration, a quadratic polynomial is fit through w_k-2, w_k-1 and
+%   wk as a function of lambda. The polynomial is then evaluated at
+%   lambda_k to obtain the prediction. Simulations show that this approach
+%   substantially uses the number of to convergence and hence computation
+%   time
+%
 %Output:
 % cf - struct specifying the classifier with the following fields:
 % w            - projection vector (normal to the hyperplane)
-% b            - bias term, setting the threshold 
+% b            - bias term, setting the threshold
 
 % (c) Matthias Treder 2017
 
-X= double(X);
 [N, nFeat] = size(X);
 X0 = X;
 
-lambda = cfg.lambda;
 cf = [];
 
 if cfg.zscore
@@ -64,7 +82,7 @@ clabel(clabel == 2) = -1;
 
 % Stack labels in diagonal matrix for matrix multiplication during
 % optimisation
-Y = diag(clabel); 
+Y = diag(clabel);
 
 % Take vector connecting the class means as initial guess for speeding up
 % convergence
@@ -80,108 +98,82 @@ end
 
 I = eye(nFeat);
 
-% cfg.lambda = logspace(-10,2,50);
-
-%% FSOLVE
-% fun = @(w) lr_gradient_tanh(w);
-% 
-% X = X0;
-% YX = Y*X;
-% sumyx = sum(YX)';
-% 
-% lambda = 1;
-% lambda = 5.3367e-05;
-% 
-% [w_fsolve,~,~,stat] = fsolve(@(w) lr_gradient(w), w0, cfg.optim);
-% 
-% [w,iter] = TrustRegionDoglegGN(fun, w0, cfg.tolerance, cfg.max_iter, 1);
-
-%% FSOLVE - 5-fold CV
-% K = 5;
-% CV = cvpartition(N,'KFold',K);
-% ws_fsolve = zeros(nFeat, numel(cfg.lambda));
-% fun = @(w) lr_gradient_tanh(w);
-% 
-% tic
-% for ff=1:K
-%     X = X0(CV.training(ff),:);
-%     YX = Y(CV.training(ff),CV.training(ff))*X;
-% 
-%     % Sum of samples needed for the gradient
-%     sumyx = sum(YX)';
-% 
-%     for ll=1:numel(cfg.lambda)
-%         lambda = cfg.lambda(ll);
-%         if ll==1
-%             ws_fsolve(:,ll) = fsolve(@(w) lr_gradient(w), w0, cfg.optim);
-%         else
-%             ws_fsolve(:,ll) = fsolve(@(w) lr_gradient(w), ws_fsolve(:,ll-1), cfg.optim);
-%         end
-%         
-%     end
-% end
-% toc
-
-
-% fun = @(w) lr_objective_tanh(w);
-% fun = @(w) lr_objective(w);
-% fun = @(w) lr_gradient_tanh(w);
-fun = @(w) lr_gradient(w);
+% logfun = @(w) lr_objective_tanh(w);
+% logfun = @(w) lr_objective(w);
+% logfun = @(w) lr_gradient(w);
+logfun = @(w) lr_gradient_and_hessian_tanh(w);
 
 %% Find best lambda using cross-validation
 if numel(cfg.lambda)>1
+    
+    % The regularisation path for logistic regression is needed. ...
     CV = cvpartition(N,'KFold',cfg.K);
     ws = zeros(nFeat, numel(cfg.lambda));
     acc = zeros(numel(cfg.lambda),1);
-
+    
     if cfg.plot
         C = zeros(numel(cfg.lambda));
         iter_tmp = zeros(numel(cfg.lambda),1);
         delta_tmp = zeros(numel(cfg.lambda),1);
         iter = zeros(numel(cfg.lambda),1);
         delta = zeros(numel(cfg.lambda),1);
+        wspred= ws;
     end
     
+    if cfg.predict_regularisation_path
+        % Create predictor matrix for quadratic polynomial approximation 
+        % of the regularisation path
+        polyvec = 0:cfg.polyorder;
+        % Use the log of the lambda's to get a better conditioned matrix
+        qpred = (log(cfg.lambda(:))) .^ polyvec;
+    end
+    
+    % --- Start cross-validation ---
     for ff=1:cfg.K
+        % Training data
         X = X0(CV.training(ff),:);
         YX = Y(CV.training(ff),CV.training(ff))*X;
         
         % Sum of samples needed for the gradient
-        sumyx = sum(YX)';
+        sumyxN = sum(YX)'/N;
         
+        % --- Loop through lambdas ---
         for ll=1:numel(cfg.lambda)
             lambda = cfg.lambda(ll);
-            if cfg.plot
-                % Need to acquire diagnostic information as well
-                if ll==1
-                    [ws(:,ll),iter_tmp(ll),delta(ll)] = TrustRegionDoglegGN(fun, w0, cfg.tolerance, cfg.max_iter,ll);
-                else
-                    [ws(:,ll),iter_tmp(ll),delta(ll)] = TrustRegionDoglegGN(fun, ws(:,ll-1), cfg.tolerance, cfg.max_iter,ll);
-                end
+            
+            % Warm-starting the initial w: wstart
+            if ll==1
+                wstart = w0;
+            elseif cfg.predict_regularisation_path ...
+                    && ll>cfg.polyorder+1      % we need enough terms already calculated
+                % Fit polynomial to regularisation path
+                % and predict next w(lambda_k)
+                quad = qpred(ll-cfg.polyorder-1:ll-1,:)\(ws(:,ll-cfg.polyorder-1:ll-1)');
+                wstart = ( log(lambda).^polyvec * quad)';
             else
-                if ll==1
-                    ws(:,ll) = TrustRegionDoglegGN(fun, w0, cfg.tolerance, cfg.max_iter,ll);
-                else
-                    ws(:,ll) = TrustRegionDoglegGN(fun, ws(:,ll-1), cfg.tolerance, cfg.max_iter,ll);
-                end
+                % Use the result obtained in the previous step lambda_k-1
+                wstart = ws(:,ll-1);
+            end
+            if cfg.plot
+                wspred(:,ll)= wstart;
+                [ws(:,ll),iter_tmp(ll),delta(ll)] = TrustRegionDoglegGN(logfun, wstart, cfg.tolerance, cfg.max_iter,ll);
+            else
+                ws(:,ll) = TrustRegionDoglegGN(logfun, wstart, cfg.tolerance, cfg.max_iter,ll);
             end
         end
         if cfg.plot
             delta = delta + delta_tmp;
             iter = iter + iter_tmp;
+            C = C + corr(ws);
         end
         
         cl = clabel(CV.test(ff));
         acc = acc + sum( (X0(CV.test(ff),:) * ws) .* cl(:) > 0)' / CV.TestSize(ff);
-        if cfg.plot
-            C = C + corr(ws);
-        end
     end
     
     acc = acc / cfg.K;
     
-    [val, idx] = max(acc);
-    lambda = cfg.lambda(idx);
+    [~, best_idx] = max(acc);
     
     % Diagnostic plots if requested
     if cfg.plot
@@ -189,7 +181,8 @@ if numel(cfg.lambda)>1
         nCol=3; nRow=1;
         subplot(nRow,nCol,1),imagesc(C); title({'Mean correlation' 'between w''s'}),xlabel('lambda#')
         subplot(nRow,nCol,2),plot(delta),title({'Mean trust region' 'size at termination'}),xlabel('lambda#')
-        subplot(nRow,nCol,3),plot(iter_tmp),title({'Mean number' 'of iterations'}),xlabel('lambda#')
+        subplot(nRow,nCol,3),plot(iter/cfg.K),hold all,
+        title({'Mean number' 'of iterations (across folds)'}),xlabel('lambda#')
         
         % Plot regularisation path (for the last training fold)
         figure
@@ -201,22 +194,29 @@ if numel(cfg.lambda)>1
         semilogx(cfg.lambda,acc)
         title([num2str(cfg.K) '-fold cross-validation performance'])
         hold all
-        plot([lambda, lambda],ylim,'r--'),plot(lambda, acc(idx),'ro')
+        plot([cfg.lambda(best_idx), cfg.lambda(best_idx)],ylim,'r--'),plot(cfg.lambda(best_idx), acc(best_idx),'ro')
         xlabel('Lambda'),ylabel('Accuracy')
+        
+        % Plot first two dimensions
+        figure
+        plot(ws(1,:),ws(12,:),'ko-')
+        hold all, plot(wspred(1,2:end),wspred(12,2:end),'+')
+        legend({'w' 'predicted w'})
+        
     end
+else
+    % there is just one lambda: no grid search
+    best_idx = 1;
 end
 
-%% Train classifier
+lambda = cfg.lambda(best_idx);
+
+%% Train classifier on the full training data (using the optimal lambda)
 YX = Y*X0;
-sumyx = sum(YX)';
+sumyxN = sum(YX)'/N;
 X = X0;
 
-% fun = @(w) lr_objective_tanh(w);
-% fun = @(w) lr_objective(w);
-fun = @(w) lr_gradient_tanh(w);
-% fun = @(w) lr_gradient(w);
-
-w = TrustRegionDoglegGN(fun, w0, cfg.tolerance, cfg.max_iter, 1);
+w = TrustRegionDoglegGN(logfun, w0, cfg.tolerance, cfg.max_iter, 1);
 
 %% Set up classifier
 if cfg.intercept
@@ -229,96 +229,96 @@ end
 
 %%
 %%% Logistic regression objective function. Given w, data X and
-%%% regularisation parameter lambda, returns 
+%%% regularisation parameter lambda, returns
 %%% f: function value at point w
 %%% g: value of gradient at point w
 %%% h: value of the Hessian at point w
 %%%
 %%% Based on formulas (2)-(4) in:
-%%% Lin C Weng R Keerthi S (2007). Trust region Newton methods for 
-%%% large-scale logistic regression. Proceedings of the 24th international 
+%%% Lin C Weng R Keerthi S (2007). Trust region Newton methods for
+%%% large-scale logistic regression. Proceedings of the 24th international
 %%% conference on Machine learning - ICML '07. pp: 561-568
 
-    function [f,g,h] = lr_objective(w)
-        % Evaluate exponential for all samples
-        sigma = logreg_fix(YX*w); %1./(1+exp(-YX*w));
-        
-        % Function value (loss)
-        f = sum(-log(sigma)) + lambda * 0.5 * (w'*w);
-        
-        % Gradient
-        if nargout>1
-            g = YX'*sigma - sumyx + lambda * w;
-        end
-        
-        % Hessian
-        if nargout>2
-            h = lambda * I + (X' .* (sigma .* (1 - sigma))') * X;
-        end
-    end
+%     function [f,g,h] = lr_objective(w)
+%         % Evaluate exponential for all samples
+%         sigma = logreg_fix(YX*w); %1./(1+exp(-YX*w));
+%         
+%         % Function value (loss)
+%         f = sum(-log(sigma))/N + lambda * 0.5 * (w'*w);
+%         
+%         % Gradient
+%         if nargout>1
+%             g = YX'*sigma/N - sumyxN + lambda * w;
+%         end
+%         
+%         % Hessian
+%         if nargout>2
+%             h = lambda * I + (X' .* (sigma .* (1 - sigma))') * X/N;
+%         end
+%     end
+% 
+%     function [f,g,H] = lr_objective_tanh(w)
+%         % Evaluate exponential for all samples
+%         sigma = 0.5 + 0.5 * tanh(YX*w/2);
+%         
+%         % Function value (loss)
+%         f = sum(-log(sigma))/N + lambda * 0.5 * (w'*w);
+%         
+%         % Gradient
+%         if nargout>1
+%             g = YX'*sigma/N - sumyxN + lambda * w;
+%         end
+%         
+%         % Hessian
+%         if nargout>2
+%             H = lambda * I + (X'.*(sigma .* (1 - sigma))') * X/N;
+%         end
+%     end
 
-    function [f,g,H] = lr_objective_tanh(w)
-        % Evaluate exponential for all samples
-        sigma = 0.5 + 0.5 * tanh(YX*w/2);
-        
-        % Function value (loss)
-        f = sum(-log(sigma)) + lambda * 0.5 * (w'*w);
-        
-        % Gradient
-        if nargout>1
-            g = YX'*sigma - sumyx + lambda * w;
-        end
-        
-        % Hessian
-        if nargout>2
-            H = lambda * I + (X'.*(sigma .* (1 - sigma))') * X;
-        end
-    end
+%     function [g,h] = lr_gradient(w)
+%         % Logistic gradient and Hessian
+%         
+%         sigma = logreg_fix(YX*w);
+%         
+%         % Gradient
+%         g = YX'*sigma/N - sumyxN + lambda * w;
+%         
+%         % Hessian of loss function (serves here as gradient)
+%         if nargout>1
+%             h = lambda * I + (X .* (sigma .* (1 - sigma)))' * X/N;  % faster
+%         end
+%     end
 
-
-    function [g,h] = lr_gradient(w)
-        % Directly provide the gradient and solve for zeros
-%         sigma = 1./1+exp(-YX*w);
-        sigma = logreg_fix(YX*w);
-        
-        % Gradient
-        g = YX'*sigma - sumyx + lambda * w;
-        
-        % Hessian of loss function (serves here as gradient)
-        if nargout>1
-            h = lambda * I + (X .* (sigma .* (1 - sigma)))' * X;  % faster
-        end
-    end
-
-    function [g,h] = lr_gradient_tanh(w)
-        % Logistic function expressed using the hyperbolic tangent
+    function [g,h] = lr_gradient_and_hessian_tanh(w)
+        % Logistic gradient and Hessian expressed using the hyperbolic tangent
         % 1 / (1 + exp(-x)) = 1/2 + 1/2 * tanh(x/2)
         sigma = 0.5 + 0.5 * tanh(YX*w/2);
         
         % Gradient
-        g = YX'*sigma - sumyx + lambda * w;
+        g = (sigma' * YX)'/N - sumyxN + lambda * w;
         
-        % Hessian of loss function (serves here as gradient)
+        % Hessian
         if nargout>1
-            h = lambda * I + (X .*(sigma .* (1 - sigma)))' * X;  % faster
+            h = lambda * I + (X .*(sigma .* (1 - sigma)))' * X/N;  % faster to first multiply X by sigma(1-sigma)
         end
     end
 
-    function xo = log_logreg_fix(x)
-        % This is a fix to the LOG logistic loss function found on 
-        % http://fa.bianp.net/blog/2013/numerical-optimizers-for-logistic-regression/
-        % and allegedly used in the LIBLINEAR code. It prevents exp from
-        % overflowing
-        xo = x;
-        xo(x>=0) = log(1+exp(-x(x>=0)));
-        xo(x<0)  = log(1+exp(x(x<0))) - x(x<0);
-    end
+%     function xo = log_logreg_fix(x)
+%         % This is a fix to the LOG logistic loss function found on
+%         % http://fa.bianp.net/blog/2013/numerical-optimizers-for-logistic-regression/
+%         % and allegedly used in the LIBLINEAR code. It prevents exp from
+%         % overflowing
+%         xo = x;
+%         xo(x>=0) = log(1+exp(-x(x>=0)));
+%         xo(x<0)  = log(1+exp(x(x<0))) - x(x<0);
+%     end
 
     function xo = logreg_fix(x)
-        % This is a fix to the logistic loss function found on 
+        % This is a fix to the logistic loss function found on
         % http://fa.bianp.net/blog/2013/numerical-optimizers-for-logistic-regression/
         % and allegedly used in the LIBLINEAR code. It prevents exp from
         % overflowing
+        % Logistic loss: 1./1+exp(-YX*w);
         xo = x;
         xo(x>=0) = 1./(1+exp(-x(x>=0)));
         xo(x<0)  = exp(x(x<0))./(1+exp(x(x<0)));
