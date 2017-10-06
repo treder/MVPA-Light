@@ -77,7 +77,7 @@ isClassLabel = all(ismember( unique(cf_output{1}), [1 2] ));
 
 % For some metrics dvals are required
 if isClassLabel && any(strcmp(metric,{'dval' 'roc' 'auc'}))
-    error('To calculate %s, classifier output must be given as dvals not as class labels', metric)
+    error('To calculate dval/roc/auc, classifier output must be given as dvals not as class labels')
 end
 
 varargout = cell(numel(metric),1);
