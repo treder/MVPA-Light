@@ -50,6 +50,10 @@ Classifier performance is evaluated on a dataset called *test data*. To this end
 * `train_logist`, `test_logist`: Logistic regression classifier using Lucas Parra's implementation. See `external/logist.m` for an explanation of the hyperparameters.
 -->
 
+#### Cross-validation
+
+To obtain a realistic estimate of classifier performance and control for overfitting, a classifier should be tested on an independent dataset that has not been used for training. In most neuroimaging experiments, there is only one dataset with a restricted number of trials. *K-fold cross-validation* makes efficient use of this data by splitting it into k different folds. In each iteration, one of the k folds is held out and used as test set, whereas all other folds are used for training. This is repeated until every fold has been used as test set once. See [[Lemm2011]](#Lemm2011) for a discussion of cross-validation and potential pitfalls. Cross-validation is implemented in `mv_crossvalidate`. Note that the more specialised functions `mv_classify_across_time` and `mv_classify_timextime` implement cross-validation too. Cross-validation is always controlled by the parameters `cfg.CV`, `cfg.K`, and `cfg.repeat`.
+
 #### Classification across time
 Many neuroimaging datasets have a 3-D structure (trials x channels x time). The start of the trial (t=0) typically corresponds to stimulus or response onset. Classification across time can help identify at which time point in a trial discriminative information shows up. To this end, classification is performed across trials, for each time point separately. This is implemented in the function `mv_classify_across_time`. It returns classification performance calculated for each time point in a trial. `mv_plot_1D` can be used to plot the result.
 
@@ -68,11 +72,6 @@ Classifier output comes in form of decision values (=distances to the hyperplane
 * `dval`: Average decision value for each class.
 
 Performance metrics can be selected in `mv_classify_across_time` and `mv_classify_timextime` by setting the `cfg.metric` field.
-
-
-#### Cross-validation
-
-To obtain a realistic estimate of classifier performance and control for overfitting, a classifier should be tested on an independent dataset that has not been used for training. In most neuroimaging experiments, there is only one dataset with a restricted number of trials. *K-fold cross-validation* makes efficient use of this data by splitting it into k different folds. In each iteration, one of the k folds is held out and used as test set, whereas all other folds are used for training. This is repeated until every fold has been used as test set once. See [[Lemm2011]](#Lemm2011) for a discussion of cross-validation and potential pitfalls. Cross-validation is controlled by the parameters `cfg.CV`, `cfg.K`, and `cfg.repeat`.
 
 
 ## Examples<a name="examples"></a>
