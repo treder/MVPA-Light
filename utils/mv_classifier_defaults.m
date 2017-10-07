@@ -61,9 +61,6 @@ switch(classifier)
         mv_setDefault(param,'polyorder',3);
 
         mv_setDefault(param,'z1',0.5);
-        if param.z1 < 0 || param.z1 > 1
-            error('z1 must have a value between 0 and 1')
-        end
         
         % We set z2 automatically such that the [z1,z2] interval is
         % centered on 1. This leads to the polynomial interpolation being

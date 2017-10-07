@@ -3,13 +3,7 @@
 clear all
 
 % Load data (in /examples folder)
-load('epoched3')
-dat.trial = double(dat.trial);
-
-% Create class labels (1's and 2's)
-clabel = zeros(nTrial, 1);
-clabel(attended_deviant)  = 1;   % Class 1: attended deviants
-clabel(~attended_deviant) = 2;   % Class 2: unattended deviants
+[dat, clabel] = load_example_data('epoched3');
 
 %% Setup configuration struct
 

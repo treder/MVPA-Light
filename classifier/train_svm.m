@@ -105,8 +105,6 @@ function cf = train_svm(cfg,X,clabel)
 [N, nFeat] = size(X);
 X0 = X;
 
-lambda = cfg.lambda;
-
 cf = [];
 
 if cfg.zscore
@@ -252,8 +250,7 @@ if numel(cfg.lambda)>1
     
     acc = acc / cfg.K;
     
-    [~, idx] = max(acc);
-    lambda = cfg.lambda(idx);
+    [~, best_idx] = max(acc);
     
     % Diagnostic plots if requested
     if cfg.plot
@@ -274,8 +271,8 @@ if numel(cfg.lambda)>1
         semilogx(cfg.lambda,acc)
         title([num2str(cfg.K) '-fold cross-validation performance'])
         hold all
-        plot([lambda, lambda],ylim,'r--'),plot(lambda, acc(idx),'ro')
-        xlabel('Lambda'),ylabel('Accuracy')
+        plot([cfg.lambda(best_idx), cfg.lambda(best_idx)],ylim,'r--'),plot(cfg.lambda(best_idx), acc(best_idx),'ro')
+        xlabel('Lambda'),ylabel('Accuracy'),grid on
         
         % Plot first two dimensions
         figure
@@ -283,9 +280,14 @@ if numel(cfg.lambda)>1
         hold all, plot(wspred(1,2:end),wspred(2,2:end),'+')
         
     end
+else
+    % there is just one lambda: no grid search
+    best_idx = 1;
 end
 
-%% Train classifier on the full training data (using the optimal lambda)
+lambda = cfg.lambda(best_idx);
+
+%% Train classifier on the full training data (using the best lambda)
 YX = Y*X0;
 X = X0;
 

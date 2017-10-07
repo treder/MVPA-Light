@@ -84,10 +84,13 @@ clabel(clabel == 2) = -1;
 % optimisation
 Y = diag(clabel);
 
-% Take vector connecting the class means as initial guess for speeding up
-% convergence
-w0 = double(mean(X0(clabel==1,:))) -  double(mean(X0(clabel==-1,:)));
-w0 = w0' / norm(w0);
+% Initialise w with zeros 
+w0 = zeros(nFeat,1);
+
+% Take vector connecting the class means as initial guess [it does not seem
+% to speed up convergence though so we keep w0 = 0 for now]
+% w0 = double(mean(X0(clabel==1,:))) -  double(mean(X0(clabel==-1,:)));
+% w0 = w0' / norm(w0);
 
 % Augment X with intercept
 if cfg.intercept
@@ -195,7 +198,7 @@ if numel(cfg.lambda)>1
         title([num2str(cfg.K) '-fold cross-validation performance'])
         hold all
         plot([cfg.lambda(best_idx), cfg.lambda(best_idx)],ylim,'r--'),plot(cfg.lambda(best_idx), acc(best_idx),'ro')
-        xlabel('Lambda'),ylabel('Accuracy')
+        xlabel('Lambda'),ylabel('Accuracy'),grid on
         
         % Plot first two dimensions
         figure
@@ -211,7 +214,7 @@ end
 
 lambda = cfg.lambda(best_idx);
 
-%% Train classifier on the full training data (using the optimal lambda)
+%% Train classifier on the full training data (using the best lambda)
 YX = Y*X0;
 sumyxN = sum(YX)'/N;
 X = X0;

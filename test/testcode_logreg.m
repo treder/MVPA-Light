@@ -3,15 +3,7 @@ close all
 clear all
 
 % Load data (in /examples folder)
-load('epoched3')
-dat.trial = double(dat.trial);
-
-% attenden_deviant contains the information about the trials. Use this to
-% create the true class labels, indicating whether the trial corresponds to
-% an attended deviant (1) or an unattended deviant (2).
-clabel = zeros(nTrial, 1);
-clabel(attended_deviant)  = 1;  % Class 1: attended deviants
-clabel(~attended_deviant) = 2;  % Class 2: unattended deviants
+[dat,clabel] = load_example_data('epoched3');
 
 ival_idx = find(dat.time >= 0.6 & dat.time <= 0.8);
 
@@ -28,14 +20,17 @@ toc
 
 %% -- Logistic regression
 param = mv_classifier_defaults('logreg');
-param.lambda = logspace(-6,3,10); % 2
-param.plot = 0;
+param.lambda = logspace(-6,2,30); % 2
+param.plot = 1;
 param.tolerance = 1e-6;
-param.polyorder = 0;
+param.polyorder = 2;
+
+param.predict_regularisation_path = 0;
 
 tic
+rng(1)
 % profile on
-cf = train_logreg(param, X, clabel);
+cf = train_logreg(param, zscore(X), clabel);
 % cf = train_logreg(param, X(:,[1,21]), clabel);
 toc
 % profile viewer

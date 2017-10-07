@@ -9,8 +9,8 @@
 %% Let's have a look at the data first: Calculate and plot ERP for attended and unattended deviants
 
 % ERP for each condition
-erp_attended = squeeze(mean(dat.trial(attended_deviant,:,:)));
-erp_unattended = squeeze(mean(dat.trial(~attended_deviant,:,:)));
+erp_attended = squeeze(mean(dat.trial(clabel == 1,:,:)));
+erp_unattended = squeeze(mean(dat.trial(clabel == 2,:,:)));
 
 % Plot ERP: attended deviants in red, unattended deviants in green. Each
 % line is one EEG channel.

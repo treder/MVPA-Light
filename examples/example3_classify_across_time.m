@@ -2,23 +2,13 @@
 clear all
 
 % Load data (in /examples folder)
-load('epoched3')
-dat.trial = double(dat.trial);
-
-% Create class labels (1's and 2's)
-clabel = zeros(nTrial, 1);
-clabel(attended_deviant)  = 1;   % Class 1: attended deviants
-clabel(~attended_deviant) = 2;   % Class 2: unattended deviants
-
-% For Logistic regression, it is important that the data are scaled well.
-% We therefore apply z-scoring.
-dat.trial = zscore(dat.trial,[],1);
+[dat,clabel] = load_example_data('epoched1');
 
 %% Calculate and plot ERP for attended and unattended deviants
 
 % ERP for each condition
-erp_attended = squeeze(mean(dat.trial(attended_deviant,:,:)));
-erp_unattended = squeeze(mean(dat.trial(~attended_deviant,:,:)));
+erp_attended = squeeze(mean(dat.trial(clabel == 1,:,:)));
+erp_unattended = squeeze(mean(dat.trial(clabel == 2,:,:)));
 
 % Plot
 plot(dat.time, erp_attended, 'r'), hold on
@@ -34,7 +24,7 @@ grid on
 cfg_LDA =  [];
 cfg_LDA.CV         = 'kfold';
 cfg_LDA.K          = 5;
-cfg_LDA.repeat     = 5;
+cfg_LDA.repeat     = 2;
 cfg_LDA.classifier = 'lda';
 cfg_LDA.param      = struct('lambda','auto');
 cfg_LDA.verbose    = 1;
@@ -44,11 +34,11 @@ cfg_LDA.metric     = 'auc';
 % we setup a configuration struct for logreg as well.
 cfg_LR =  cfg_LDA;
 cfg_LR.classifier = 'logreg';
-cfg_LR.param      = struct('lambda',logspace(-6,2,10));
+cfg_LR.param      = struct('lambda',logspace(-6,2,20));
 
 cfg_SVM =  cfg_LDA;
 cfg_SVM.classifier = 'svm';
-cfg_SVM.param      = struct('lambda',logspace(-6,2,10));
+cfg_SVM.param      = struct('lambda',logspace(-6,2,20));
 
 %% Classification across time
 acc_LDA = mv_classify_across_time(cfg_LDA, dat.trial, clabel);
@@ -70,13 +60,9 @@ cfg_LDA.metric  = {'acc' 'auc'};
 
 for nn=1:nSbj
     
-    load(['epoched' num2str(nn)] )
-    
-    % Create class labels (1's and 2's)
-    clabel = zeros(nTrial, 1);
-    clabel(attended_deviant)  = 1;   % Class 1: attended deviants
-    clabel(~attended_deviant) = 2;   % Class 2: unattended deviants
-    
+    % Load dataset
+    [dat,clabel] = load_example_data(['epoched' num2str(nn)]);
+
     % Run classification across time
     [acc{nn}, auc{nn}] = mv_classify_across_time(cfg_LDA, dat.trial, clabel);
 end

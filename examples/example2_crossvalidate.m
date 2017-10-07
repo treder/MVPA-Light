@@ -6,13 +6,7 @@ close all
 clear all
 
 % Load data (in /examples folder)
-load('epoched3')
-dat.trial = double(dat.trial);
-
-% Create class labels (1's and 2's)
-clabel = zeros(nTrial, 1);
-clabel(attended_deviant)  = 1;   % Class 1: attended deviants
-clabel(~attended_deviant) = 2;   % Class 2: unattended deviants
+[dat, clabel] = load_example_data('epoched3');
 
 % Average activity in 0.6-0.8 interval (see example 1)
 ival_idx = find(dat.time >= 0.6 & dat.time <= 0.8);

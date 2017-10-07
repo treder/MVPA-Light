@@ -81,7 +81,7 @@ while iter < max_iter
 
     % Step to new location
     w_new = w + step;
-
+    
     % Get function value and Jacobian matrix for our starting point
     [f_new,J_new] = fun(w_new);
     
