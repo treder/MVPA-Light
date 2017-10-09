@@ -125,6 +125,39 @@ switch(classifier)
             'trust-region-dogleg',...
             'SpecifyObjectiveGradient',true,'Display','none') );
         
+    case 'libsvm'
+        
+        'svm_type', par= [par '-s'];
+        case 'kernel_type', par= [par  '-t'];
+        case 'degree', par= [par '-d' ];
+        case 'gamma', par= [par '-g' ];
+        case 'coef0', par= [par '-r' ];
+        case 'cost', par= [par '-c' ];
+        case 'nu', par= [par '-n' ];
+        case 'epsilonSVR', par= [par '-p' ];
+        case 'cachesize', par= [par '-m' ];
+        case 'epsilon', par= [par '-e' ];
+        case 'shrinking', par= [par '-h' ];
+        case 'probability_estimates', par= [par '-b'];
+        case 'weight', par= [par '-wi' ];
+        case 'validation', par= [par '-v' ];
+            
+        mv_setDefault(param,'svm_type',0);
+        mv_setDefault(param,'kernel_type',2);
+        mv_setDefault(param,'degree',3);
+        mv_setDefault(param,'gamma',1/100);
+        mv_setDefault(param,'coef0',0);
+        mv_setDefault(param,'cost',1);
+        mv_setDefault(param,'nu',0.5);
+        mv_setDefault(param,'epsilon',0.1);
+        mv_setDefault(param,'cachesize',100);
+        mv_setDefault(param,'eps',0.001);
+        mv_setDefault(param,'shrinking',1);
+        mv_setDefault(param,'probability_estimates',0);
+        mv_setDefault(param,'weight',1);
+        mv_setDefault(param,'cv',[]);
+        mv_setDefault(param,'quiet',1);
+
     case 'logreg_matlab'
         mv_setDefault(param,'alpha',0.01);
         mv_setDefault(param,'numLambda',100);
