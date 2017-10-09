@@ -11,7 +11,8 @@ Light-weight Matlab toolbox for multivariate pattern analysis (MVPA)
 Download the toolbox or, better, clone it using Git. In Matlab, you can add the following line to your `startup.m` file to add the MVPA-Light toolbox to the Matlab path:
 
 ```Matlab
-addpath(genpath('my-path-to/MVPA-Light/'))
+cd('your-path-to/MVPA-Light/utils/')
+startup_MVPA_Light
 ```
 
 The Git repository contains two branches: the `master` branch (recommended) is the stable branch that should always work. `devel` is the development branch that contains new features that are either under construction or not tested.
