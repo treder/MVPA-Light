@@ -1,10 +1,9 @@
 function cf = train_svm(cfg,X,clabel)
 % Trains a linear support vector machine (SVM). The avoid overfitting, the
-% classifier weights are penalised using an Euclidean penalty (L2
-% regularisation). 
-% It is recommended that the data is z-scored (so the mean across channels
-% is 0 and the variance across channels 1, for each sample/time
-% point/epoch).
+% classifier weights are penalised using L2-regularisation.
+%
+% It is recommended that the data is z-scored (ie mean=0, var=1 across
+% samples or trials).
 %
 % Usage:
 % cf = train_svm(cfg,X,clabel)
@@ -25,7 +24,10 @@ function cf = train_svm(cfg,X,clabel)
 %                  of regularisation. If a single value is given, it is
 %                  used for regularisation. If a vector of values is given,
 %                  5-fold cross-validation is used to test all the values
-%                  in the vector and the best one is selected
+%                  in the vector and the best one is selected.
+%                  Note: lambda is reciprocally related to the cost
+%                  parameter C used in LIBSVM/LIBLINEAR, ie C = 1/lambda
+%                  roughly
 %
 % BACKGROUND:
 % Linear SVM is trained by minimising the following loss function:

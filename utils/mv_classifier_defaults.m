@@ -36,10 +36,10 @@ switch(classifier)
 
     case 'logreg'
         mv_setDefault(param,'zscore',0);
-        mv_setDefault(param,'intercept',1);
+        mv_setDefault(param,'intercept',0);
         mv_setDefault(param,'lambda',1);
         mv_setDefault(param,'max_iter',400);
-        mv_setDefault(param,'tolerance',1e-8);
+        mv_setDefault(param,'tolerance',1e-12);
         mv_setDefault(param,'K',5);
         mv_setDefault(param,'plot',0);
         mv_setDefault(param,'predict_regularisation_path',1);
@@ -58,7 +58,7 @@ switch(classifier)
         mv_setDefault(param,'K',5);
         mv_setDefault(param,'plot',0);
         mv_setDefault(param,'predict_regularisation_path',1);
-        mv_setDefault(param,'polyorder',3);
+        mv_setDefault(param,'polyorder',2);
 
         mv_setDefault(param,'z1',0.5);
         
@@ -126,26 +126,10 @@ switch(classifier)
             'SpecifyObjectiveGradient',true,'Display','none') );
         
     case 'libsvm'
-        
-        'svm_type', par= [par '-s'];
-        case 'kernel_type', par= [par  '-t'];
-        case 'degree', par= [par '-d' ];
-        case 'gamma', par= [par '-g' ];
-        case 'coef0', par= [par '-r' ];
-        case 'cost', par= [par '-c' ];
-        case 'nu', par= [par '-n' ];
-        case 'epsilonSVR', par= [par '-p' ];
-        case 'cachesize', par= [par '-m' ];
-        case 'epsilon', par= [par '-e' ];
-        case 'shrinking', par= [par '-h' ];
-        case 'probability_estimates', par= [par '-b'];
-        case 'weight', par= [par '-wi' ];
-        case 'validation', par= [par '-v' ];
-            
         mv_setDefault(param,'svm_type',0);
         mv_setDefault(param,'kernel_type',2);
         mv_setDefault(param,'degree',3);
-        mv_setDefault(param,'gamma',1/100);
+        mv_setDefault(param,'gamma',[]); % default is 1/numFeatures but since we don't know the features we set it to empty here [it's taken care of in LIBSVM then]
         mv_setDefault(param,'coef0',0);
         mv_setDefault(param,'cost',1);
         mv_setDefault(param,'nu',0.5);
@@ -157,7 +141,18 @@ switch(classifier)
         mv_setDefault(param,'weight',1);
         mv_setDefault(param,'cv',[]);
         mv_setDefault(param,'quiet',1);
-
+        
+    case 'liblinear'
+        mv_setDefault(param,'type',1);
+        mv_setDefault(param,'cost',1);
+        mv_setDefault(param,'epsilon',0.1);
+        mv_setDefault(param,'eps',[]);  % use the defaults in LIBLINEAR
+        mv_setDefault(param,'bias',-1);
+        mv_setDefault(param,'weight',[]);
+        mv_setDefault(param,'cv',[]);
+        mv_setDefault(param,'C',[]);
+        mv_setDefault(param,'quiet',1);
+        
     case 'logreg_matlab'
         mv_setDefault(param,'alpha',0.01);
         mv_setDefault(param,'numLambda',100);

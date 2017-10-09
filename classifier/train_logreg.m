@@ -23,6 +23,9 @@ function cf = train_logreg(cfg,X,clabel)
 %                  used for regularisation. If a vector of values is given,
 %                  5-fold cross-validation is used to test all the values
 %                  in the vector and the best one is selected
+%                  Note: lambda is reciprocally related to the cost
+%                  parameter C used in LIBSVM/LIBLINEAR, ie C = 1/lambda
+%                  roughly
 %
 % BACKGROUND:
 % Logistic regression introduces a non-linearity over the linear regression

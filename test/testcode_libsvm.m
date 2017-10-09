@@ -1,4 +1,4 @@
-% Play around with the SVM implementation
+% Play around with the LIBSVM and LIBLINEAR
 close all
 clear all
 
@@ -18,13 +18,37 @@ tic
 cf = train_lda(param, X, clabel);
 toc
 
-%% -- SVM
+[predlabel, dval] = test_lda(cf, X);
+
+% Calculate AUC
+auc_lda= mv_classifier_performance('auc', dval, clabel)
+
+%% LIBSVM
 param = mv_classifier_defaults('libsvm');
 
 tic
 rng(1);
-cf = train_svm(param, zscore(X), clabel);
+cf = train_libsvm(param, X, clabel);
 toc
+
+[predlabel, dval] = test_libsvm(cf, X);
+auc_liblinear = mv_classifier_performance('auc', dval, clabel)
+
+%% LIBLINEAR
+param = mv_classifier_defaults('liblinear');
+param.type = 0;   % L2-regularised logistic regression
+param.C = 1;
+param.quiet = 1;
+
+tic
+rng(1);
+cf = train_liblinear(param, X, clabel);
+toc
+
+[predlabel, dval] = test_liblinear(cf, X);
+auc_liblinear = mv_classifier_performance('auc', dval, clabel)
+
+
 %%
 
 [predlabel, dval] = test_svm(cf, X);
@@ -34,7 +58,7 @@ auc = mv_classifier_performance('auc', dval, clabel);
 
 %% -- Logistic regression
 param = mv_classifier_defaults('logreg');
-param.lambda = logspace(-6,3,100); % 2
+param.lambda = 0.1; %logspace(-6,3,10); % 2
 param.plot = 0;
 param.tolerance = 1e-6;
 
@@ -42,16 +66,11 @@ tic
 cf = train_logreg(param, X, clabel);
 % cf = train_logreg(param, X(:,[1,21]), clabel);
 toc
+
+[predlabel, dval] = test_logreg(cf, X);
+% Calculate AUC
+auc = mv_classifier_performance('auc', dval, clabel)
+
 %%
 [predlabel, dval] = test_logreg(cf, X);
-
-% Calculate AUC
-auc = mv_classifier_performance('auc', dval, clabel);
-
-%%
-fprintf('Logreg =\t%2.5f sec\nLDA =\t\t%2.5f sec\n',t1,t2)
-profile on
-for ii=1:100
-    cf_lr = train_logreg(param, Xz, clabel);
-end
 

@@ -1,4 +1,4 @@
-%%% Classification across time using the mv_classify_across_time function
+%%% Compare different classifiers for classification across time
 clear all
 
 % Load data (in /examples folder)
@@ -37,53 +37,29 @@ cfg_LR.classifier = 'logreg';
 % cfg_LR.param      = struct('lambda',logspace(-6,2,20));
 cfg_LR.param      = struct('lambda',0.01 );
 
+cfg_SVM =  cfg_LDA;
+cfg_SVM.classifier = 'svm';
+% cfg_SVM.param      = struct('lambda',logspace(-6,2,20));
+cfg_SVM.param      = struct('lambda',1 );
+
+cfg_LIBSVM =  cfg_LDA;
+cfg_LIBSVM.classifier = 'libsvm';
+
+cfg_LIBLINEAR=  cfg_LDA;
+cfg_LIBLINEAR.classifier = 'liblinear';
+cfg_LIBLINEAR.param = struct('type',0,'bias',1); %,'C',1);
+
 %% Classification across time
 rng(1),tic,acc_LDA = mv_classify_across_time(cfg_LDA, dat.trial, clabel);toc
 rng(1),tic,acc_LR = mv_classify_across_time(cfg_LR, dat.trial, clabel);toc
+rng(1),tic,acc_SVM = mv_classify_across_time(cfg_SVM, dat.trial, clabel);toc
+rng(1),tic,acc_LIBSVM = mv_classify_across_time(cfg_LIBSVM, dat.trial, clabel);toc
+rng(1),tic,acc_LIBLINEAR = mv_classify_across_time(cfg_LIBLINEAR, dat.trial, clabel);toc
 
-%% Plot
+%%
 close all
-mv_plot_1D([],dat.time, cat(2,acc_LDA,acc_LR) )
+mv_plot_1D([],dat.time,cat(2,acc_LDA,acc_LR,acc_SVM,acc_LIBSVM,acc_LIBLINEAR))
 ylabel(cfg_LDA.metric)
-legend({'LDA' 'LR'})
+legend({'LDA' 'LR' 'SVM' 'LIBSVM' 'LIBLINEAR'})
 
-%% Classification across time for all subjects
-nSbj = 3;
-acc = cell(nSbj,1);         % classification accuracies for all subjects
-auc = cell(nSbj,1);         % AUC values for all subjects
-
-% As performance metrics, we calculate both classification accuracy and AUC
-cfg_LDA.metric  = {'acc' 'auc'};
-
-for nn=1:nSbj
-    
-    % Load dataset
-    [dat,clabel] = load_example_data(['epoched' num2str(nn)]);
-
-    % Run classification across time
-    [acc{nn}, auc{nn}] = mv_classify_across_time(cfg_LDA, dat.trial, clabel);
-end
-
-acc = cat(2,acc{:});
-auc = cat(2,auc{:});
-
-% Average and standard error of classifier performance across subjects
-av_acc = mean(acc,2);
-se_acc = std(acc,[],2)/sqrt(nSbj);
-av_auc = mean(auc,2);
-se_auc = std(auc,[],2)/sqrt(nSbj);
-
-%% Plot results
-close all
-subplot(1,3,1)
-    mv_plot_1D([],dat.time,acc)
-    title('Single-subject accuracies')
-    legend(arrayfun(@(x) {['Subject ' num2str(x)]},1:nSbj))
-subplot(1,3,2)
-    mv_plot_1D([],dat.time,av_acc, se_acc)
-    title('Grand average classification accuracy')
-subplot(1,3,3)
-    mv_plot_1D([],dat.time,av_auc, se_auc)
-    title('Grand average AUC')
-    ylabel('AUC')
 
