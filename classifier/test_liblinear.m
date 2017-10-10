@@ -14,8 +14,14 @@ function [clabel,dval] = test_liblinear(cf,X)
 % clabel        - predicted class labels
 % dval          - decision values
 
-[clabel, ~, dval] = predict(zeros(size(X,1),1), sparse(X), cf, '-q');
+[clabel, ~, dval] = predict(ones(size(X,1),1), sparse(X), cf, '-q');
 
-% Flip sign such that class 1 > 0 and class 2 < 0
-dval = -dval;
- 
+% Note that dvals might be sign-reversed in some cases,
+% see http://www.csie.ntu.edu.tw/~cjlin/libsvm/faq.html#f430
+% and https://www.csie.ntu.edu.tw/~cjlin/liblinear/FAQ.html
+% To fix this behavior, we inspect cf.Labels: Label(1) denotes the positive 
+% class (should be 1)
+if cf.Label(1) ~= 1
+    % 1 is negative class, hence we need to flip dvals
+    dval = -dval;
+end
