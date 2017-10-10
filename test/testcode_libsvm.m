@@ -32,7 +32,8 @@ cf = train_libsvm(param, X, clabel);
 toc
 
 [predlabel, dval] = test_libsvm(cf, X);
-auc_liblinear = mv_classifier_performance('auc', dval, clabel)
+auc_libsvm= mv_classifier_performance('auc', dval, clabel)
+acc_libsvm= mv_classifier_performance('acc', predlabel, clabel)
 
 %% LIBLINEAR
 param = mv_classifier_defaults('liblinear');
@@ -47,7 +48,7 @@ toc
 
 [predlabel, dval] = test_liblinear(cf, X);
 auc_liblinear = mv_classifier_performance('auc', dval, clabel)
-
+acc_liblinear = mv_classifier_performance('acc', predlabel, clabel)
 
 %%
 
