@@ -82,13 +82,9 @@ This section gives some basic examples. More detailed examples and data can be f
 #### Training and testing by hand
 
 ```Matlab
-% Load example data
-load('epoched1')
 
-% Determine the class labels
-clabel = zeros(nTrial, 1);
-clabel(attended_deviant)  = 1;
-clabel(~attended_deviant) = 2;
+% Load data (in /examples folder)
+[dat,clabel] = load_example_data('epoched3');
 
 % Fetch the data from the 100th time sample
 X = dat.trial(:,:,100);
