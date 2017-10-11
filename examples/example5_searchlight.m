@@ -10,7 +10,7 @@
 %%% FieldTrip, you can replace the next cell with your own code for
 %%% building a neighbourhood matrix and then run the rest of the code.
 
-[dat, clabel] = load_example_data('epoched3');
+[dat, clabel, chans] = load_example_data('epoched3');
 
 nChan = numel(dat.label);
 
@@ -73,19 +73,6 @@ for nbstep=0:maxstep
 end
 
 %% Plot classification performance as a topography [requires Fieldtrip]
-
-% Get layout with electrode positions
-cfg = [];
-cfg.layout      = 'EasycapM1';
-cfg.channel     = dat.label;
-lay = ft_prepare_layout(cfg);
-
-% Remove SCALE and COMNT
-rm_idx = find(ismember(lay.label,{'COMNT' 'SCALE'}));
-lay.pos(rm_idx,:)=[];
-lay.width(rm_idx,:)=[];
-lay.height(rm_idx,:)=[];
-lay.label(rm_idx)=[];
 
 % Plot topography and electrode layout
 clf
