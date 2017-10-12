@@ -314,32 +314,32 @@ end
 %%% and smooth hinge functions are provided. Only the gradient and
 %%% Hessians (latter functions) are needed for optimisation.
 
-% function f = hinge(w)
-%     % Loss. Note: gradient and Hessian are not defined for hinge loss 
-%     % (non-smooth)
-%     f =  max(0, 1 - w'*YX);
-%     % Add L2 penalty
-%     f = f + lambda * 0.5 * (w'*w);
-% end
+function f = hinge(w)
+    % Loss. Note: gradient and Hessian are not defined for hinge loss 
+    % (non-smooth)
+    f =  max(0, 1 - w'*YX);
+    % Add L2 penalty
+    f = f + lambda * 0.5 * (w'*w);
+end
 
-% function f = smooth_hinge(w)
-%     % Smooth hinge loss according to Rennie and Srebro (2005)
-%     f =  zeros(1, N);
-%     z = YX*w;
-%     f( z<=0 ) = 0.5 - z(z<=0);
-%     f( (z>0 & z<1) ) = 0.5 * ((1 - z(z>0 & z<1)).^2);
-% 
-%     % Add L2 penalty
-%     f = f + lambda * 0.5 * (w'*w);
-% end
+function f = smooth_hinge(w)
+    % Smooth hinge loss according to Rennie and Srebro (2005)
+    f =  zeros(1, N);
+    z = YX*w;
+    f( z<=0 ) = 0.5 - z(z<=0);
+    f( (z>0 & z<1) ) = 0.5 * ((1 - z(z>0 & z<1)).^2);
 
-% function s1 = poly_hinge(z)
-%     % Smoothed hinge loss with a polynomial interpolation in the interval
-%     % z1 < 1 < z2.
-%     s1 = zeros(N,1);
-%     s1(z <= z1) = 1-z;    % this part is from the original hinge
-%     s1(z > z1  &  z < z2) = cfg.a * z;
-% end
+    % Add L2 penalty
+    f = f + lambda * 0.5 * (w'*w);
+end
+
+function s1 = poly_hinge(z)
+    % Smoothed hinge loss with a polynomial interpolation in the interval
+    % z1 < 1 < z2.
+    s1 = zeros(N,1);
+    s1(z <= z1) = 1-z(z <= z1);    % this part is from the original hinge
+    s1(z > z1  &  z < z2) = polyval(cfg.poly, z(z > z1  &  z < z2) );
+end
 
 function [g,H] = grad_and_hess(w)
     % Gradient and Hessian of loss function f(w). Uses smoothed version of 
@@ -378,8 +378,8 @@ end
 % figure
 % plot(YX, hinge(w)), hold all
 % plot(YX, smooth_hinge(w))
-% plot(YX, modified_hinge(w))
-% legend({'Hinge' 'Smooth hinge' 'Modified hinge'})
+% plot(YX, poly_hinge(YX))
+% legend({'Hinge' 'Smooth hinge' 'Poly hinge'})
 
 
 end

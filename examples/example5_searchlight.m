@@ -17,8 +17,54 @@ nChan = numel(dat.label);
 % We want to classify focus on the 300-500 ms window
 time_idx = find(dat.time >= 0.3  &  dat.time <= 0.5);
 
-%% Set up matrix of neighbours [requires Fieldtrip]
-% Here, we use Fieldtrip to obtain the label layout and the neighbours
+%% Distance matrix giving the pair-wise distances between electrodes
+nb_mat = squareform(pdist(chans.pos));
+
+%% Searchlight analysis
+cfg = [];
+cfg.nb          = nb_mat;
+cfg.average     = 1;
+
+maxstep = 2;        % maximum neighbourhood size
+auc = cell(1,maxstep);
+
+%%% Start classification 
+%%% - In the first iteration, nbstep = 0, i.e. only an electrode alone is
+%%%   considered
+%%% - In the second iteration, nbstep = 1, and an electrode as well as its
+%%%   direct neighbours are considered
+%%% - In the third iteration, nbstep = 2, so an electrode, its direct
+%%%   neighbours, and the neighbours of the neighbours are considered
+for nbstep=0:maxstep
+    cfg.nbstep  = nbstep;
+%     cfg.max     = nbstep + 2;
+    auc{nbstep+1} = mv_searchlight(cfg, dat.trial(:,:,time_idx), clabel);
+end
+
+%% Plot classification performance as a topography [requires Fieldtrip]
+
+% Plot topography and electrode layout
+clf
+nRow= 1; nCol = maxstep+1;
+for ii=1:maxstep+1
+    subplot(nRow,nCol,ii)
+    
+    ft_plot_topo(lay.pos(:,1), lay.pos(:,2), auc{ii}, ...
+        'mask',lay.mask,'datmask',[],'interplim','mask');
+    ft_plot_lay(lay,'box','no','label','no','point','yes','pointsymbol','o','pointcolor','k','pointsize',4)
+    
+    colorbar('location','southoutside')
+    title(sprintf('nbstep = %d',ii-1))
+    colormap jet
+end
+
+
+%% -- end of example --
+
+%% Alternative approach for defining the neighbours  using Fieldtrip
+% Here, we use Fieldtrip to obtain the label layout and the neighbours. The
+% neighborhood matrix is defined as a graph here consisting of 1's for
+% neighbouring electrodes and 0's for non-neighbouring ones
 cfg = [];
 % cfg.method      = 'triangulation';  %'distance'
 cfg.method      = 'distance';
@@ -71,21 +117,3 @@ for nbstep=0:maxstep
 %     cfg.max     = nbstep + 2;
     auc{nbstep+1} = mv_searchlight(cfg, dat.trial(:,:,time_idx), clabel);
 end
-
-%% Plot classification performance as a topography [requires Fieldtrip]
-
-% Plot topography and electrode layout
-clf
-nRow= 1; nCol = maxstep+1;
-for ii=1:maxstep+1
-    subplot(nRow,nCol,ii)
-    
-    ft_plot_topo(lay.pos(:,1), lay.pos(:,2), auc{ii}, ...
-        'mask',lay.mask,'datmask',[],'interplim','mask');
-    ft_plot_lay(lay,'box','no','label','no','point','yes','pointsymbol','o','pointcolor','k','pointsize',4)
-    
-    colorbar('location','southoutside')
-    title(sprintf('nbstep = %d',ii-1))
-    colormap jet
-end
-

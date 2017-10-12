@@ -1,5 +1,10 @@
-function [dat,clabel] = load_example_data(filename, do_zscore)
-% Loads an example dataset and the class label
+function [dat,clabel, chans] = load_example_data(filename, do_zscore)
+% Loads an example dataset. 
+%
+% Output: 
+% dat       - struct containing the data
+% clabel    - class labels
+% chans     - struct specifying the positions of the channels for plotting
 
 if nargin<2, do_zscore = 1; end
 

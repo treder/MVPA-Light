@@ -4,11 +4,6 @@ function perf = mv_searchlight(cfg, X, clabel)
 % each feature separately. However, neighbouring features can enter the 
 % classification together when a matrix of size [features x features]
 % specifying the neighbours is provided.
-% This matrix can either consist of 0's and 1's, with a 1 in the (i,j)-th
-% element of the matrix meaning that feature i and feature j are
-% neighbours, or it can be a distance matrix, specifying the distance
-% between each pair of features. If no such matrix is provided,
-% classification is performed on each feature separately.
 %
 % Usage:
 % [perf, ...] = mv_searchlight(cfg,X,clabel)
@@ -28,24 +23,33 @@ function perf = mv_searchlight(cfg, X, clabel)
 %                sample is returned
 % .nb          - [features x features] matrix specifying the neighbours.
 %                          - EITHER - 
-%                consists of 0's and 1's where a 1 in the (i,j)-th element 
-%                signifies that feature i and feature j are neighbours.
+%                a GRAPH consisting of 0's and 1's where a 1 in the 
+%                (i,j)-th element signifies that feature i and feature j 
+%                are neighbours.
 %                            - OR -
-%                a distance matrix, where each entry needs to have a value 
+%                a DISTANCE MATRIX, where each entry needs to have a value 
 %                >= 0 and the larger values mean larger distance.
 %                If no matrix is provided, every feature is only neighbour
-%                to itself.
-% .nbstep      - defines the number of steps taken through the
-%                neighbourhood matrix to find neighbours:
-%                0: only the feature itself is considered (no neighbours)
-%                1: the feature and its immediate neighbours
-%                2: the feature, its neighbours, and its neighbours'
-%                neighbours
-%                3+: neighbours of neighbours of neighbours etc
-%                (default 1)
-% .max         - maximum number of neighbours considered for each classification
-%                (default Inf). Can be used as an additional restriction
-%                e.g. when step has a large value.
+%                to itself and classification is performed for each feature 
+%                separately.
+% .num         - if nb is a graph: num defines the number of steps taken 
+%                     through the
+%                     neighbourhood matrix to find neighbours:
+%                     0: only the feature itself is considered (no neighbours)
+%                     1: the feature and its immediate neighbours
+%                     2: the feature, its neighbours, and its neighbours'
+%                     neighbours
+%                     3+: neighbours of neighbours of neighbours etc
+%                     (default 1)
+%                if nb is a distance matrix: num defines the number of
+%                     neighbouring features that enter the classification
+%                     0: only the feature itself is considered (no neighbours)
+%                     1: the feature and its closest neighbour according to
+%                     the distance matrix
+%                     2+: the 2 closest neighbours etc.
+% % % .max         - maximum number of neighbours considered for each classification
+% % %                (default Inf). Can be used as an additional restriction
+% % %                e.g. when step has a large value.
 % .average     - if 1 and X is [samples x features x time], the time
 %                dimension is averaged ot a single feature (default 1). If
 %                0, each time point is used as a separate feature
@@ -59,8 +63,7 @@ function perf = mv_searchlight(cfg, X, clabel)
 % (c) Matthias Treder 2017
 
 mv_setDefault(cfg,'nb',[]);
-mv_setDefault(cfg,'nbstep',1);
-mv_setDefault(cfg,'max',Inf);
+mv_setDefault(cfg,'num',1);
 mv_setDefault(cfg,'metric','auc');
 mv_setDefault(cfg,'average',1);
 mv_setDefault(cfg,'verbose',0);
@@ -73,15 +76,24 @@ end
 
 perf = nan(nFeat,1);
 
+
 %% Find the neighbours included by a stepsize of nbstep
-if isempty(cfg.nb) || cfg.nbstep == 0
+if isempty(cfg.nb) || cfg.num == 0
     % Do not include neighbours: each feature is only neighbour to itself
-    cfg.nb = eye(nFeat); 
+    nb = eye(nFeat); 
 else
-    % Use a trick used in transition matrices for Markov chains: taking the
-    % i-th power of the matrix yields information about the neighbours that
-    % can be reached in i steps
-    cfg.nb = double(double(cfg.nb)^cfg.nbstep > 0);
+    %%% Decide whether nb is a graph or a distance matrix
+    if all(ismember([0,1],unique(cfg.nb))) % graph 
+        
+        % Use a trick used in transition matrices for Markov chains: taking the
+        % i-th power of the matrix yields information about the neighbours that
+        % can be reached in i steps
+        nb = double(double(cfg.nb)^cfg.nbstep > 0);
+    
+    else % distance matrix -> change it into a graph
+        nbIsGraph = 0;
+    end
+    
 end
 
 %% Prepare cfg struct for mv_crossvalidate
@@ -97,13 +109,13 @@ for ff=1:nFeat
     % Identify neighbours: multiply a unit vector with 1 at the ff'th with
     % the nb matrix, this yields the neighbourhood of feature ff
     u = [zeros(1,ff-1), 1, zeros(1,nFeat-ff)];
-    neighbourhood = find( u * cfg.nb > 0);
+    neighbourhood = find( u * nb > 0);
     
-    % If maximum number of neighbours is exceeded, we remove the excessive
-    % neighbours
-    if numel(neighbourhood) > cfg.max
-        neighbourhood = neighbourhood(1:cfg.max);
-    end
+%     % If maximum number of neighbours is exceeded, we remove the excessive
+%     % neighbours
+%     if numel(neighbourhood) > cfg.max
+%         neighbourhood = neighbourhood(1:cfg.max);
+%     end
     
     % Extract desired features and reshape into [samples x features]
     Xfeat = reshape(X(:,neighbourhood,:), N, []);
