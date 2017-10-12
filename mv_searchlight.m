@@ -47,9 +47,6 @@ function perf = mv_searchlight(cfg, X, clabel)
 %                     1: the feature and its closest neighbour according to
 %                     the distance matrix
 %                     2+: the 2 closest neighbours etc.
-% % % .max         - maximum number of neighbours considered for each classification
-% % %                (default Inf). Can be used as an additional restriction
-% % %                e.g. when step has a large value.
 % .average     - if 1 and X is [samples x features x time], the time
 %                dimension is averaged ot a single feature (default 1). If
 %                0, each time point is used as a separate feature
@@ -90,8 +87,19 @@ else
         % can be reached in i steps
         nb = double(double(cfg.nb)^cfg.nbstep > 0);
     
-    else % distance matrix -> change it into a graph
-        nbIsGraph = 0;
+    else % distance matrix -> change it into a graph 
+        % The resulting graph is not necessarily symmetric since if the
+        % closest neighbour of chan1 is chan2, the closest neighbour of
+        % chan2 can still be a different channel. Therefore, the matrix nb
+        % contains the information of closest neighbours in its rows. E.g.,
+        % the row nb(i,:) gives the closest neighbours of the i-th channel
+        nb = zeros(nFeat);  % initialise as empty matrix
+        for nn=1:nFeat
+            [~,soidx] = sort(cfg.nb(nn,:),'ascend');
+            % put 1's in the row corresponding to the nearest
+            % neighbours
+            nb(nn,soidx(1:cfg.num+1)) = 1;
+        end
     end
     
 end
@@ -107,15 +115,11 @@ rng_state = rng;
 for ff=1:nFeat
 
     % Identify neighbours: multiply a unit vector with 1 at the ff'th with
-    % the nb matrix, this yields the neighbourhood of feature ff
+    % the nb matrix, this yields the neighbours of feature ff
     u = [zeros(1,ff-1), 1, zeros(1,nFeat-ff)];
     neighbourhood = find( u * nb > 0);
     
-%     % If maximum number of neighbours is exceeded, we remove the excessive
-%     % neighbours
-%     if numel(neighbourhood) > cfg.max
-%         neighbourhood = neighbourhood(1:cfg.max);
-%     end
+    if cfg.verbose, fprintf('Neighbours %s\n', mat2str(neighbourhood)), end
     
     % Extract desired features and reshape into [samples x features]
     Xfeat = reshape(X(:,neighbourhood,:), N, []);

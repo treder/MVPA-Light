@@ -6,7 +6,7 @@ close all
 clear all
 
 % Load data (in /examples folder)
-[dat, clabel] = load_example_data('epoched3');
+[dat, clabel, chans] = load_example_data('epoched3');
 
 % Average activity in 0.6-0.8 interval (see example 1)
 ival_idx = find(dat.time >= 0.6 & dat.time <= 0.8);
