@@ -1,47 +1,51 @@
 %%% Classification across time using the mv_classify_across_time function
-
 clear all
 
 % Load data (in /examples folder)
-load('epoched3')
-
-% Create class labels (1's and 2's)
-clabel = zeros(nTrial, 1);
-clabel(attended_deviant)  = 1;   % Class 1: attended deviants
-clabel(~attended_deviant) = 2;   % Class 2: unattended deviants
+[dat,clabel] = load_example_data('epoched1');
 
 %% Calculate and plot ERP for attended and unattended deviants
 
 % ERP for each condition
-erp_attended = squeeze(mean(dat.trial(attended_deviant,:,:)));
-erp_unattended = squeeze(mean(dat.trial(~attended_deviant,:,:)));
+erp_attended = squeeze(mean(dat.trial(clabel == 1,:,:)));
+erp_unattended = squeeze(mean(dat.trial(clabel == 2,:,:)));
 
 % Plot
 plot(dat.time, erp_attended, 'r'), hold on
 plot(dat.time, erp_unattended, 'g')
 grid on
 
-%% Setup configuration struct
+%% Setup configuration struct for LDA and Logistic Regression
 
 % Configuration struct for time classification with cross-validation. We
 % perform 5-fold cross-validation with 10 repetitions. As classifier, we
 % use LDA. The value of the regularisation parameter lambda is determined 
 % automatically.
-ccfg =  [];
-ccfg.CV         = 'kfold';
-ccfg.K          = 5;
-ccfg.repeat     = 5;
-ccfg.classifier = 'lda';
-ccfg.param      = struct('lambda','auto');
-ccfg.verbose    = 1;
-ccfg.metric     = 'auc';
+cfg_LDA =  [];
+cfg_LDA.CV         = 'kfold';
+cfg_LDA.K          = 5;
+cfg_LDA.repeat     = 2;
+cfg_LDA.classifier = 'lda';
+cfg_LDA.param      = struct('lambda','auto');
+cfg_LDA.verbose    = 1;
+cfg_LDA.metric     = 'auc';
+
+% We are interested in comparing LDA and Logistic Regression (LR). To this end,
+% we setup a configuration struct for logreg as well.
+cfg_LR =  cfg_LDA;
+cfg_LR.classifier = 'logreg';
+% cfg_LR.param      = struct('lambda',logspace(-6,2,20));
+cfg_LR.param      = struct('lambda',0.01 );
 
 %% Classification across time
-acc = mv_classify_across_time(ccfg, dat.trial, clabel);
+rng(1),tic,acc_LDA = mv_classify_across_time(cfg_LDA, dat.trial, clabel);toc
+rng(1),tic,acc_LR = mv_classify_across_time(cfg_LR, dat.trial, clabel);toc
 
+%% Plot
 close all
-mv_plot_1D([],dat.time,acc)
-ylabel(ccfg.metric)
+mv_plot_1D([],dat.time, cat(2,acc_LDA,acc_LR) )
+ylabel(cfg_LDA.metric)
+legend({'LDA' 'LR'})
 
 %% Classification across time for all subjects
 nSbj = 3;
@@ -49,19 +53,15 @@ acc = cell(nSbj,1);         % classification accuracies for all subjects
 auc = cell(nSbj,1);         % AUC values for all subjects
 
 % As performance metrics, we calculate both classification accuracy and AUC
-ccfg.metric  = {'acc' 'auc'};
+cfg_LDA.metric  = {'acc' 'auc'};
 
 for nn=1:nSbj
     
-    load(['epoched' num2str(nn)] )
-    
-    % Create class labels (1's and 2's)
-    clabel = zeros(nTrial, 1);
-    clabel(attended_deviant)  = 1;   % Class 1: attended deviants
-    clabel(~attended_deviant) = 2;   % Class 2: unattended deviants
-    
+    % Load dataset
+    [dat,clabel] = load_example_data(['epoched' num2str(nn)]);
+
     % Run classification across time
-    [acc{nn}, auc{nn}] = mv_classify_across_time(ccfg, dat.trial, clabel);
+    [acc{nn}, auc{nn}] = mv_classify_across_time(cfg_LDA, dat.trial, clabel);
 end
 
 acc = cat(2,acc{:});
