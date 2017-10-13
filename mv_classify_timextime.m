@@ -141,7 +141,7 @@ if ~strcmp(cfg.CV,'none') && ~hasX2
     % One dataset X has been provided as input. X is hence used for both
     % training and testing. To avoid overfitting, cross-validation is
     % performed.
-    if cfg.verbose, fprintf('Using %s cross-validation (K=%d) with %d repetitions.\n',cfg.CV,cfg.K,cfg.repeat), end
+    if cfg.verbose, mv_print_classification_info(cfg); end
 
     % Initialise classifier outputs
     cf_output = cell(cfg.repeat, cfg.K, nTime1);
