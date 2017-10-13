@@ -109,6 +109,11 @@ I = eye(nFeat);
 % logfun = @(w) lr_gradient(w);
 logfun = @(w) lr_gradient_and_hessian_tanh(w);
 
+%% Automatic regularisation
+if ischar(cfg.lambda) && strcmp(cfg.lambda,'auto')
+    cfg.lambda = logspace(-3,2,20);
+end
+
 %% Find best lambda using cross-validation
 if numel(cfg.lambda)>1
     
@@ -128,10 +133,11 @@ if numel(cfg.lambda)>1
     
     if cfg.predict_regularisation_path
         % Create predictor matrix for quadratic polynomial approximation 
-        % of the regularisation path
+        % of the regularisation path by taking the lambda's to the powers
+        % up to the polyorder.
         polyvec = 0:cfg.polyorder;
         % Use the log of the lambda's to get a better conditioned matrix
-        qpred = (log(cfg.lambda(:))) .^ polyvec;
+        qpred = cell2mat( arrayfun(@(n) log(cfg.lambda(:)).^n, polyvec,'Un',0));
     end
     
     % --- Start cross-validation ---
@@ -151,11 +157,11 @@ if numel(cfg.lambda)>1
             if ll==1
                 wstart = w0;
             elseif cfg.predict_regularisation_path ...
-                    && ll>cfg.polyorder+1      % we need enough terms already calculated
+                    && ll>cfg.polyorder+1      % make sure that enough terms have been calculated
                 % Fit polynomial to regularisation path
                 % and predict next w(lambda_k)
                 quad = qpred(ll-cfg.polyorder-1:ll-1,:)\(ws(:,ll-cfg.polyorder-1:ll-1)');
-                wstart = ( log(lambda).^polyvec * quad)';
+                wstart = ( repmat(log(lambda),[1,numel(polyvec)]).^polyvec * quad)';
             else
                 % Use the result obtained in the previous step lambda_k-1
                 wstart = ws(:,ll-1);
@@ -174,7 +180,9 @@ if numel(cfg.lambda)>1
         end
         
         cl = clabel(CV.test(ff));
-        acc = acc + sum( (X0(CV.test(ff),:) * ws) .* cl(:) > 0)' / CV.TestSize(ff);
+        % Calculate classification accuracy by multiplying decision values
+        % with the class label
+        acc = acc + sum( (X0(CV.test(ff),:) * ws) .* repmat(cl(:),[1,numel(cfg.lambda)]) > 0)' / CV.TestSize(ff);
     end
     
     acc = acc / cfg.K;
@@ -305,7 +313,7 @@ end
         
         % Hessian
         if nargout>1
-            h = lambda * I + (X .*(sigma .* (1 - sigma)))' * X/N;  % faster to first multiply X by sigma(1-sigma)
+            h = lambda * I + bsxfun(@times, X, sigma .* (1 - sigma))' * X/N;  % faster to first multiply X by sigma(1-sigma)
         end
     end
 
