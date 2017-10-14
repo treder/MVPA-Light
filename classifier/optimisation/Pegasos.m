@@ -1,29 +1,9 @@
-function [w,iter,delta] = Pegasos(fun,w,tolerance,max_iter,ll)
-% Implementation of the ... Pegasos 
+function [w,iter,delta] = Pegasos(fun,w,X,lambda,n_iter,ll)
+% Implementation of the Pegasos (Primal Estimated sub-gradient Solver for
+% SVM) algorithm. It performs a stochastic gradient descent with a
+% carefully chosen stepsize.
 %
-%       F(W) = 0
-%
-% In TR approaches, the objective function is locally approximated by a
-% simpler function (typically a quadratic expansion). The approximation is
-% trusted within a radius delta around the current point, called the trust
-% region. The quadratic expansion gives rise to a quadratic subproblem at
-% each iteration
-%
-%          step <- arg min      f + f' * step + 0.5 * step' * H * step
-%                  subject to   ||step|| <= delta
-%
-% where f is the current function value, f the gradient and H the Hessian.
-% This subproblem is solved using the Dogleg approach consisting of the
-% following steps:
-% 1) calculate Cauchy step (steepest descent) solving the quadratic
-%    problem. If ||step|| > delta we go up until the delta border and quit
-% 2) if ||step|| <= delta we calculate the Gauss-Newton step: If
-%    ||gauss_newton_step|| <= delta we make it and are done
-% 3) if ||newton_step|| > delta we first make the Cauchy step and then the
-%   Newton step until we hit the border. This yields two linear steps which
-%   allegedly look like a dog leg.
-%
-% Usage: [w,iter] = TrustRegionNewtonGN(fun,w,tol,max_iter)
+% Usage: [w,iter] = Pegasos(fun,w,tol,max_iter)
 %
 % fun       - function handle to the gradient function, yielding 
 %                f: corresponding gradient vector (first output)
