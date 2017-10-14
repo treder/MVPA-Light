@@ -48,7 +48,7 @@ function varargout = mv_classify_across_time(cfg, X, clabel)
 % .replace      - if balance is set to 'oversample' or 'undersample',
 %                 replace deteremines whether data is drawn with
 %                 replacement (default 1)
-% .verbose      - print information on the console (default 1)
+% .feedback     - print feedback on the console (default 1)
 %
 % Returns:
 % perf          - [time x 1] vector of classifier performances. If multiple
@@ -59,30 +59,30 @@ function varargout = mv_classify_across_time(cfg, X, clabel)
 
 % (c) Matthias Treder 2017
 
-mv_setDefault(cfg,'classifier','lda');
-mv_setDefault(cfg,'param',[]);
-mv_setDefault(cfg,'metric','acc');
-mv_setDefault(cfg,'CV','kfold');
-mv_setDefault(cfg,'repeat',5);
-mv_setDefault(cfg,'time',1:size(X,3));
-mv_setDefault(cfg,'verbose',0);
+mv_set_default(cfg,'classifier','lda');
+mv_set_default(cfg,'param',[]);
+mv_set_default(cfg,'metric','acc');
+mv_set_default(cfg,'CV','kfold');
+mv_set_default(cfg,'repeat',5);
+mv_set_default(cfg,'time',1:size(X,3));
+mv_set_default(cfg,'feedback',1);
 
 if isempty(cfg.metric) || any(ismember({'dval','auc','roc'},cfg.metric))
-    mv_setDefault(cfg,'output','dval');
+    mv_set_default(cfg,'output','dval');
 else
-    mv_setDefault(cfg,'output','clabel');
+    mv_set_default(cfg,'output','clabel');
 end
 
 if ~isempty(cfg.metric) && ~iscell(cfg.metric), cfg.metric = {cfg.metric}; end
 
 % Balance the data using oversampling or undersampling
-mv_setDefault(cfg,'balance','none');
-mv_setDefault(cfg,'replace',1);
+mv_set_default(cfg,'balance','none');
+mv_set_default(cfg,'replace',1);
 
 if strcmp(cfg.CV,'kfold')
-    mv_setDefault(cfg,'K',5);
+    mv_set_default(cfg,'K',5);
 else
-    mv_setDefault(cfg,'K',1);
+    mv_set_default(cfg,'K',1);
 end
 
 % Set non-specified classifier parameters to default
@@ -116,14 +116,14 @@ X_orig = X;
 label_orig = clabel;
 
 if ~strcmp(cfg.CV,'none')
-    if cfg.verbose, mv_print_classification_info(cfg); end
+    if cfg.feedback, mv_print_classification_info(cfg); end
 
     % Initialise classifier outputs
     cf_output = cell(cfg.repeat, cfg.K, nTime);
     testlabel = cell(cfg.repeat, cfg.K);
 
     for rr=1:cfg.repeat                 % ---- CV repetitions ----
-        if cfg.verbose, fprintf('Repetition #%d. Fold ',rr), end
+        if cfg.feedback, fprintf('Repetition #%d. Fold ',rr), end
 
         % Undersample data if requested. We undersample the classes within the
         % loop since it involves chance (samples are randomly over-/under-
@@ -145,7 +145,7 @@ if ~strcmp(cfg.CV,'none')
         CV= cvpartition(clabel,cfg.CV,cfg.K);
 
         for kk=1:cfg.K                      % ---- CV folds ----
-            if cfg.verbose, fprintf('%d ',kk), end
+            if cfg.feedback, fprintf('%d ',kk), end
 
             % Train data
             Xtrain = X(CV.training(kk),:,:,:);
@@ -174,7 +174,7 @@ if ~strcmp(cfg.CV,'none')
                 
             end
         end
-        if cfg.verbose, fprintf('\n'), end
+        if cfg.feedback, fprintf('\n'), end
     end
 
     % Average classification performance across repeats and test folds
@@ -214,8 +214,8 @@ if nMetrics==0
     varargout{1} = cf_output;
 else
     % Calculate classifier performance, for each selected metric separately
-    if cfg.verbose, fprintf('Calculating classifier performance... '), end
+    if cfg.feedback, fprintf('Calculating classifier performance... '), end
     varargout = cell(numel(cfg.metric),1);
     [varargout{:}] = mv_classifier_performance(cfg.metric, cf_output, testlabel, avdim);
-    if cfg.verbose, fprintf('finished\n'), end
+    if cfg.feedback, fprintf('finished\n'), end
 end

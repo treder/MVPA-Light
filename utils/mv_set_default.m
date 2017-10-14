@@ -1,6 +1,6 @@
-function isdefault= mv_setDefault(opt,tag,value)
-% Set default value for a field in a struct. If opt.tag does not exist, it
-% is set to opt.tag = value
+function isdefault= mv_set_default(cfg,tag,value)
+% If the field cfg.tag does not exist, it is set to cfg.tag = value. If it
+% already exists, it is left unchanged.
 
   stridx= strfind(tag,'.'); % check whether a substruct is referenced
   if ~isempty(stridx)
@@ -11,9 +11,9 @@ function isdefault= mv_setDefault(opt,tag,value)
       tagend= tag;
   end
   if ~evalin('caller',['isfield('  inputname(1) tagstart ',''' tagend ''')'])
-    eval(['opt.' tag ' = value;'])
+    eval(['cfg.' tag ' = value;'])
     % Transfer new value to calling function
-    assignin('caller',inputname(1),opt);    
+    assignin('caller',inputname(1),cfg);    
     isdefault= 1;
   else
     isdefault= 0;
