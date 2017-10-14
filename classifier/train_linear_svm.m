@@ -1,5 +1,5 @@
-function cf = train_svm(cfg,X,clabel)
-% Trains a support vector machine (SVM). The avoid overfitting, the
+function cf = train_linear_svm(cfg,X,clabel)
+% Trains a linear support vector machine (SVM). The avoid overfitting, the
 % classifier weights are penalised using L2-regularisation.
 %
 % It is recommended that the data is z-scored (ie mean=0, var=1 across
