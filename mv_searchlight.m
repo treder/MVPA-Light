@@ -144,3 +144,8 @@ for ff=1:nFeat
     perf(ff) = mv_crossvalidate(tmp_cfg, Xfeat, clabel);
     
 end
+
+if nargout>1
+else
+    res = [];
+end

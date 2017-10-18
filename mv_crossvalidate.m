@@ -1,4 +1,4 @@
-function varargout = mv_crossvalidate(cfg, X, clabel)
+function [perf, res] = mv_crossvalidate(cfg, X, clabel)
 % Cross-validation. A classifier is trained and validated for
 % given 2D [samples x features] dataset X.
 %
@@ -8,7 +8,7 @@ function varargout = mv_crossvalidate(cfg, X, clabel)
 % can be used for time generalisation.
 %
 % Usage:
-% [perf, ...] = mv_crossvalidate(cfg,X,clabel)
+% [perf, res] = mv_crossvalidate(cfg,X,clabel)
 %
 %Parameters:
 % X              - [samples x features] data matrix
@@ -22,9 +22,8 @@ function varargout = mv_crossvalidate(cfg, X, clabel)
 %                 function (default [])
 % .metric       - classifier performance metric, default 'acc'. See
 %                 mv_classifier_performance. If set to [], the raw classifier
-%                 output (labels or dvals depending on cfg.output) for each
-%                 sample is returned. Multiple metrics can be requested by
-%                 providing a cell array e.g. {'acc' 'dval'}.
+%                 output (labels or dvals depending on cfg.cf_output) for each
+%                 sample is returned. 
 % .CV           - perform cross-validation, can be set to
 %                 'kfold' (recommended) or 'leaveout' (not recommended
 %                 since it has a higher variance than k-fold) (default
@@ -53,10 +52,10 @@ function varargout = mv_crossvalidate(cfg, X, clabel)
 % .feedback     - print feedback on the console (default 1)
 %
 % Returns:
-% perf          - [time x 1] vector of classifier performances. If multiple
-%                 metrics were requested, multiple output arguments are
-%                 provided.
-%
+% perf          - [time x 1] vector of classifier performances.
+% res           - struct with fields describing the classification result.
+%                 Can be used as input to mv_statistics
+
 
 % (c) Matthias Treder 2017
 
@@ -72,8 +71,6 @@ if isempty(cfg.metric) || any(ismember({'dval','auc','roc'},cfg.metric))
 else
     mv_set_default(cfg,'output','clabel');
 end
-
-if ~isempty(cfg.metric) && ~iscell(cfg.metric), cfg.metric = {cfg.metric}; end
 
 % Balance the data using oversampling or undersampling
 mv_set_default(cfg,'balance','none');
@@ -156,7 +153,7 @@ if ~strcmp(cfg.CV,'none')
             cf= train_fun(cfg.param, Xtrain, trainlabel);
 
             % Obtain classifier output (labels or dvals) on test data
-            cf_output{rr,kk} = mv_classifier_output(cfg.output, cf, test_fun, X(CV.test(kk),:));
+            cf_output{rr,kk} = mv_classifier_output(cfg.cf_output, cf, test_fun, X(CV.test(kk),:));
 
         end
         if cfg.feedback, fprintf('\n'), end
@@ -181,20 +178,19 @@ else
     cf= train_fun(cfg.param, X, clabel);
 
     % Obtain classifier output (labels or dvals)
-    cf_output = mv_classifier_output(cfg.output, cf, test_fun, X);
+    cf_output = mv_classifier_output(cfg.cf_output, cf, test_fun, X);
 
     testlabel = clabel;
     avdim = [];
 end
 
 if isempty(cfg.metric)
-    % If no metric was requested, return the raw classifier output
-    varargout{1} = cf_output;
+    if cfg.feedback, fprintf('No performance metric requested, returning raw classifier output.\n'), end
+    perf = cf_output;
+    res = [];
 else
-    % Calculate classifier performance, for each selected metric separately
     if cfg.feedback, fprintf('Calculating classifier performance... '), end
-    varargout = cell(numel(cfg.metric),1);
-    [varargout{:}] = mv_classifier_performance(cfg.metric, cf_output, testlabel, avdim);
+    [perf,res] = mv_classifier_performance(cfg.metric, cf_output, testlabel, avdim);
     if cfg.feedback, fprintf('finished\n'), end
 end
 

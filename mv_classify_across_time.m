@@ -1,10 +1,10 @@
-function varargout = mv_classify_across_time(cfg, X, clabel)
+function [perf, res] = mv_classify_across_time(cfg, X, clabel)
 % Classification across time. A classifier is trained and validate for
 % different time points in the dataset X. Cross-validation should be used
 % to get a realistic estimate of classification performance.
 %
 % Usage:
-% [perf, ...] = mv_classify_across_time(cfg,X,clabel)
+% [perf, res] = mv_classify_across_time(cfg,X,clabel)
 %
 %Parameters:
 % X              - [samples x features x time points] data matrix
@@ -18,7 +18,7 @@ function varargout = mv_classify_across_time(cfg, X, clabel)
 %                 function (default [])
 % .metric       - classifier performance metric, default 'acc'. See
 %                 mv_classifier_performance. If set to [], the raw classifier
-%                 output (labels or dvals depending on cfg.output) for each
+%                 output (labels or dvals depending on cfg.cf_output) for each
 %                 sample is returned. Multiple metrics can be requested by
 %                 providing a cell array e.g. {'acc' 'dval'}
 % .CV           - perform cross-validation, can be set to
@@ -51,9 +51,9 @@ function varargout = mv_classify_across_time(cfg, X, clabel)
 % .feedback     - print feedback on the console (default 1)
 %
 % Returns:
-% perf          - [time x 1] vector of classifier performances. If multiple
-%                 metrics were requested, multiple output arguments are
-%                 provided.
+% perf          - [time x 1] vector of classifier performances. 
+% res           - struct with fields describing the classification result.
+%                 Can be used as input to mv_statistics
 %
 % Note: For time x time generalisation, use mv_classify_timextime
 
@@ -73,8 +73,6 @@ else
     mv_set_default(cfg,'output','clabel');
 end
 
-if ~isempty(cfg.metric) && ~iscell(cfg.metric), cfg.metric = {cfg.metric}; end
-
 % Balance the data using oversampling or undersampling
 mv_set_default(cfg,'balance','none');
 mv_set_default(cfg,'replace',1);
@@ -91,7 +89,6 @@ cfg.param = mv_classifier_defaults(cfg.classifier, cfg.param);
 [~,~,clabel] = mv_check_labels(clabel);
 
 nTime = numel(cfg.time);
-nLabel = numel(clabel);
 
 % Number of samples in the classes
 N1 = sum(clabel == 1);
@@ -100,14 +97,6 @@ N2 = sum(clabel == 2);
 %% Get train and test functions
 train_fun = eval(['@train_' cfg.classifier]);
 test_fun = eval(['@test_' cfg.classifier]);
-
-%% Prepare performance metrics
-if ~isempty(cfg.metric) && ~iscell(cfg.metric)
-    cfg.metric = {cfg.metric};
-end
-
-nMetrics = numel(cfg.metric);
-perf= cell(nMetrics,1);
 
 %% Classify across time
 
@@ -170,7 +159,7 @@ if ~strcmp(cfg.CV,'none')
                 cf= train_fun(cfg.param, Xtrain_tt, trainlabel);
 
                 % Obtain classifier output (class labels or dvals)
-                cf_output{rr,kk,tt} = mv_classifier_output(cfg.output, cf, test_fun, Xtest);
+                cf_output{rr,kk,tt} = mv_classifier_output(cfg.cf_output, cf, test_fun, Xtest);
                 
             end
         end
@@ -202,20 +191,25 @@ else
         cf= train_fun(Xtraintest, clabel, cfg.param);
         
         % Obtain classifier output (class labels or dvals)
-        cf_output(:,tt) = mv_classifier_output(cfg.output, cf, test_fun, Xtraintest);
+        cf_output(:,tt) = mv_classifier_output(cfg.cf_output, cf, test_fun, Xtraintest);
     end
 
     testlabel = clabel;
     avdim = [];
 end
 
-if nMetrics==0
-    % If no metric was requested, return the raw classifier output
-    varargout{1} = cf_output;
+if isempty(cfg.metric)
+    if cfg.feedback, fprintf('No performance metric requested, returning raw classifier output.\n'), end
+    perf = cf_output;
 else
-    % Calculate classifier performance, for each selected metric separately
     if cfg.feedback, fprintf('Calculating classifier performance... '), end
-    varargout = cell(numel(cfg.metric),1);
-    [varargout{:}] = mv_classifier_performance(cfg.metric, cf_output, testlabel, avdim);
+    perf = mv_classifier_performance(cfg.metric, cf_output, testlabel, avdim);
     if cfg.feedback, fprintf('finished\n'), end
+end
+
+if nargout>1
+    res = [];
+
+else
+    res = [];
 end
