@@ -24,7 +24,6 @@ ccfg_LDA.K               = 5;
 ccfg_LDA.repeat          = 3;
 ccfg_LDA.balance         = 'undersample';
 ccfg_LDA.metric          = 'auc';
-ccfg_LDA.verbose         = 1;
 
 rng(1);
 acc_LDA = mv_crossvalidate(ccfg_LDA, X, clabel);
@@ -63,7 +62,6 @@ label_reduced = clabel(1:nReduced);
 X_reduced = X(1:nReduced,:);
 
 ccfg= [];
-ccfg.verbose      = 1;
 acc_LDA = mv_crossvalidate(ccfg, X_reduced, label_reduced);
 
 ccfg.CV     = 'none';
