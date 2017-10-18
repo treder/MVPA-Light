@@ -61,7 +61,7 @@ function cf = train_liblinear(cfg,X,clabel)
 % http://www.csie.ntu.edu.tw/~cjlin/liblinear
 %
 
-if ~any(cfg.type == [0,2]) && cfg.C==1
+if ~any(cfg.type == [0,2]) && any(cfg.C==1)
     error('Warm-start parameter search only available for type 0 and type 2')
 end
 
