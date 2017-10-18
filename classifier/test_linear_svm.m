@@ -1,4 +1,4 @@
-function [clabel,dval] = test_svm(cf,X)
+function [clabel,dval] = test_linear_svm(cf,X)
 % Applies a SVM to test data and produces class labels and decision values.
 % 
 % Usage:
