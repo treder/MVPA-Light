@@ -193,7 +193,7 @@ switch(metric)
             perf(dimSkipToken{:},xx) = cellfun(@(c,n1,n2) arrsum(c,n1)/(n1*n2), cf_so, N1,N2, 'Un',0);
         end
         
-    otherwise, error('Unknown metric: %s',cfg.metric{pp})
+    otherwise, error('Unknown metric: %s',cfg.metric)
 end
 
 % Convert cell array to matrix. Since each cell can also contain a multi-

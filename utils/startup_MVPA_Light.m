@@ -5,6 +5,7 @@ MVPA_path = fileparts(fileparts(mfilename('fullpath')));
 
 addpath(MVPA_path);
 addpath(fullfile(MVPA_path,'classifier'));
+addpath(fullfile(MVPA_path,'classifier','kernel'));
 addpath(fullfile(MVPA_path,'classifier','optimisation'));
 addpath(fullfile(MVPA_path,'examples'));
 addpath(fullfile(MVPA_path,'external'));
