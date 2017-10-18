@@ -16,6 +16,9 @@ function [clabel,dval] = test_liblinear(cf,X)
 
 [clabel, ~, dval] = predict(ones(size(X,1),1), sparse(X), cf, '-q');
 
+% Recode 0's as 2's: LIBLINEAR outputs 0 and 1, we need 1 and 2
+clabel(clabel==0) = 2;
+
 % Note that dvals might be sign-reversed in some cases,
 % see http://www.csie.ntu.edu.tw/~cjlin/libsvm/faq.html#f430
 % and https://www.csie.ntu.edu.tw/~cjlin/liblinear/FAQ.html
