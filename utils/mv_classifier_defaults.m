@@ -22,45 +22,45 @@ end
 switch(classifier)
     
     case 'lda'
-        mv_setDefault(param,'lambda','auto');
-        mv_setDefault(param,'prob',0);
-        mv_setDefault(param,'scale',0);
-        mv_setDefault(param,'K',5);
-        mv_setDefault(param,'plot',0);
-        mv_setDefault(param,'evtol',10^8);
+        mv_set_default(param,'lambda','auto');
+        mv_set_default(param,'prob',0);
+        mv_set_default(param,'scale',0);
+        mv_set_default(param,'K',5);
+        mv_set_default(param,'plot',0);
+        mv_set_default(param,'evtol',10^8);
         
     case 'logist'
-        mv_setDefault(param,'v','mean');
-        mv_setDefault(param,'lambda',[]);
-        mv_setDefault(param,'eigvalratio',[]);
+        mv_set_default(param,'v','mean');
+        mv_set_default(param,'lambda',[]);
+        mv_set_default(param,'eigvalratio',[]);
 
     case 'logreg'
-        mv_setDefault(param,'zscore',0);
-        mv_setDefault(param,'intercept',0);
-        mv_setDefault(param,'lambda',1);
-        mv_setDefault(param,'max_iter',400);
-        mv_setDefault(param,'tolerance',1e-12);
-        mv_setDefault(param,'K',5);
-        mv_setDefault(param,'plot',0);
-        mv_setDefault(param,'predict_regularisation_path',1);
-        mv_setDefault(param,'polyorder',3);
+        mv_set_default(param,'zscore',0);
+        mv_set_default(param,'intercept',0);
+        mv_set_default(param,'lambda',1);
+        mv_set_default(param,'max_iter',400);
+        mv_set_default(param,'tolerance',1e-12);
+        mv_set_default(param,'K',5);
+        mv_set_default(param,'plot',0);
+        mv_set_default(param,'predict_regularisation_path',1);
+        mv_set_default(param,'polyorder',3);
        
-%         mv_setDefault(param,'optim',optimoptions('fsolve','Algorithm',...
+%         mv_set_default(param,'optim',optimoptions('fsolve','Algorithm',...
 %             'trust-region-dogleg',...
 %             'SpecifyObjectiveGradient',true,'Display','none') );
         
     case 'svm'
-        mv_setDefault(param,'zscore',0);
-        mv_setDefault(param,'intercept',1);
-        mv_setDefault(param,'lambda',1);
-        mv_setDefault(param,'max_iter',400);
-        mv_setDefault(param,'tolerance',1e-8);
-        mv_setDefault(param,'K',5);
-        mv_setDefault(param,'plot',0);
-        mv_setDefault(param,'predict_regularisation_path',1);
-        mv_setDefault(param,'polyorder',2);
+        mv_set_default(param,'zscore',0);
+        mv_set_default(param,'intercept',1);
+        mv_set_default(param,'lambda',1);
+        mv_set_default(param,'max_iter',400);
+        mv_set_default(param,'tolerance',1e-8);
+        mv_set_default(param,'K',5);
+        mv_set_default(param,'plot',0);
+        mv_set_default(param,'predict_regularisation_path',1);
+        mv_set_default(param,'polyorder',2);
 
-        mv_setDefault(param,'z1',0.5);
+        mv_set_default(param,'z1',0.5);
         
         % We set z2 automatically such that the [z1,z2] interval is
         % centered on 1. This leads to the polynomial interpolation being
@@ -121,54 +121,54 @@ switch(classifier)
 %         % Roots of h''(z)
 %         ddh = 20*a(1)*z^3 + 12*a(2)*z^2 + 6*a(3)*z + 2*a(4);
    
-        mv_setDefault(param,'optim',optimoptions('fsolve','Algorithm',...
+        mv_set_default(param,'optim',optimoptions('fsolve','Algorithm',...
             'trust-region-dogleg',...
             'SpecifyObjectiveGradient',true,'Display','none') );
         
     case 'libsvm'
-        mv_setDefault(param,'svm_type',0);
-        mv_setDefault(param,'kernel_type',2);
-        mv_setDefault(param,'degree',3);
-        mv_setDefault(param,'gamma',[]); % default is 1/numFeatures but since we don't know the features we set it to empty here [it's taken care of in LIBSVM then]
-        mv_setDefault(param,'coef0',0);
-        mv_setDefault(param,'cost',1);
-        mv_setDefault(param,'nu',0.5);
-        mv_setDefault(param,'epsilon',0.1);
-        mv_setDefault(param,'cachesize',100);
-        mv_setDefault(param,'eps',0.001);
-        mv_setDefault(param,'shrinking',1);
-        mv_setDefault(param,'probability_estimates',0);
-        mv_setDefault(param,'weight',1);
-        mv_setDefault(param,'cv',[]);
-        mv_setDefault(param,'quiet',1);
+        mv_set_default(param,'svm_type',0);
+        mv_set_default(param,'kernel_type',2);
+        mv_set_default(param,'degree',3);
+        mv_set_default(param,'gamma',[]); % default is 1/numFeatures but since we don't know the features we set it to empty here [it's taken care of in LIBSVM then]
+        mv_set_default(param,'coef0',0);
+        mv_set_default(param,'cost',1);
+        mv_set_default(param,'nu',0.5);
+        mv_set_default(param,'epsilon',0.1);
+        mv_set_default(param,'cachesize',100);
+        mv_set_default(param,'eps',0.001);
+        mv_set_default(param,'shrinking',1);
+        mv_set_default(param,'probability_estimates',0);
+        mv_set_default(param,'weight',1);
+        mv_set_default(param,'cv',[]);
+        mv_set_default(param,'quiet',1);
         
     case 'liblinear'
-        mv_setDefault(param,'type',1);
-        mv_setDefault(param,'cost',1);
-        mv_setDefault(param,'epsilon',0.1);
-        mv_setDefault(param,'eps',[]);  % use the defaults in LIBLINEAR
-        mv_setDefault(param,'bias',-1);
-        mv_setDefault(param,'weight',[]);
-        mv_setDefault(param,'cv',[]);
-        mv_setDefault(param,'C',[]);
-        mv_setDefault(param,'quiet',1);
+        mv_set_default(param,'type',1);
+        mv_set_default(param,'cost',1);
+        mv_set_default(param,'epsilon',0.1);
+        mv_set_default(param,'eps',[]);  % use the defaults in LIBLINEAR
+        mv_set_default(param,'bias',-1);
+        mv_set_default(param,'weight',[]);
+        mv_set_default(param,'cv',[]);
+        mv_set_default(param,'C',[]);
+        mv_set_default(param,'quiet',1);
         
     case 'logreg_matlab'
-        mv_setDefault(param,'alpha',0.01);
-        mv_setDefault(param,'numLambda',100);
-        mv_setDefault(param,'K',5);
-        mv_setDefault(param,'nameval',{});
+        mv_set_default(param,'alpha',0.01);
+        mv_set_default(param,'numLambda',100);
+        mv_set_default(param,'K',5);
+        mv_set_default(param,'nameval',{});
 
     case 'ensemble'
-        mv_setDefault(param,'learner','lda');
-        mv_setDefault(param,'learner_param',[]);
-        mv_setDefault(param,'nSamples', 0.5);
-        mv_setDefault(param,'nFeatures', 0.2);
-        mv_setDefault(param,'nLearners', 500);
-        mv_setDefault(param,'stratify', false);
-        mv_setDefault(param,'replace', 1);
-        mv_setDefault(param,'strategy', 'dval');
-        mv_setDefault(param,'simplify', false);
+        mv_set_default(param,'learner','lda');
+        mv_set_default(param,'learner_param',[]);
+        mv_set_default(param,'nSamples', 0.5);
+        mv_set_default(param,'nFeatures', 0.2);
+        mv_set_default(param,'nLearners', 500);
+        mv_set_default(param,'stratify', false);
+        mv_set_default(param,'replace', 1);
+        mv_set_default(param,'strategy', 'dval');
+        mv_set_default(param,'simplify', false);
         
     otherwise, error('Unknown classifier ''%s''',classifier)
 end

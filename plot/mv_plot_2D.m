@@ -62,25 +62,25 @@ function h = mv_plot_2D(cfg, dat)
 
 [nX,nY,P] = size(dat);
 
-mv_setDefault(cfg,'x',1:nX);
-mv_setDefault(cfg,'y',1:nY);
-mv_setDefault(cfg,'xlim',[min(cfg.x), max(cfg.x)]);
-mv_setDefault(cfg,'ylim',[min(cfg.y), max(cfg.y)]);
-mv_setDefault(cfg,'xlabel','Testing time');
-mv_setDefault(cfg,'ylabel','Training time');
-mv_setDefault(cfg,'title','');
-mv_setDefault(cfg,'clim','sym');
-mv_setDefault(cfg,'climzero',0.5);
-mv_setDefault(cfg,'globalclim',1);
-mv_setDefault(cfg,'grid',{'on'});
-mv_setDefault(cfg,'zero',{'--k'});
-mv_setDefault(cfg,'nrow',1);
-mv_setDefault(cfg,'ncol',P);
-mv_setDefault(cfg,'colorbar',1);
-mv_setDefault(cfg,'cblocation','EastOutside');
-mv_setDefault(cfg,'ydir','normal');
-mv_setDefault(cfg,'yscale','linear');
-mv_setDefault(cfg,'xscale','linear');
+mv_set_default(cfg,'x',1:nX);
+mv_set_default(cfg,'y',1:nY);
+mv_set_default(cfg,'xlim',[min(cfg.x), max(cfg.x)]);
+mv_set_default(cfg,'ylim',[min(cfg.y), max(cfg.y)]);
+mv_set_default(cfg,'xlabel','Testing time');
+mv_set_default(cfg,'ylabel','Training time');
+mv_set_default(cfg,'title','');
+mv_set_default(cfg,'clim','sym');
+mv_set_default(cfg,'climzero',0.5);
+mv_set_default(cfg,'globalclim',1);
+mv_set_default(cfg,'grid',{'on'});
+mv_set_default(cfg,'zero',{'--k'});
+mv_set_default(cfg,'nrow',1);
+mv_set_default(cfg,'ncol',P);
+mv_set_default(cfg,'colorbar',1);
+mv_set_default(cfg,'cblocation','EastOutside');
+mv_set_default(cfg,'ydir','normal');
+mv_set_default(cfg,'yscale','linear');
+mv_set_default(cfg,'xscale','linear');
 
 if ~iscell(cfg.grid), cfg.grid={cfg.grid}; end
 if ~iscell(cfg.xlabel)

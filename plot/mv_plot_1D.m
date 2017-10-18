@@ -37,15 +37,15 @@ function h = mv_plot_1D(cfg, time, dat, err)
 
 if nargin<3, err=[]; end
 
-mv_setDefault(cfg,'xlabel','Time');
-mv_setDefault(cfg,'ylabel','Accuracy');
-mv_setDefault(cfg,'title','');
-mv_setDefault(cfg,'grid',{'on'});
-mv_setDefault(cfg,'lineorder',{'-' '-' '--' '--' ':'});
-mv_setDefault(cfg,'hor',0.5);
-mv_setDefault(cfg,'ver',0);
-mv_setDefault(cfg,'cross',{'--k'});
-mv_setDefault(cfg,'bounded',{'alpha'});
+mv_set_default(cfg,'xlabel','Time');
+mv_set_default(cfg,'ylabel','Accuracy');
+mv_set_default(cfg,'title','');
+mv_set_default(cfg,'grid',{'on'});
+mv_set_default(cfg,'lineorder',{'-' '-' '--' '--' ':'});
+mv_set_default(cfg,'hor',0.5);
+mv_set_default(cfg,'ver',0);
+mv_set_default(cfg,'cross',{'--k'});
+mv_set_default(cfg,'bounded',{'alpha'});
 
 h = struct();
 h.ax = gca;
