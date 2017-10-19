@@ -31,7 +31,7 @@ switch(classifier)
     
     case 'logreg'
         mv_set_default(param,'zscore',0);
-        mv_set_default(param,'intercept',0);
+        mv_set_default(param,'intercept',1);
         mv_set_default(param,'lambda',1);
         mv_set_default(param,'max_iter',400);
         mv_set_default(param,'tolerance',1e-12);

@@ -1,4 +1,4 @@
-function [perf,res] = mv_classifier_performance(metric, cf_output, clabel, dim)
+function [perf,res] = mv_calculate_performance(metric, cf_output, clabel, dim)
 %Calculates a classifier performance metric such as classification accuracy
 %based on the classifier output (labels or decision values). In
 %cross-validation, the metric needs to be calculated on each test fold
