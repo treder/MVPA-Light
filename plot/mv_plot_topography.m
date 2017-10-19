@@ -177,9 +177,9 @@ if cfg.globalclim
             % if the subplot grid is not completely filled up, we use the
             % next subplot to produce a colorbar
             h.ax(M+1) = subplot(cfg.nrow,cfg.ncol,M+1);
-            h.colorbar = colorbar('Location','WestOutside')
+            h.colorbar = colorbar('Location','WestOutside');
         else
-            h.colorbar = colorbar('Location','EastOutside')
+            h.colorbar = colorbar('Location','EastOutside');
         end
         caxis(cl)
         axis off
