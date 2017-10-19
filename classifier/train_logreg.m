@@ -70,6 +70,7 @@ function cf = train_logreg(cfg,X,clabel)
 
 [N, nFeat] = size(X);
 X0 = X;
+clabel = double(clabel);
 
 cf = [];
 
