@@ -67,9 +67,9 @@ mv_set_default(cfg,'repeat',5);
 mv_set_default(cfg,'feedback',1);
 
 if isempty(cfg.metric) || any(ismember({'dval','auc','roc'},cfg.metric))
-    mv_set_default(cfg,'output','dval');
+    mv_set_default(cfg,'cf_output','dval');
 else
-    mv_set_default(cfg,'output','clabel');
+    mv_set_default(cfg,'cf_output','clabel');
 end
 
 % Balance the data using oversampling or undersampling
@@ -83,7 +83,7 @@ else
 end
 
 % Set non-specified classifier parameters to default
-cfg.param = mv_classifier_defaults(cfg.classifier, cfg.param);
+cfg.param = mv_get_classifier_param(cfg.classifier, cfg.param);
 
 [~,~,clabel] = mv_check_labels(clabel);
 
@@ -153,7 +153,7 @@ if ~strcmp(cfg.CV,'none')
             cf= train_fun(cfg.param, Xtrain, trainlabel);
 
             % Obtain classifier output (labels or dvals) on test data
-            cf_output{rr,kk} = mv_classifier_output(cfg.cf_output, cf, test_fun, X(CV.test(kk),:));
+            cf_output{rr,kk} = mv_get_classifier_param(cfg.cf_output, cf, test_fun, X(CV.test(kk),:));
 
         end
         if cfg.feedback, fprintf('\n'), end
@@ -178,7 +178,7 @@ else
     cf= train_fun(cfg.param, X, clabel);
 
     % Obtain classifier output (labels or dvals)
-    cf_output = mv_classifier_output(cfg.cf_output, cf, test_fun, X);
+    cf_output = mv_get_classifier_output(cfg.cf_output, cf, test_fun, X);
 
     testlabel = clabel;
     avdim = [];
@@ -190,7 +190,7 @@ if isempty(cfg.metric)
     res = [];
 else
     if cfg.feedback, fprintf('Calculating classifier performance... '), end
-    [perf,res] = mv_classifier_performance(cfg.metric, cf_output, testlabel, avdim);
+    [perf,res] = mv_calculate_performance(cfg.metric, cf_output, testlabel, avdim);
     if cfg.feedback, fprintf('finished\n'), end
 end
 

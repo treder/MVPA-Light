@@ -200,7 +200,7 @@ if ~strcmp(cfg.CV,'none') && ~hasX2
                 cf= train_fun(cfg.param, Xtrain_tt, trainlabel);
 
                 % Obtain classifier output (labels or dvals)
-                cf_output{rr,kk,t1} = reshape( mv_classifier_output(cfg.cf_output, cf, test_fun, Xtest), sum(CV.test(kk)),[]);
+                cf_output{rr,kk,t1} = reshape( mv_get_classifier_output(cfg.cf_output, cf, test_fun, Xtest), sum(CV.test(kk)),[]);
             end
 
         end
@@ -236,7 +236,7 @@ elseif hasX2
         cf= train_fun(cfg.param, Xtrain, clabel);
 
         % Obtain classifier output (labels or dvals)
-        cf_output(:,t1,:) = reshape( mv_classifier_output(cfg.cf_output, cf, test_fun, Xtest), size(X2,1),[]);
+        cf_output(:,t1,:) = reshape( mv_get_classifier_output(cfg.cf_output, cf, test_fun, Xtest), size(X2,1),[]);
 
     end
 
@@ -287,7 +287,7 @@ if isempty(cfg.metric)
     perf = cf_output;
 else
     if cfg.feedback, fprintf('Calculating classifier performance... '), end
-    perf = mv_classifier_performance(cfg.metric, cf_output, testlabel, avdim);
+    perf = mv_calculate_performance(cfg.metric, cf_output, testlabel, avdim);
     if cfg.feedback, fprintf('finished\n'), end
 end
 
