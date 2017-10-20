@@ -1,15 +1,16 @@
 function cf = train_logreg(cfg,X,clabel)
-% Trains a logistic regression classifier with L2 regularisation. It is
-% recommended that X (the data) is z-scored to avoid numerical issues for
-% optimisation.
+% Trains a logistic regression classifier with L2 regularisation. 
+%
+% Note: Due to the exponential term in the cost function, it is recommended 
+% that X (the data) is z-scored to reduce the probability of numerical
+% problems due to round-off errors.
 %
 % Usage:
 % cf = train_logreg(cfg,X,clabel)
 %
 %Parameters:
 % X              - [samples x features] matrix of training samples
-% clabel         - [samples x 1] vector of class labels containing
-%                  1's (class 1) and 2's (class 2)
+% clabel         - [samples x 1] vector of class labels
 %
 % cfg          - struct with hyperparameters:
 % zscore         - zscores the training data. The scaling will be saved in
@@ -45,12 +46,12 @@ function cf = train_logreg(cfg,X,clabel)
 %
 % IMPLEMENTATION DETAILS:
 % A Trust Region Dogleg algorithm (TrustRegionDoglegGN.m) is used to
-% optimise w. The difference of the class means is used as initial estimate
-% for w. Hyperparameter optimisation is very costly, since the classifier
+% optimise w. 
+% Hyperparameter optimisation is very costly, since the classifier
 % has to be trained for each value of the hyperparameter. To reduce the
 % number of iterations, warm starts are used wherein the next w is
 % initialised (w_init) as follows:
-% - in iteration 1, w_init is the difference between the class means 
+% - in iteration 1, w_init is initialised as the zero vector
 % - in iterations 2 and 3, w_init is initialised by the previous w's (w_1
 %   and w_2)
 % - in iterations 4+, if predict_regularisation_path=1, then w_init is 
@@ -112,10 +113,10 @@ logfun = @(w) lr_gradient_and_hessian_tanh(w);
 
 %% Automatic regularisation
 if ischar(cfg.lambda) && strcmp(cfg.lambda,'auto')
-    cfg.lambda = logspace(-3,2,20);
+    cfg.lambda = logspace(-4,3,10);
 end
 
-%% Find best lambda using cross-validation
+%% Find best lambda using (nested) cross-validation
 if numel(cfg.lambda)>1
     
     % The regularisation path for logistic regression is needed. ...
@@ -305,8 +306,9 @@ end
 %     end
 
     function [g,h] = lr_gradient_and_hessian_tanh(w)
-        % Logistic gradient and Hessian expressed using the hyperbolic tangent
-        % 1 / (1 + exp(-x)) = 1/2 + 1/2 * tanh(x/2)
+        % Logistic gradient and Hessian expressed using the hyperbolic 
+        % tangent
+        % Using the identity: 1 / (1 + exp(-x)) = 0.5 + 0.5 * tanh(x/2)
         sigma = 0.5 + 0.5 * tanh(YX*w/2);
         
         % Gradient
