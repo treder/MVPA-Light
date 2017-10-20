@@ -1,4 +1,7 @@
 %%% Classification across time using the mv_classify_across_time function
+%%% In this function, we need data with a time dimension [samples x
+%%% features x time points]. Then, cross-validation is run 
+
 clear all
 
 % Load data (in /examples folder)
@@ -26,8 +29,8 @@ cfg_LR.classifier = 'logreg';
 cfg_LR.param      = struct('lambda','auto' );
 
 %% Run classification across time
-rng(1),tic,auc_LDA = mv_classify_across_time(cfg_LDA, dat.trial, clabel);toc
-rng(1),tic,auc_LR = mv_classify_across_time(cfg_LR, dat.trial, clabel);toc
+auc_LDA = mv_classify_across_time(cfg_LDA, dat.trial, clabel);
+auc_LR = mv_classify_across_time(cfg_LR, dat.trial, clabel);
 
 %% Plot classification accuracy across time
 close all
