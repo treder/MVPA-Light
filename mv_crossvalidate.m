@@ -103,8 +103,9 @@ test_fun = eval(['@test_' cfg.classifier]);
 X_orig = X;
 label_orig = clabel;
 
+if cfg.feedback, mv_print_classification_info(cfg,X,clabel); end
+
 if ~strcmp(cfg.CV,'none')
-    if cfg.feedback, mv_print_classification_info(cfg); end
 
     % Initialise classifier outputs
     cf_output = cell(cfg.repeat, cfg.K);
@@ -153,7 +154,7 @@ if ~strcmp(cfg.CV,'none')
             cf= train_fun(cfg.param, Xtrain, trainlabel);
 
             % Obtain classifier output (labels or dvals) on test data
-            cf_output{rr,kk} = mv_get_classifier_param(cfg.cf_output, cf, test_fun, X(CV.test(kk),:));
+            cf_output{rr,kk} = mv_get_classifier_output(cfg.cf_output, cf, test_fun, X(CV.test(kk),:));
 
         end
         if cfg.feedback, fprintf('\n'), end
@@ -167,7 +168,6 @@ else
     % training/testing time. This gives the classification performance for
     % the training set, but it may lead to overfitting and thus to an
     % artifically inflated performance.
-    if cfg.feedback, fprintf('Training and testing on the same data [no cross-validation]!\n'), end
 
     % Rebalance data using under-/over-sampling if requested
     if ~strcmp(cfg.balance,'none')

@@ -34,7 +34,7 @@ switch(classifier)
         mv_set_default(param,'intercept',1);
         mv_set_default(param,'lambda',1);
         mv_set_default(param,'max_iter',400);
-        mv_set_default(param,'tolerance',1e-12);
+        mv_set_default(param,'tolerance',1e-6);
         mv_set_default(param,'K',5);
         mv_set_default(param,'plot',0);
         mv_set_default(param,'predict_regularisation_path',1);

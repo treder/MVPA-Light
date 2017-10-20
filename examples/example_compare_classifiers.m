@@ -39,6 +39,29 @@ cfg_LIBLINEAR=  cfg_LDA;
 cfg_LIBLINEAR.classifier = 'liblinear';
 cfg_LIBLINEAR.param = struct('type',0,'bias',1); %,'C',1);
 
+
+%% Comparing outlier resistance of classifiers
+% Average activity in 0.6-0.8 interval (see example 1)
+ival_idx = find(dat.time >= 0.6 & dat.time <= 0.8);
+X = squeeze(mean(dat.trial(:,:,ival_idx),3));
+
+X= zscore(X);
+
+
+% Create outlier
+X_with_outlier = X;
+X_with_outlier(10,:) = X_with_outlier(10,:)*100;
+X_with_outlier(20,:) = X_with_outlier(20,:)*1000;
+
+rng(1)
+acc_LDA = mv_crossvalidate(cfg_LDA, X_with_outlier, clabel);
+rng(1)
+acc_LR = mv_crossvalidate(cfg_LR, X_with_outlier, clabel);
+
+fprintf('\nClassification accuracy (LDA): %2.2f%%\n', 100*acc_LDA)
+fprintf('Classification accuracy (Logreg): %2.2f%%\n', 100*acc_LR)
+
+
 %% Classification across time
 rng(1),tic,acc_LDA = mv_classify_across_time(cfg_LDA, dat.trial, clabel);toc
 rng(1),tic,acc_LR = mv_classify_across_time(cfg_LR, dat.trial, clabel);toc

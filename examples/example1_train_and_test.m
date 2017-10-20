@@ -15,9 +15,12 @@ erp_unattended = squeeze(mean(dat.trial(clabel == 2,:,:)));
 % Plot ERP: attended deviants in red, unattended deviants in green. Each
 % line is one EEG channel.
 close
-plot(dat.time, erp_attended, 'r'), hold on
-plot(dat.time, erp_unattended, 'b')
+h1= plot(dat.time, erp_attended, 'r'); hold on
+h2 =plot(dat.time, erp_unattended, 'b');
 grid on
+xlabel('Time [s]'),ylabel('EEG amplitude')
+title('ERP')
+legend([h1(1),h2(1)],{'Attended', 'Unattended'})
 
 %% Train and test classifier
 
@@ -32,7 +35,7 @@ ival_idx = find(dat.time >= 0.6 & dat.time <= 0.8);
 X = squeeze(mean(dat.trial(:,:,ival_idx),3));
 
 % Get default hyperparameters
-param_lr = mv_classifier_defaults('lda');
+param_lr = mv_get_classifier_param('lda');
 
 % Train an LDA classifier
 cf = train_lda(param_lr, X, clabel);
@@ -47,7 +50,7 @@ cf = train_lda(param_lr, X, clabel);
 fprintf('Classification accuracy: %2.2f\n', mean(predlabel==clabel))
 
 % Calculate AUC
-auc = mv_classifier_performance('auc', dval, clabel);
+auc = mv_calculate_performance('auc', dval, clabel);
 
 % Look at the distribution of the decision values. dvals should be positive
 % for clabel 1 (attended deviant) and negative for clabel 2 (unattended
@@ -58,37 +61,3 @@ hold on
 plot(xlim, [0 0],'k--')
 ylabel('Decision values')
 xlabel('Class')
-
-%% -- Logistic regression
-param_lr = mv_classifier_defaults('logreg');
-param_lr.lambda = logspace(-6,3,100); % 2
-param_lr.plot = 1;
-param_lr.tolerance = 1e-6;
-param_lr.polyorder = 3;
-tic
-rng(1)
-cf = train_logreg(param_lr, X, clabel);
-toc
-[predlabel, dval] = test_logreg(cf, X);
-
-% Calculate AUC
-auc = mv_classifier_performance('auc', dval, clabel);
-
-%%
-fprintf('Logreg =\t%2.5f sec\nLDA =\t\t%2.5f sec\n',t1,t2)
-profile on
-for ii=1:100
-    cf_lr = train_logreg(param_lr, Xz, clabel);
-end
-
-%%
-
-[predlabel, dval] = test_logreg(cf, Xz);
-fprintf('Classification accuracy: %2.2f\n', mean(predlabel==clabel))
-
-%% ---
-cfg_lr = mv_classifier_defaults('logist');
-cfg_lr.eigvalratio = 10^-10;
-cfg_lr.lambda = 10^10;
-cf = train_logist(cfg_lr, X, clabel);
-

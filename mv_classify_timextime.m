@@ -97,7 +97,7 @@ else
 end
 
 % Set non-specified classifier parameters to default
-cfg.param = mv_classifier_defaults(cfg.classifier, cfg.param);
+cfg.param = mv_get_classifier_param(cfg.classifier, cfg.param);
 
 [~,~,clabel] = mv_check_labels(clabel);
 
@@ -131,7 +131,7 @@ if ~strcmp(cfg.CV,'none') && ~hasX2
     % One dataset X has been provided as input. X is hence used for both
     % training and testing. To avoid overfitting, cross-validation is
     % performed.
-    if cfg.feedback, mv_print_classification_info(cfg); end
+    if cfg.feedback, mv_print_classification_info(cfg,X,clabel); end
 
     % Initialise classifier outputs
     cf_output = cell(cfg.repeat, cfg.K, nTime1);

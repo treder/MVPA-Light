@@ -1,7 +1,6 @@
 %%% In example 1, training and testing was performed on the same data. This
 %%% can lead to overfitting and an inflated measure of classification
 %%% accuracy. The function mv_crossvalidate is used for this purpose.
-
 close all
 clear all
 
@@ -15,57 +14,51 @@ X = squeeze(mean(dat.trial(:,:,ival_idx),3));
 X= zscore(X);
 
 %% Cross-validation
-ccfg_LDA = [];
-ccfg_LDA.classifier      = 'lda';
-ccfg_LDA.param           = struct('lambda','auto');
-ccfg_LDA.metric          = 'acc';
-ccfg_LDA.CV              = 'kfold';
-ccfg_LDA.K               = 5;
-ccfg_LDA.repeat          = 3;
-ccfg_LDA.balance         = 'undersample';
-ccfg_LDA.metric          = 'auc';
 
-rng(1);
-acc_LDA = mv_crossvalidate(ccfg_LDA, X, clabel);
+% Configuration struct for cross-validation. As classifier, we
+% use LDA. The value of the regularisation parameter lambda is determined 
+% automatically. As performance measure, use area under the ROC curve
+% ('auc').
+%
+% To get a realistic estimate of classification performance, we perform 
+% 5-fold (cfg.K = 5) cross-validation with 10 repetitions (cfg.repeat = 10).
+
+cfg_LDA = [];
+cfg_LDA.classifier      = 'lda';
+cfg_LDA.param           = struct('lambda','auto');
+cfg_LDA.metric          = 'auc';
+cfg_LDA.CV              = 'kfold';
+cfg_LDA.K               = 5;
+cfg_LDA.repeat          = 10;
+cfg_LDA.balance         = 'undersample';
+
+acc_LDA = mv_crossvalidate(cfg_LDA, X, clabel);
 
 % Compare the result for LDA to Logistic Regression (LR).
-ccfg_LR = ccfg_LDA;
-ccfg_LR.classifier = 'logreg';
-ccfg_LR.param      = [];
-ccfg_LR.param.tolerance = 1e-5;
-ccfg_LR.param.zscore = 0;
+cfg_LR = cfg_LDA;
+cfg_LR.classifier       = 'logreg';
+cfg_LR.param            = [];
+cfg_LR.param.lambda     = 'auto';
 
-rng(1)
-acc_LR = mv_crossvalidate(ccfg_LR, X, clabel);
-
-fprintf('\nClassification accuracy (LDA): %2.2f%%\n', 100*acc_LDA)
-fprintf('Classification accuracy (Logreg): %2.2f%%\n', 100*acc_LR)
-
-%% Comparing outlier resistance of classifiers
-% Create outlier
-X_with_outlier = X;
-X_with_outlier(10,:) = X_with_outlier(10,:)*100;
-X_with_outlier(20,:) = X_with_outlier(20,:)*1000;
-
-rng(1)
-acc_LDA = mv_crossvalidate(ccfg_LDA, X_with_outlier, clabel);
-rng(1)
-acc_LR = mv_crossvalidate(ccfg_LR, X_with_outlier, clabel);
+acc_LR = mv_crossvalidate(cfg_LR, X, clabel);
 
 fprintf('\nClassification accuracy (LDA): %2.2f%%\n', 100*acc_LDA)
 fprintf('Classification accuracy (Logreg): %2.2f%%\n', 100*acc_LR)
 
 %% Comparing cross-validation to train-test on the same data
+
 % Select only the first samples
 nReduced = 29;
 label_reduced = clabel(1:nReduced);
 X_reduced = X(1:nReduced,:);
 
-ccfg= [];
-acc_LDA = mv_crossvalidate(ccfg, X_reduced, label_reduced);
+% Cross-validation (proper way)
+cfg_LDA.CV = 'kfold';
+acc_LDA = mv_crossvalidate(cfg_LDA, X_reduced, label_reduced);
 
-ccfg.CV     = 'none';
-acc_reduced = mv_crossvalidate(ccfg, X_reduced, label_reduced);
+% No cross-validation (test on training data)
+cfg_LDA.CV     = 'none';
+acc_reduced = mv_crossvalidate(cfg_LDA, X_reduced, label_reduced);
 
-fprintf('Performance using %d samples with cross-validation: %2.2f%%\n', nReduced, 100*acc_LDA)
-fprintf('Performance using %d samples without cross-validation (overfitting the training data): %2.2f%%\n', nReduced, 100*acc_reduced)
+fprintf('Using %d samples with cross-validation (proper way): %2.2f%%\n', nReduced, 100*acc_LDA)
+fprintf('Using %d samples without cross-validation (test on training data): %2.2f%%\n', nReduced, 100*acc_reduced)

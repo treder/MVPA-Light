@@ -84,7 +84,7 @@ else
 end
 
 % Set non-specified classifier parameters to default
-cfg.param = mv_classifier_defaults(cfg.classifier, cfg.param);
+cfg.param = mv_get_classifier_param(cfg.classifier, cfg.param);
 
 [~,~,clabel] = mv_check_labels(clabel);
 
@@ -105,7 +105,7 @@ X_orig = X;
 label_orig = clabel;
 
 if ~strcmp(cfg.CV,'none')
-    if cfg.feedback, mv_print_classification_info(cfg); end
+    if cfg.feedback, mv_print_classification_info(cfg,X,clabel); end
 
     % Initialise classifier outputs
     cf_output = cell(cfg.repeat, cfg.K, nTime);
@@ -159,7 +159,7 @@ if ~strcmp(cfg.CV,'none')
                 cf= train_fun(cfg.param, Xtrain_tt, trainlabel);
 
                 % Obtain classifier output (class labels or dvals)
-                cf_output{rr,kk,tt} = mv_classifier_output(cfg.cf_output, cf, test_fun, Xtest);
+                cf_output{rr,kk,tt} = mv_get_classifier_output(cfg.cf_output, cf, test_fun, Xtest);
                 
             end
         end
@@ -191,7 +191,7 @@ else
         cf= train_fun(Xtraintest, clabel, cfg.param);
         
         % Obtain classifier output (class labels or dvals)
-        cf_output(:,tt) = mv_classifier_output(cfg.cf_output, cf, test_fun, Xtraintest);
+        cf_output(:,tt) = mv_get_classifier_output(cfg.cf_output, cf, test_fun, Xtraintest);
     end
 
     testlabel = clabel;
@@ -203,7 +203,7 @@ if isempty(cfg.metric)
     perf = cf_output;
 else
     if cfg.feedback, fprintf('Calculating classifier performance... '), end
-    perf = mv_classifier_performance(cfg.metric, cf_output, testlabel, avdim);
+    perf = mv_calculate_performance(cfg.metric, cf_output, testlabel, avdim);
     if cfg.feedback, fprintf('finished\n'), end
 end
 
