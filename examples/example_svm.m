@@ -14,14 +14,16 @@ X = zscore(X);
 close all
 
 param = mv_get_classifier_param('svm');
-param.C = 1;
+param.C = 10;
+param.tolerance = 10e-10;
+
 
 tic
 rng(1)
-profile on
+% profile on
 cf = train_svm(param, X, clabel);
-profile viewer
-profile off
+% profile viewer
+% profile off
 toc
 %%
 [predlabel, dval] = test_svm(cf, X);

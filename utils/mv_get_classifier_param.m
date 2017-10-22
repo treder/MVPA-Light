@@ -50,6 +50,7 @@ switch(classifier)
         mv_set_default(param,'kernel','linear');
         mv_set_default(param,'plot',0);
         mv_set_default(param,'K',5);
+        mv_set_default(param,'regularise_kernel',10e-10);
         mv_set_default(param,'tolerance',10e-5);
         
         % parameters for specific kernels

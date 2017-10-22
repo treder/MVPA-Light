@@ -156,10 +156,10 @@ cf.kernel = cfg.kernel;
 alpha = zeros(N,1);
 
 % Optimise alpha
-cf.alpha = DualCoordinateDescentL1(alpha, Q, C, ONE, cfg.tolerance);
+[cf.alpha,iter] = DualCoordinateDescentL1(alpha, Q, C, ONE, cfg.tolerance);
 
 % Save support vectors
-cf.support_vector_indices = find(alpha>0);
+cf.support_vector_indices = find(cf.alpha>0);
 cf.support_vectors = X(cf.support_vector_indices,:);
 % 
 % if cfg.intercept

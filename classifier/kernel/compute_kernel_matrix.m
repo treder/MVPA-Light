@@ -1,8 +1,8 @@
-function ker = compute_kernel_matrix(cfg, X)
+function Q = compute_kernel_matrix(cfg, X)
 % Given a kernel and data, computes the associated kernel matrix.
 % 
 % Usage:
-% ker = compute_kernel_matrix(cfg, X)
+% Q = compute_kernel_matrix(cfg, X)
 % 
 %Parameters:
 % cfg            - struct that must contain a field .kernel specifying the 
@@ -14,6 +14,11 @@ function ker = compute_kernel_matrix(cfg, X)
 % X              - [samples x features] data matrix
 %
 %Output:
-% ker            - [samples x samples] kernel matrix
+% Q            - [samples x samples] kernel matrix
 
-ker = eval([cfg.kernel '_kernel(cfg,X)']);
+Q = eval([cfg.kernel '_kernel(cfg,X)']);
+
+% Regularise
+if cfg.regularise_kernel > 0
+    Q = Q + cfg.regularise_kernel * eye(size(X,1));
+end
