@@ -1,4 +1,4 @@
-function cf = train_svm(cfg,X,clabel)
+function cf = train_svm_sgd(cfg,X,clabel)
 % Trains a support vector machine (SVM). The avoid overfitting, the
 % classifier weights are penalised using L2-regularisation.
 %
@@ -24,9 +24,6 @@ function cf = train_svm(cfg,X,clabel)
 %                  'linear'     - linear kernel, trains a linear SVM
 %                  'rbf'        - radial basis function or Gaussian kernel
 %                  'polynomial' - polynomial kernel
-%                  Alternatively, a custom kernel can be provided if there
-%                  is a function called *_kernel is in the MATLAB path, 
-%                  where "*" is the name of the kernel (e.g. rbf_kernel).
 %
 % Note: The regularisation parameter lambda is reciprocally related to the 
 % cost parameter C used in LIBSVM/LIBLINEAR, ie C = 1/lambda roughly.
@@ -54,9 +51,6 @@ function cf = train_svm(cfg,X,clabel)
 
 [N, nFeat] = size(X);
 
-% Vector of 1's we need for optimisation
-ONE = ones(N,1);
-
 % Need class labels 1 and -1 here
 clabel(clabel == 2) = -1;
 
@@ -66,30 +60,46 @@ if cfg.intercept
     nFeat = nFeat + 1;
 end
 
-%% Compute kernel matrix
+isNonlinearProblem = ~strcmp(cfg.kernel,'linear');
+
+% To make stochastic gradient descent somewhat less stochastic
+rng(42);  % 42 is THE magic number according to a maths Prof I know ...
+
+%% Precompute kernel matrix if necessary
 % [shouldn't be a problem with neuroscience data since nr of samples is
-% typically not too large]
-Q = compute_kernel_matrix(cfg, X);
-
-%% Absorb class labels 1 and -1 in the kernel matrix
-Q = Q .* (clabel * clabel');
-
-%% Automatically set the search grid for C
-if ischar(cfg.C) && strcmp(cfg.C,'auto')
-    cfg.C = logspace(-4,4,10);
+% typically small]
+if isNonlinearProblem
+    ker = compute_kernel_matrix(cfg, X);
 end
 
+%% Number of epochs [reiterations of the full training data] for optimisation
+if ischar(cfg.n_epochs) && strcmp(cfg.n_epochs,'auto')
+    cfg.n_epochs = min(20, ceil(1000/N));
+end
+
+%% Automatically set the search grid for lambda
+if ischar(cfg.lambda) && strcmp(cfg.lambda,'auto')
+%     cfg.lambda = logspace(-3,2,10);
+    cfg.lambda = logspace(-3,5,10);
+end
+
+if isNonlinearProblem
+    % Check for additional hyperparameters
+    if ischar(cfg.gamma) && strcmp(cfg.gamma,'auto')
+        cfg.gamma = logspace(-3,5,5);
+    end
+end
 
 %% Find best lambda using cross-validation
-if numel(cfg.C)>1
+if numel(cfg.lambda)>1
     
     % The regularisation path for logistic regression is needed. ...
     CV = cvpartition(N,'KFold',cfg.K);
-    ws = zeros(nFeat, numel(cfg.C));
-    acc = zeros(numel(cfg.C),1);
+    ws = zeros(nFeat, numel(cfg.lambda));
+    acc = zeros(numel(cfg.lambda),1);
     
     if cfg.plot
-        C = zeros(numel(cfg.C));
+        C = zeros(numel(cfg.lambda));
     end
 
     % --- Start cross-validation ---
@@ -102,8 +112,8 @@ if numel(cfg.C)>1
         end
 
         % --- Loop through lambdas ---
-        for ll=1:numel(cfg.C)
-            ws(:,ll) = optim_fun(X(CV.training(ff),:), clabel(CV.training(ff)), cfg.C(ll), o);
+        for ll=1:numel(cfg.lambda)
+            ws(:,ll) = optim_fun(X(CV.training(ff),:), clabel(CV.training(ff)), cfg.lambda(ll), o);
         end
         
         if cfg.plot
@@ -127,15 +137,15 @@ if numel(cfg.C)>1
         
         % Plot regularisation path (for the last training fold)
         figure
-        for ii=1:nFeat, semilogx(cfg.C,ws(ii,:),'-'), hold all, end
+        for ii=1:nFeat, semilogx(cfg.lambda,ws(ii,:),'-'), hold all, end
         plot(xlim,[0,0],'k-'),title('Regularisation path for last iteration'),xlabel('lambda#')
         
         % Plot cross-validated classification performance
         figure
-        semilogx(cfg.C,acc)
+        semilogx(cfg.lambda,acc)
         title([num2str(cfg.K) '-fold cross-validation performance'])
         hold all
-        plot([cfg.C(best_idx), cfg.C(best_idx)],ylim,'r--'),plot(cfg.C(best_idx), acc(best_idx),'ro')
+        plot([cfg.lambda(best_idx), cfg.lambda(best_idx)],ylim,'r--'),plot(cfg.lambda(best_idx), acc(best_idx),'ro')
         xlabel('Lambda'),ylabel('Accuracy'),grid on
         
         
@@ -145,30 +155,33 @@ else
     best_idx = 1;
 end
 
-%% Train classifier on the full training data (using the best lambda)
-C = cfg.C(best_idx);
+%% Random order of the samples
+o = zeros(N*cfg.n_epochs,1);
+% o = randi(N, [numel(o),1]);
+for ee=1:cfg.n_epochs
+    o( (ee-1)*N+1:ee*N) = randperm(N);
+end
 
-% Set up classifier
+%% Train classifier on the full training data (using the best lambda)
+lambda = cfg.lambda(best_idx);
+
+if isNonlinearProblem
+    w = NonLinearStochasticGradientDescent(ker, clabel, lambda, o);
+else
+    w = StochasticGradientDescent(X, clabel, lambda, o);
+end
+
+%% Set up classifier
 cf= [];
 cf.kernel = cfg.kernel;
 
-% Initialise alpha
-alpha = zeros(N,1);
-
-% Optimise alpha
-cf.alpha = DualCoordinateDescentL1(alpha, Q, C, ONE, cfg.tolerance);
-
-% Save support vectors
-cf.support_vector_indices = find(alpha>0);
-cf.support_vectors = X(cf.support_vector_indices,:);
-% 
-% if cfg.intercept
-%     cf.alpha = alpha(1:end-1);
-%     cf.b = alpha(end);
-% else
-%     cf.alpha = alpha;
-%     cf.b = 0;
-% end
+if cfg.intercept
+    cf.w = w(1:end-1);
+    cf.b = w(end);
+else
+    cf.w = w;
+    cf.b = 0;
+end
 
 
 
