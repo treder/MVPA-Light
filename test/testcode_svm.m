@@ -18,6 +18,29 @@ tic
 cf = train_lda(param, X, clabel);
 toc
 
+[predlabel, dval] = test_lda(cf, X);
+acc = mv_classifier_performance('acc', dval, clabel)
+
+
+%% -- SVM
+param = mv_get_classifier_param('svm');
+param.lambda = 0.01; % 'auto'; % 0.01; % 'auto';
+param.plot = 0;
+param.K = 5;
+param.n_epochs = 20;
+
+param.kernel = 'rbf';
+
+tic
+% rng(1);
+cf = train_svm(param, zscore(X), clabel);
+toc
+
+[predlabel, dval] = test_svm(cf, X);
+
+% Calculate AUC
+acc = mv_classifier_performance('acc', dval, clabel)
+
 %% -- SVM
 param = mv_classifier_defaults('svm');
 param.lambda = logspace(-5,2,20); % 1

@@ -35,7 +35,7 @@ toc
 auc_libsvm= mv_classifier_performance('auc', dval, clabel)
 acc_libsvm= mv_classifier_performance('acc', predlabel, clabel)
 
-%% LIBLINEAR
+%% LIBLINEAR (log reg)
 param = mv_classifier_defaults('liblinear');
 param.type = 0;   % L2-regularised logistic regression
 param.C = 1;
@@ -50,28 +50,24 @@ toc
 auc_liblinear = mv_classifier_performance('auc', dval, clabel)
 acc_liblinear = mv_classifier_performance('acc', predlabel, clabel)
 
+%% LIBLINEAR
+param = mv_classifier_defaults('liblinear');
+param.type = 3;   % L2-regularised L1-loss SVM
+% param.C = 1;
+param.cost = 100.1;
+param.quiet = 1;
+
+tic
+% rng(1);
+cf = train_liblinear(param, X, clabel);
+toc
+
+[predlabel, dval] = test_liblinear(cf, X);
+acc= mv_classifier_performance('acc', predlabel, clabel)
+
 %%
 
 [predlabel, dval] = test_svm(cf, X);
 
 % Calculate AUC
 auc = mv_classifier_performance('auc', dval, clabel);
-
-%% -- Logistic regression
-param = mv_classifier_defaults('logreg');
-param.lambda = 0.1; %logspace(-6,3,10); % 2
-param.plot = 0;
-param.tolerance = 1e-6;
-
-tic
-cf = train_logreg(param, X, clabel);
-% cf = train_logreg(param, X(:,[1,21]), clabel);
-toc
-
-[predlabel, dval] = test_logreg(cf, X);
-% Calculate AUC
-auc = mv_classifier_performance('auc', dval, clabel)
-
-%%
-[predlabel, dval] = test_logreg(cf, X);
-
