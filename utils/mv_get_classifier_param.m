@@ -46,6 +46,18 @@ switch(classifier)
         
     case 'svm'
         mv_set_default(param,'intercept',1);
+        mv_set_default(param,'C','auto');
+        mv_set_default(param,'kernel','linear');
+        mv_set_default(param,'plot',0);
+        mv_set_default(param,'K',5);
+        mv_set_default(param,'regularise_kernel',10e-10);
+        mv_set_default(param,'tolerance',10e-5);
+        
+        % parameters for specific kernels
+        mv_set_default(param,'gamma',1); % RBF regularisation parameter
+        
+    case 'svm_sgd'
+        mv_set_default(param,'intercept',1);
         mv_set_default(param,'lambda','auto');
         mv_set_default(param,'kernel','linear');
         mv_set_default(param,'n_epochs','auto');
