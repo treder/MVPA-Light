@@ -1,4 +1,4 @@
-function varargout = mv_classify_timextime(cfg, X, clabel, X2, clabel2)
+function [perf, res] = mv_classify_timextime(cfg, X, clabel, X2, clabel2)
 % Time x time generalisation. A classifier is trained on the training data
 % X and validated on either the same dataset X. Cross-validation is
 % recommended to avoid overfitting. If another dataset X2 is provided,
@@ -23,9 +23,7 @@ function varargout = mv_classify_timextime(cfg, X, clabel, X2, clabel2)
 %                 function (default [])
 % .metric       - classifier performance metric, default 'acc'. See
 %                 mv_classifier_performance. If set to [], the raw classifier
-%                 output (labels or dvals depending on cfg.output) is returned.
-%                 Multiple metrics can be requested by
-%                 providing a cell array e.g. {'acc' 'dval'}
+%                 output (labels or dvals depending on cfg.cf_output) is returned.
 % .CV           - perform cross-validation, can be set to
 %                 'kfold' (recommended) or 'leaveout' (not recommended
 %                 since it has a higher variance than k-fold) (default
@@ -58,49 +56,48 @@ function varargout = mv_classify_timextime(cfg, X, clabel, X2, clabel2)
 % .normalise    - for evoked data is it recommended to normalise the samples
 %                 across trials, for each time point and each sensor
 %                 separately, using 'zscore' or 'demean' (default 'none')
-% .verbose      - print information on the console (default 1)
+% .feedback     - print feedback on the console (default 1)
 %
 % Returns:
-% perf           - time1 x time2 classification matrix of classification
-%                performance. If multiple metrics have been requested,
-%                multiple output arguments are given
+% perf          - time1 x time2 classification matrix of classification
+%                performance. 
+% res           - struct with fields describing the classification result.
+%                 Can be used as input to mv_statistics
 
 % (c) Matthias Treder 2017
 
-mv_setDefault(cfg,'classifier','lda');
-mv_setDefault(cfg,'param',[]);
-mv_setDefault(cfg,'metric','acc');
-mv_setDefault(cfg,'CV','kfold');
-mv_setDefault(cfg,'repeat',5);
-mv_setDefault(cfg,'time1',1:size(X,3));
-mv_setDefault(cfg,'normalise','none');
-mv_setDefault(cfg,'verbose',0);
+mv_set_default(cfg,'classifier','lda');
+mv_set_default(cfg,'param',[]);
+mv_set_default(cfg,'metric','acc');
+mv_set_default(cfg,'CV','kfold');
+mv_set_default(cfg,'repeat',5);
+mv_set_default(cfg,'time1',1:size(X,3));
+mv_set_default(cfg,'normalise','none');
+mv_set_default(cfg,'feedback',1);
 
 hasX2 = (nargin==5);
-if hasX2, mv_setDefault(cfg,'time2',1:size(X2,3));
-else,     mv_setDefault(cfg,'time2',1:size(X,3));
+if hasX2, mv_set_default(cfg,'time2',1:size(X2,3));
+else,     mv_set_default(cfg,'time2',1:size(X,3));
 end
 
 if isempty(cfg.metric) || any(ismember({'dval','auc','roc'},cfg.metric))
-    mv_setDefault(cfg,'output','dval');
+    mv_set_default(cfg,'cf_output','dval');
 else
-    mv_setDefault(cfg,'output','clabel');
+    mv_set_default(cfg,'cf_output','clabel');
 end
 
-if ~isempty(cfg.metric) && ~iscell(cfg.metric), cfg.metric = {cfg.metric}; end
-
 % Balance the data using oversampling or undersampling
-mv_setDefault(cfg,'balance','none');
-mv_setDefault(cfg,'replace',1);
+mv_set_default(cfg,'balance','none');
+mv_set_default(cfg,'replace',1);
 
 if strcmp(cfg.CV,'kfold')
-    mv_setDefault(cfg,'K',5);
+    mv_set_default(cfg,'K',5);
 else
-    mv_setDefault(cfg,'K',1);
+    mv_set_default(cfg,'K',1);
 end
 
 % Set non-specified classifier parameters to default
-cfg.param = mv_classifier_defaults(cfg.classifier, cfg.param);
+cfg.param = mv_get_classifier_param(cfg.classifier, cfg.param);
 
 [~,~,clabel] = mv_check_labels(clabel);
 
@@ -123,13 +120,6 @@ elseif strcmp(cfg.normalise,'demean')
     X  = X  - repmat(mean(X,1), [size(X,1) 1 1]);
 end
 
-%% Prepare performance metrics
-if ~isempty(cfg.metric) && ~iscell(cfg.metric)
-    cfg.metric = {cfg.metric};
-end
-
-nMetrics = numel(cfg.metric);
-
 %% Time x time generalisation
 
 % Save original data and labels in case we do over/undersampling
@@ -141,14 +131,14 @@ if ~strcmp(cfg.CV,'none') && ~hasX2
     % One dataset X has been provided as input. X is hence used for both
     % training and testing. To avoid overfitting, cross-validation is
     % performed.
-    if cfg.verbose, fprintf('Using %s cross-validation (K=%d) with %d repetitions.\n',cfg.CV,cfg.K,cfg.repeat), end
+    if cfg.feedback, mv_print_classification_info(cfg,X,clabel); end
 
     % Initialise classifier outputs
     cf_output = cell(cfg.repeat, cfg.K, nTime1);
     testlabel = cell(cfg.repeat, cfg.K);
     
     for rr=1:cfg.repeat                 % ---- CV repetitions ----
-        if cfg.verbose, fprintf('Repetition #%d. Fold ',rr), end
+        if cfg.feedback, fprintf('Repetition #%d. Fold ',rr), end
 
         % Undersample data if requested. We undersample the classes within the
         % loop since it involves chance (samples are randomly over-/under-
@@ -171,7 +161,7 @@ if ~strcmp(cfg.CV,'none') && ~hasX2
         CV= cvpartition(clabel,cfg.CV,cfg.K);
 
         for kk=1:cfg.K                      % ---- CV folds ----
-            if cfg.verbose, fprintf('%d ',kk), end
+            if cfg.feedback, fprintf('%d ',kk), end
 
             % Train data
             Xtrain = X(CV.training(kk),:,:,:);
@@ -210,11 +200,11 @@ if ~strcmp(cfg.CV,'none') && ~hasX2
                 cf= train_fun(cfg.param, Xtrain_tt, trainlabel);
 
                 % Obtain classifier output (labels or dvals)
-                cf_output{rr,kk,t1} = reshape( mv_classifier_output(cfg.output, cf, test_fun, Xtest), sum(CV.test(kk)),[]);
+                cf_output{rr,kk,t1} = reshape( mv_get_classifier_output(cfg.cf_output, cf, test_fun, Xtest), sum(CV.test(kk)),[]);
             end
 
         end
-        if cfg.verbose, fprintf('\n'), end
+        if cfg.feedback, fprintf('\n'), end
     end
 
     % Average classification performance across repeats and test folds
@@ -224,7 +214,7 @@ elseif hasX2
     % -------------------------------------------------------
     % An additional dataset X2 has been provided. The classifier is trained
     % on X and tested on X2. No cross-validation is performed.
-    if cfg.verbose
+    if cfg.feedback
         fprintf('Training on X and testing on X2.\n')
         if ~strcmp(cfg.CV,'none'), fprintf('No cross-validation is performed, the cross-validation settings are ignored.\n'), end
     end
@@ -246,7 +236,7 @@ elseif hasX2
         cf= train_fun(cfg.param, Xtrain, clabel);
 
         % Obtain classifier output (labels or dvals)
-        cf_output(:,t1,:) = reshape( mv_classifier_output(cfg.output, cf, test_fun, Xtest), size(X2,1),[]);
+        cf_output(:,t1,:) = reshape( mv_get_classifier_output(cfg.cf_output, cf, test_fun, Xtest), size(X2,1),[]);
 
     end
 
@@ -284,7 +274,7 @@ else
     acc = acc / nSam;
 
    % Calculate classifier performance
-    if cfg.verbose, fprintf('Calculating classifier performance... '), end
+    if cfg.feedback, fprintf('Calculating classifier performance... '), end
     for mm=1:nMetrics
         perf{mm} = mv_classifier_performance(cfg.metric{mm}, cf_output, clabel);
     end
@@ -293,12 +283,15 @@ else
 end
 
 if isempty(cfg.metric)
-    % If no metric was requested, return the raw classifier output
-    varargout{1} = cf_output;
+    if cfg.feedback, fprintf('No performance metric requested, returning raw classifier output.\n'), end
+    perf = cf_output;
 else
-    % Calculate classifier performance, for each selected metric separately
-    if cfg.verbose, fprintf('Calculating classifier performance... '), end
-    varargout = cell(numel(cfg.metric),1);
-    [varargout{:}] = mv_classifier_performance(cfg.metric, cf_output, testlabel, avdim);
-    if cfg.verbose, fprintf('finished\n'), end
+    if cfg.feedback, fprintf('Calculating classifier performance... '), end
+    perf = mv_calculate_performance(cfg.metric, cf_output, testlabel, avdim);
+    if cfg.feedback, fprintf('finished\n'), end
+end
+
+if nargout>1
+else
+    res = [];
 end
