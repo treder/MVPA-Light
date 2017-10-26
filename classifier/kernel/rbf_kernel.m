@@ -9,7 +9,7 @@ function out = rbf_kernel(param, x,y)
 % param          - struct with kernel hyperparameter (
 % X              - [samples x features] data matrix 
 %             - OR -
-% x,y            - two feature vectors
+% x,y            - two feature vectors or matrices of feature vectors
 %
 %Output:
 % out            - [samples x samples] kernel matrix or, if x and y are
@@ -20,5 +20,5 @@ if nargin == 2
     out = exp(-param.gamma * squareform(pdist(x).^2));
 else
     % just evaluate kernel for x and y
-    out = exp(-param.gamma * norm(x-y)^2 );
+    out = exp(-param.gamma * pdist2(x,y).^2);
 end

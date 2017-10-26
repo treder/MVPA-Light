@@ -1,4 +1,4 @@
-function out = linear_kernel(param, x,y)
+function out = linear_kernel(~, x,y)
 % Linear kernel given by the standard scalar product, ie ker(x,y) = x' * y.  
 % 
 % Usage:
@@ -10,7 +10,7 @@ function out = linear_kernel(param, x,y)
 %                   kernel)
 % X              - [samples x features] data matrix 
 %             - OR -
-% x,y            - two feature vectors
+% x,y            - two feature vectors or matrices of feature vectors
 %
 %Output:
 % out            - [samples x samples] kernel matrix or, if x and y are
@@ -20,6 +20,6 @@ if nargin == 2
     % compute full kernel matrix
     out = x * x';
 else
-    % just evaluate kernel for x and y
-    out = x' * y;
+    % evaluate kernel for x and y
+    out = x * y';
 end
