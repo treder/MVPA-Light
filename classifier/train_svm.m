@@ -2,6 +2,9 @@ function cf = train_svm(cfg,X,clabel)
 % Trains a support vector machine (SVM). The avoid overfitting, the
 % classifier weights are penalised using L2-regularisation.
 %
+% Note: It is recommended to demean (X = demean(X,'constant')) or z-score 
+% (X = zscore(X)) the data first to speed up the optimisation.
+%
 % Usage:
 % cf = train_svm(cfg,X,clabel)
 %
@@ -11,8 +14,6 @@ function cf = train_svm(cfg,X,clabel)
 %                  1's (class 1) and 2's (class 2)
 %
 % cfg          - struct with hyperparameters:
-% intercept      - augments the data with an intercept term (recommended)
-%                  (default 1). If 0, the intercept is assumed to be 0
 % lambda         - regularisation hyperparameter controlling the magnitude
 %                  of regularisation. If a single value is given, it is
 %                  used for regularisation. If a vector of values is given,
@@ -31,23 +32,22 @@ function cf = train_svm(cfg,X,clabel)
 % Note: The regularisation parameter lambda is reciprocally related to the 
 % cost parameter C used in LIBSVM/LIBLINEAR, ie C = 1/lambda roughly.
 %
-% Optimisation and debugging parameters (usually do not need to be changed)
-% n_epochs      - number of times the full set of training samples is
-%                 re-iterated. For small datasets (e.g. <50 samples),
-%                 multiple iterations are necessary, for larger datasets,
-%                 less iterations are necessary. If set to 'auto', the
-%                 number of epochs is determined heuristically based on the
-%                 size of the dataset (default 'auto')
+% Further parameters (that usually do not need to be changed):
+% bias          - if >0 augments the data with a bias term equal to the
+%                 value of bias:  X <- [X; bias] and augments the weight
+%                 vector with the bias variable w <- [w; b].
+%                 If 0, the bias is assumed to be 0. If set to 'auto', the
+%                 bias is 1 for linear kernel and 0 for non-linear
+%                 kernel (default 'auto')
 % K             - the number of folds in the K-fold cross-validation for
 %                 the lambda search
 % plot          - if a lambda search is performed, produces diagnostic
 %                 plots including the regularisation path and
 %                 cross-validated accuracy as a function of lambda
-
 %
 %Output:
 % cf - struct specifying the classifier with the following fields:
-% w            - projection vector (normal to the hyperplane)
+% w            - normal to the hyperplane (for linear SVM)
 % b            - bias term, setting the threshold
 
 % (c) Matthias Treder 2017
@@ -57,19 +57,42 @@ function cf = train_svm(cfg,X,clabel)
 % Vector of 1's we need for optimisation
 ONE = ones(N,1);
 
+% Make sure labels come as column vector
+clabel = double(clabel(:));
+
 % Need class labels 1 and -1 here
 clabel(clabel == 2) = -1;
 
-% Augment X with intercept
-if cfg.intercept
-    X = cat(2,X, ones(N,1));
+%% Bias
+if ischar(cfg.bias) && strcmp(cfg.bias,'auto')
+    if strcmp(cfg.kernel,'linear')
+        cfg.bias = 1;
+    else
+        cfg.bias = 0;
+    end
+end
+
+% Augment X with bias
+if cfg.bias > 0
+    X = cat(2,X, ones(N,1) * cfg.bias );
     nFeat = nFeat + 1;
 end
 
-%% Compute kernel matrix
-% [shouldn't be a problem with neuroscience data since nr of samples is
-% typically not too large]
-Q = compute_kernel_matrix(cfg, X);
+
+%% Compute and regularise kernel
+
+% Kernel function
+kernelfun = eval(['@' cfg.kernel '_kernel']);
+
+% Compute kernel matrix
+Q = kernelfun(cfg, X);
+
+% Q = compute_kernel_matrix(cfg, X(:,1:end-1));
+
+% Regularise
+if cfg.regularise_kernel > 0
+    Q = Q + cfg.regularise_kernel * eye(size(X,1));
+end
 
 %% Absorb class labels 1 and -1 in the kernel matrix
 Q = Q .* (clabel * clabel');
@@ -78,7 +101,6 @@ Q = Q .* (clabel * clabel');
 if ischar(cfg.C) && strcmp(cfg.C,'auto')
     cfg.C = logspace(-4,4,10);
 end
-
 
 %% Find best lambda using cross-validation
 if numel(cfg.C)>1
@@ -148,29 +170,52 @@ end
 %% Train classifier on the full training data (using the best lambda)
 C = cfg.C(best_idx);
 
-% Set up classifier
-cf= [];
-cf.kernel = cfg.kernel;
-
 % Initialise alpha
 alpha = zeros(N,1);
 
-% Optimise alpha
-[cf.alpha,iter] = DualCoordinateDescentL1(alpha, Q, C, ONE, cfg.tolerance);
+% Solve the dual problem and obtain alpha
+alpha = DualCoordinateDescentL1(Q, C, ONE, cfg.tolerance);
 
-% Save support vectors
-cf.support_vector_indices = find(cf.alpha>0);
-cf.support_vectors = X(cf.support_vector_indices,:);
-% 
-% if cfg.intercept
-%     cf.alpha = alpha(1:end-1);
-%     cf.b = alpha(end);
-% else
-%     cf.alpha = alpha;
-%     cf.b = 0;
-% end
+%% Set up classifier
+cf= [];
+cf.kernel = cfg.kernel;
+cf.alpha  = alpha;
+cf.gamma  = cfg.gamma;
 
-
-
+if strcmp(cfg.kernel,'linear')
+    % Calculate linear weights w and bias b from alpha
+    cf.w = X' * (cf.alpha .* clabel(:));
+    
+    if cfg.bias > 0
+        cf.b = cf.w(end);
+        cf.w = cf.w(1:end-1);
+        
+        % Bias term needs correct scaling 
+        cf.b = cf.b * cfg.bias;
+    else
+        cf.b = 0;
+    end
+else
+    % Nonlinear kernel: also need to save support vectors
+    cf.support_vector_indices = find(cf.alpha>0);
+    cf.support_vectors  = X(cf.support_vector_indices,:);
+    
+    % Class labels for the support vectors
+    cf.y                = clabel(cf.support_vector_indices);
+    
+    % For convenience we save the product alpha x y for the support vectors
+    cf.alpha_y = cf.alpha(cf.support_vector_indices) .* cf.y(:);
+    
+    if cfg.bias > 0
+        % remove bias part
+        cf.support_vectors = cf.support_vectors(:,1:end-1);
+    end
+    
+    % Save kernel function
+    cf.kernelfun = kernelfun;
+    
+    %%% ???
+    cf.b = 0;
 end
 
+end

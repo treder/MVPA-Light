@@ -1,21 +1,21 @@
-function [clabel,dval] = test_svm(cf,X)
+function [predlabel,dval] = test_svm(cf,X)
 % Applies a SVM to test data and produces class labels and decision values.
 % 
 % Usage:
-% [labels,dval] = test_svm(cf,X)
+% [predlabel,dval] = test_svm(cf,X)
 % 
 %Parameters:
 % cf             - classifier. See train_svm
-% X              - [number of samples x number of features] matrix of
-%                  test samples
+% X              - [samples x features] matrix of test data
 %
 %Output:
-% clabel        - predicted class labels (1's and 2's)
+% predlabel     - predicted class labels (1's and 2's)
 % dval          - decision values, i.e. distances to the hyperplane
 
 if strcmp(cf.kernel,'linear')
-    dval = X*cf.w + cf.b; % unlike LDA, b needs to be added here
-    clabel= double(dval >= 0) + 2*double(dval < 0);
+    dval = X*cf.w + cf.b;
 else
-    %%% TODO
+    dval = cf.alpha_y' * cf.kernelfun(cf, cf.support_vectors, X)  + cf.b;
 end
+
+predlabel= double(dval >= 0) + 2*double(dval < 0);

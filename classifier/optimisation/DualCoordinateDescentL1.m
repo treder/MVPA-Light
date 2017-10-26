@@ -1,4 +1,4 @@
-function [alpha,iter] = DualCoordinateDescentL1(alpha,Q,C,ONE,tolerance)
+function [alpha,iter] = DualCoordinateDescentL1(Q,C,ONE,tolerance)
 % Implementation of a dual coordinate descent algorithm for optimising 
 % linear and non-linear SVMs with L1 loss.
 %
@@ -15,13 +15,14 @@ function [alpha,iter] = DualCoordinateDescentL1(alpha,Q,C,ONE,tolerance)
 % by solving 
 %
 % min_d   f(a + d e_i) = 1/2 Q_ii d^2 + grad_f_i d + constant
-
-
+%
+% 
 %
 % Usage: [w,iter] = DualCoordinateDescentL1(a,Q,ONE,tolerance)
 %
-% a         - alpha (start vector)
+% alpha     - start dual vector
 % Q         - kernel matrix with class labels absorbed
+% C         - cost hyperparameter
 % ONE       - column vectors of 1's, same size as a 
 % tolerance - stopping criterion. When the relative change in function
 %             value is below tolerance, iteration stops
@@ -29,68 +30,160 @@ function [alpha,iter] = DualCoordinateDescentL1(alpha,Q,C,ONE,tolerance)
 
 % (c) Matthias Treder 2017
 
+alpha = zeros(size(Q,1),1);
+
 % Number of samples
 N = numel(alpha);
 
+% Size of active set
+active_size = N;
+
 % Value of loss function
-f_old = 10e100; % some large number
-f = 0;
+% f_old = 10e100; % some large number
+% f = 0;
 
 % Gradient of f
-g = 0;
-dual_grad();
+g = -ONE;
+
+PGmax_old = Inf;
+PGmin_old = -Inf;
 
 iter = 0;
+max_iter = 1000;
+
+tmp = 0;
+o = 1:N;
+
+%%% debug
+% loss_iter = zeros(max_iter,1);
+% active_sizes = zeros(max_iter,1);
 
 %%% ------- outer iteration -------
-while abs((f_old-f)/f_old) > tolerance        
+while iter < max_iter
     
-    % Define random order for cycling through the coordinates
-    o = randperm(N);
-    
-    %%% ------- inner iteration [coordinates] -------
-    for ii=1:N                       
-        
-        % Check projected gradient
+%     abs((f_old-f)/f_old) > tolerance %  && iter < 100     
+       
+    % Shuffle the order of the active set
+    o(1:active_size) = o(randperm(active_size)); % o = randi(N,N,1);
+
+    % Will keep the maximum and minimum projected gradient which defines
+    % our stopping criterion
+    PGmax_new = -Inf;
+    PGmin_new = Inf;
+
+    %%% ------- inner iteration [cycle through coordinates] -------
+    ii = 1;
+    while ii <= active_size
+       
+        %%% Calculate projected gradient PG and perform shrinkage of the
+        %%% items
+        PG = 0;
         if alpha(o(ii)) == 0
-            prj = min(0, g(o(ii)));
+            
+            if (g(o(ii)) > PGmax_old  * 0.8)
+                % Shrink (=remove) this item from the active set and restart
+                active_size = active_size - 1;
+                tmp = o(active_size+1);
+                o(active_size+1) = o(ii);
+                o(ii) = tmp;
+                continue
+            elseif (g(o(ii)) < 0)
+                PG = g(o(ii));
+            end
+            
         elseif alpha(o(ii)) == C
-            prj = max(0, g(o(ii)));
+            
+            if (g(o(ii)) < PGmin_old * 0.8)
+                % Shrink (=remove) this item from the active set and restart
+                active_size = active_size - 1;
+                tmp = o(active_size+1);
+                o(active_size+1) = o(ii);
+                o(ii) = tmp;
+                continue
+            elseif (g(o(ii)) > 0)
+                PG = g(o(ii));
+            end
+            
         else
-            prj = g(o(ii));
+            PG = g(o(ii));
         end
         
-        if abs(prj) > eps
-            % alpha(o(ii)) is updated 
-            alpha(o(ii)) = min( C, max( ...
-                alpha(o(ii)) - (Q(o(ii),:)*alpha-1)/Q(o(ii),o(ii)), 0 ) );
+        % Update maximum and minimum of PG
+        PGmax_new = max(PGmax_new, PG);
+        PGmin_new = min(PGmin_new, PG);
+
+        % Check whether PG is significantly different from zero
+        if PG > 10e-12 || PG < -10e-12
+
+            alpha_old = alpha(o(ii));
+            % update coordinate
+            alpha(o(ii)) = min( C, ...
+                max( alpha(o(ii)) - g(o(ii))/Q(o(ii),o(ii)), 0 ) ...
+                );
+
+            % update gradient
+            g = g + (alpha(o(ii)) - alpha_old) * Q(:,o(ii));
         end
-%         dual_loss,ii
+        
+        ii = ii + 1;
+    end
+
+    %%% debug
+%     f = calculate_dual_loss();
+%     loss_iter(iter+1) = f;
+%     active_sizes(iter+1)= active_size;
+
+    iter = iter + 1;
+    
+    
+    % Stopping criterion
+    if(PGmax_new - PGmin_new < tolerance)
+        
+        if(active_size == N)
+            break; % --done--
+        else
+            % Finished the subproblem - extend active set to full set and
+            % re-run to check that we're there
+%             fprintf('[iter %d] Finished subproblem with active_size = %d\n',iter, active_size)
+            active_size = N;
+            PGmax_old = Inf;
+            PGmin_old = -Inf;
+            continue
+        end
     end
     
-    % Threshold values of a close to 0 or C
-%     alpha(alpha<eps) = 0;
-%     alpha(alpha>C-eps) = C;
-    
-    % Update gradient and loss function
-    dual_grad();
-    f_old = f;
-    f = dual_loss();
-    
-    iter = iter + 1;
+    PGmax_old = PGmax_new;
+    PGmin_old = PGmin_new;
+    if (PGmax_old <= 0)
+        PGmax_old = Inf;
+    end
+    if (PGmin_old >= 0)
+        PGmin_old = -Inf;
+    end
+
 end
 
-
+%%% debug
+% fprintf('#iterations = %d\n',iter)
+% fprintf('Objective value = %3.9f\n', calculate_dual_loss())
 
 %% --- nested functions ---
-%%% Calculate the value of the loss function
-function fval = dual_loss()
+%%% Calculate the value of the loss function.
+%%% Note that using the loss function is computationally too expensive so
+%%% we use the approach as in LIBLINEAR (difference between maximum and
+%%% minimum projected gradient)
+function fval = calculate_dual_loss()
     fval = alpha' * Q * alpha/2 - ONE' * alpha;
 end
 
-%%% Calculate the gradient of the dual w.r.t. a
+%%% Calculate the gradient of the dual w.r.t. alpha
 function dual_grad()
     g = Q * alpha - ONE;
 end
+
+% Update just one component
+% function g = dual_grad(idx)
+%     g = y(idx) * X(idx,:) * w - 1;
+% end
 
 end

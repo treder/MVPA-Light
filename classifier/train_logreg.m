@@ -3,7 +3,7 @@ function cf = train_logreg(cfg,X,clabel)
 %
 % Note: Due to the exponential term in the cost function, it is recommended 
 % that X (the data) is z-scored to reduce the probability of numerical
-% problems due to round-off errors.
+% issues due to round-off errors.
 %
 % Usage:
 % cf = train_logreg(cfg,X,clabel)
@@ -17,8 +17,6 @@ function cf = train_logreg(cfg,X,clabel)
 %                  the classifier and applied to the test set (in test_logreg).
 %                  This option is not required if the data has been
 %                  z-scored already (default 0)
-% intercept      - augments the data with an intercept term (recommended)
-%                  (default 1). If 0, the intercept is assumed to be 0
 % lambda         - regularisation hyperparameter controlling the magnitude
 %                  of regularisation. If a single value is given, it is
 %                  used for regularisation. If a vector of values is given,
@@ -27,6 +25,19 @@ function cf = train_logreg(cfg,X,clabel)
 %                  Note: lambda is reciprocally related to the cost
 %                  parameter C used in LIBSVM/LIBLINEAR, ie C = 1/lambda
 %                  roughly
+%
+% Further parameters (that usually do not need to be changed):
+% bias          - if >0 augments the data with a bias term equal to the
+%                 value of bias:  X <- [X; bias], and augments the weight
+%                 vector with the bias variable w <- [w; b].
+%                 If 0, the bias is assumed to be 0. By default, it is set
+%                 to a large value (bias=100). This prevents that b is
+%                 penalised by the regularisation term.
+% K             - the number of folds in the K-fold cross-validation for
+%                 the lambda search
+% plot          - if a lambda search is performed, produces diagnostic
+%                 plots including the regularisation path and
+%                 cross-validated accuracy as a function of lambda
 %
 % BACKGROUND:
 % Logistic regression introduces a non-linearity over the linear regression
@@ -71,7 +82,6 @@ function cf = train_logreg(cfg,X,clabel)
 
 [N, nFeat] = size(X);
 X0 = X;
-clabel = double(clabel);
 
 cf = [];
 
@@ -82,6 +92,9 @@ else
     cf.zscore = 0;
 end
 
+% Make sure labels come as column vector
+clabel = double(clabel(:));
+
 % Need class labels 1 and -1 here
 clabel(clabel == 2) = -1;
 
@@ -89,22 +102,21 @@ clabel(clabel == 2) = -1;
 % optimisation
 Y = diag(clabel);
 
-% Initialise w with zeros 
-w0 = zeros(nFeat,1);
-
 % Take vector connecting the class means as initial guess [it does not seem
 % to speed up convergence though so we keep w0 = 0 for now]
 % w0 = double(mean(X0(clabel==1,:))) -  double(mean(X0(clabel==-1,:)));
 % w0 = w0' / norm(w0);
 
-% Augment X with intercept
-if cfg.intercept
-    X0 = cat(2,X0, ones(N,1));
-    w0 = [w0; 0];
+% Augment X with bias
+if cfg.bias > 0
+    X0 = cat(2, X0, ones(N,1) * cfg.bias );
     nFeat = nFeat + 1;
 end
 
 I = eye(nFeat);
+
+% Initialise w with zeros 
+w0 = zeros(nFeat,1);
 
 % logfun = @(w) lr_objective_tanh(w);
 % logfun = @(w) lr_objective(w);
@@ -235,9 +247,12 @@ X = X0;
 w = TrustRegionDoglegGN(logfun, w0, cfg.tolerance, cfg.max_iter, 1);
 
 %% Set up classifier
-if cfg.intercept
+if cfg.bias > 0
     cf.w = w(1:end-1);
     cf.b = w(end);
+    
+    % Bias term needs correct scaling 
+    cf.b = cf.b * cfg.bias;
 else
     cf.w = w;
     cf.b = 0;
