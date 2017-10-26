@@ -31,7 +31,7 @@ switch(classifier)
     
     case 'logreg'
         mv_set_default(param,'zscore',0);
-        mv_set_default(param,'intercept',1);
+        mv_set_default(param,'bias',100);
         mv_set_default(param,'lambda',1);
         mv_set_default(param,'max_iter',400);
         mv_set_default(param,'tolerance',1e-6);
@@ -45,19 +45,19 @@ switch(classifier)
 %             'SpecifyObjectiveGradient',true,'Display','none') );
         
     case 'svm'
-        mv_set_default(param,'intercept',1);
+        mv_set_default(param,'bias','auto');
         mv_set_default(param,'C','auto');
         mv_set_default(param,'kernel','linear');
         mv_set_default(param,'plot',0);
         mv_set_default(param,'K',5);
         mv_set_default(param,'regularise_kernel',10e-10);
-        mv_set_default(param,'tolerance',10e-5);
+        mv_set_default(param,'tolerance',0.1);
         
         % parameters for specific kernels
         mv_set_default(param,'gamma',1); % RBF regularisation parameter
         
     case 'svm_sgd'
-        mv_set_default(param,'intercept',1);
+        mv_set_default(param,'bias',1);
         mv_set_default(param,'lambda','auto');
         mv_set_default(param,'kernel','linear');
         mv_set_default(param,'n_epochs','auto');
@@ -69,7 +69,7 @@ switch(classifier)
         
     case 'linear_svm'
         mv_set_default(param,'zscore',0);
-        mv_set_default(param,'intercept',1);
+        mv_set_default(param,'bias',1);
         mv_set_default(param,'lambda',1);
         mv_set_default(param,'max_iter',400);
         mv_set_default(param,'tolerance',1e-8);
