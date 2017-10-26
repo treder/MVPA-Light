@@ -15,7 +15,7 @@ cd('your-path-to/MVPA-Light/utils/')
 startup_MVPA_Light
 ```
 
-The Git repository contains two branches: the `master` branch (recommended) is the stable branch that should always work. `devel` is the development branch that contains new features that are either under construction or not tested.
+Alternatively, use [MATLAB's Path tool](https://uk.mathworks.com/help/matlab/matlab_env/add-remove-or-reorder-folders-on-the-search-path.html) to manually add the `MVPA-Light` folder and its subfolders to your MATLAB path. The Git repository contains two branches: the `master` branch (recommended) is the stable branch that should always work. `devel` is the development branch that contains new features that are either under construction or not tested.
 
 ## Overview <a name="overview"></a>
 `MVPA-Light` provides functions for the binary classification of neuroimaging data. It is meant to address the basic issues in MVPA (such as classification across time and generalisation) in a fast and robust way while retaining a slim and readable codebase. For Fieldtrip users, the use of the toolbox will be familiar: The first argument to the main functions is a configuration struct `cfg` that contains all the parameters. However, the toolbox does *not* require or use Fieldtrip.
@@ -43,8 +43,8 @@ Classifier performance is evaluated on a dataset called *test data*. To this end
 
 #### Classifiers
 
-* `train_lda`, `test_lda`: Regularised Linear Discriminant Analysis (LDA). For two classes, LDA is equivalent to Fisher's discriminant analysis (FDA). Hence, LDA searches for a projection of the data into 1D such that the class means are separated as far as possible and the within-class variability is as small as possible. To prevent overfitting and assure invertibility of the covariance matrix, the regularisation parameter λ can be varied between λ=0 (no regularisation) and λ=1 (maximum regularisation). It can also be set to λ='auto'. In this case, λ is estimated automatically. For more details on regularised LDA see [[Bla2011]](#Bla2011). LDA has been shown to be formally equivalent to LCMV beamforming and it can be used for recovering time series of ERP sources [[Tre2011]](#Tre2011).
-* `train_ensemble`, `test_ensemble`: Uses an ensemble of classifiers trained on random subsets of the features and random subsets of the samples. Can use any classifier with train/test functions as a learner.
+* `lda`: Regularised Linear Discriminant Analysis (LDA). For two classes, LDA is equivalent to Fisher's discriminant analysis (FDA). Hence, LDA searches for a projection of the data into 1D such that the class means are separated as far as possible and the within-class variability is as small as possible. To prevent overfitting and assure invertibility of the covariance matrix, the regularisation parameter λ can be varied between λ=0 (no regularisation) and λ=1 (maximum regularisation). It can also be set to λ='auto'. In this case, λ is estimated automatically. For more details on regularised LDA see [[Bla2011]](#Bla2011). LDA has been shown to be formally equivalent to LCMV beamforming and it can be used for recovering time series of ERP sources [[Tre2011]](#Tre2011).
+* `ensemble`: Uses an ensemble of classifiers trained on random subsets of the features and random subsets of the samples. Can use any classifier with train/test functions as a learner.
 
 <!--
 * `train_svm`, `test_svm`: Support vector machines (SVM). Uses the [LIBSVM package](https://github.com/arnaudsj/libsvm) that needs to be installed.
@@ -109,17 +109,17 @@ See `examples/example1_train_and_test.m` for more details.
 
 
 ```Matlab
-ccfg = [];
-ccfg.classifier      = 'lda';
-ccfg.metric          = 'acc';
-ccfg.CV              = 'kfold';
-ccfg.K               = 5;
-ccfg.repeat          = 2;
-ccfg.verbose         = 1;
+cfg = [];
+cfg.classifier      = 'lda';
+cfg.metric          = 'acc';
+cfg.CV              = 'kfold';
+cfg.K               = 5;
+cfg.repeat          = 2;
+cfg.verbose         = 1;
 
 % Perform 5-fold cross-validation with 2 repetitions.
 % As classification performance measure we request accuracy (acc).
-acc = mv_crossvalidate(ccfg, X, clabel);
+acc = mv_crossvalidate(cfg, X, clabel);
 ```
 
 See `examples/example2_crossvalidate.m` for more details.
@@ -129,8 +129,8 @@ See `examples/example2_crossvalidate.m` for more details.
 ```Matlab
 
 % Classify across time using default settings
-ccfg =  [];
-acc = mv_classify_across_time(ccfg, dat.trial, clabel);
+cfg =  [];
+acc = mv_classify_across_time(cfg, dat.trial, clabel);
 
 ```
 
@@ -140,11 +140,11 @@ See `examples/example3_classify_across_time.m` for more details.
 
 
 ```Matlab
-ccfg =  [];
-ccfg.normalise  = 'demean';
-ccfg.metric     = {'acc' 'auc'}; % request both accuracy and AUC
+cfg =  [];
+cfg.normalise  = 'demean';
+cfg.metric     = {'acc' 'auc'}; % request both accuracy and AUC
 
-[acc,auc] = mv_classify_timextime(ccfg, dat.trial, clabel);
+[acc,auc] = mv_classify_timextime(cfg, dat.trial, clabel);
 
 ```
 
