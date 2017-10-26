@@ -14,12 +14,14 @@ clear all
 ccfg =  [];
 ccfg.classifier = 'lda';
 ccfg.param      = struct('lambda','auto');
-ccfg.verbose    = 1;
 ccfg.normalise  = 'demean';  % 'demean' 'none'
-ccfg.metric     = {'acc' 'auc'};
+ccfg.cf_output  = 'dval';
+ccfg.metric     = 'acc';
 
-[acc,auc]= mv_classify_timextime(ccfg, dat.trial, clabel);
+acc = mv_classify_timextime(ccfg, dat.trial, clabel);
 
+ccfg.metric     = 'acc';
+auc = mv_classify_timextime(ccfg, dat.trial, clabel);
 
 %% Plot time generalisation matrix
 figure
@@ -31,14 +33,20 @@ colormap jet
 title('Accuracy')
 
 figure
+cfg= [];
+cfg.x   = dat.time;
+cfg.y   = cfg.x;
 mv_plot_2D(cfg, auc);
 colormap jet
 title('AUC')
 
-
 %% Compare accuracy/AUC when no normalisation is performed
 ccfg.normalise  = 'none';
-[acc,auc]= mv_classify_timextime(ccfg, dat.trial, clabel);
+ccfg.metric     = 'acc';
+acc = mv_classify_timextime(ccfg, dat.trial, clabel);
+
+ccfg.metric     = 'auc';
+auc = mv_classify_timextime(ccfg, dat.trial, clabel);
 
 figure
 mv_plot_2D(cfg, acc);
@@ -57,24 +65,18 @@ title('AUC')
 % Load data from a different subject (epoched1). This will served as the 
 % test data.
 % The subject loaded above will serve as training data.
-dat2 = load('epoched1');
-label2 = zeros(dat2.nTrial, 1);
-label2(dat2.attended_deviant)  = 1;   % Class 1: attended deviants
-label2(~dat2.attended_deviant) = 2;   % Class 2: unattended deviants
-
-dat2 = dat2.dat;
+[dat2, clabel2] = load_example_data('epoched1');
 
 ccfg =  [];
 ccfg.classifier = 'lda';
 ccfg.param      = struct('lambda','auto');
-ccfg.verbose    = 1;
 ccfg.normalise  = 'demean';  % 'demean' 'none'
 ccfg.metric     = 'acc';
 
-acc31 = mv_classify_timextime(ccfg, dat.trial, clabel, dat2.trial, label2);
+acc31 = mv_classify_timextime(ccfg, dat.trial, clabel, dat2.trial, clabel2);
 
 % Reverse the analysis: train the classifier on epoched1, test on epoched3
-acc13 = mv_classify_timextime(ccfg, dat2.trial, label2, dat.trial, clabel);
+acc13 = mv_classify_timextime(ccfg, dat2.trial, clabel2, dat.trial, clabel);
 
 figure
 cfg =[];
