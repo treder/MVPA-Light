@@ -43,7 +43,8 @@ Classifier performance is evaluated on a dataset called *test data*. To this end
 
 #### Classifiers
 
-* `lda`: Regularised Linear Discriminant Analysis (LDA). For two classes, LDA is equivalent to Fisher's discriminant analysis (FDA). Hence, LDA searches for a projection of the data into 1D such that the class means are separated as far as possible and the within-class variability is as small as possible. To prevent overfitting and assure invertibility of the covariance matrix, the regularisation parameter λ can be varied between λ=0 (no regularisation) and λ=1 (maximum regularisation). It can also be set to λ='auto'. In this case, λ is estimated automatically. For more details on regularised LDA see [[Bla2011]](#Bla2011). LDA has been shown to be formally equivalent to LCMV beamforming and it can be used for recovering time series of ERP sources [[Tre2011]](#Tre2011).
+* `lda`: Regularised Linear Discriminant Analysis (LDA). For two classes, LDA is equivalent to Fisher's discriminant analysis (FDA). Hence, LDA searches for a projection of the data into 1D such that the class means are separated as far as possible and the within-class variability is as small as possible. To prevent overfitting and assure invertibility of the covariance matrix, the regularisation parameter λ (lambda) can be varied between λ=0 (no regularisation) and λ=1 (maximum regularisation). It can also be set to 'auto'. In this case, λ is estimated automatically. For more details on regularised LDA see [[Bla2011]](#Bla2011). LDA has been shown to be formally equivalent to LCMV beamforming and it can be used for recovering time series of ERP sources [[Tre2011]](#Tre2011).
+* `logreg`: Logistic regression (LR) with L2-regularisation. LR directly models class probabilities by fitting a logistic function to the data. Like LDA, LR is a linear classifier and hence its operation is expressed by a weight vector w and a bias b. To prevent overfitting the regularisation parameter λ (lambda) is used to control the penalisation of the classifier weights.  λ has to be positive but its value is unbounded. It can also be set to 'auto'. In this case, different λ's are tried out using a searchgrid; the value of λ maximising cross-validation performance is then used for training on the full dataset.
 * `ensemble`: Uses an ensemble of classifiers trained on random subsets of the features and random subsets of the samples. Can use any classifier with train/test functions as a learner.
 
 <!--
@@ -63,6 +64,10 @@ Many neuroimaging datasets have a 3-D structure (trials x channels x time). The 
 
 Classification across time does not give insight into whether information is shared across different time points. For example, is the information that the classifier uses early in a trial (t=80 ms) the same that it uses later (t=300ms)? In time generalisation, this question is answered by training the classifier at a certain time point t. The classifer is then tested at the same time point t but it is also tested at all *other* time points in the trial [[King2014]](#King2014). `mv_classify_timextime` implements time generalisation. It returns a 2D matrix of classification performance, with performance calculated for each combination of training time point and testing time point. `mv_plot_2D` can be used to plot the result.
 
+#### Searchlight analysis
+
+Which features contribute most to classification performance? The answer to this question can be used to better interpret the data or to perform feature selection. To this end, `mv_searchlight` performs cross-validated classification for each feature separately. If there is a spatial structure in the features (e.g. neighbouring eletrodes, neighbouring voxels), groups of features rather than single features can be considered. The result is a classification performance measure for each feature. If the features are e.g. channels, the result can be plotted as a topography.
+
 
 #### Classifier performance metrics
 
@@ -72,7 +77,7 @@ Classifier output comes in form of decision values (=distances to the hyperplane
 * `auc`: Area under the ROC curve. An alternative to classification accuracy that is more robust to imbalanced classes and independent of changes to the classifier threshold.
 * `dval`: Average decision value for each class.
 
-Performance metrics can be selected in `mv_classify_across_time` and `mv_classify_timextime` by setting the `cfg.metric` field.
+There is usually no need to call `mv_classifier_performance` directly. By setting the `cfg.metric` field, the performance metric is calculated automatically in `mv_crossvalidate`, `mv_classify_across_time`,  `mv_classify_timextime` and `mv_searchlight`.
 
 
 ## Examples<a name="examples"></a>
@@ -141,14 +146,25 @@ See `examples/example3_classify_across_time.m` for more details.
 
 ```Matlab
 cfg =  [];
-cfg.normalise  = 'demean';
-cfg.metric     = {'acc' 'auc'}; % request both accuracy and AUC
+cfg.metric     = 'auc';
 
-[acc,auc] = mv_classify_timextime(cfg, dat.trial, clabel);
+auc = mv_classify_timextime(cfg, dat.trial, clabel);
 
 ```
 
-See `examples/example4_classify_timextime.m` for more details.
+See `examples/example5_classify_timextime.m` for more details.
+
+#### Searchlight analysis
+
+
+```Matlab
+cfg =  [];
+
+auc = mv_searchlight(cfg, dat.trial, clabel);
+
+```
+
+See `examples/example5_searchlight.m` for more details.
 
 
 
