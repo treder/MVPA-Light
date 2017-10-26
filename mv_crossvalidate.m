@@ -1,4 +1,4 @@
-function varargout = mv_crossvalidate(cfg, X, clabel)
+function [perf, res] = mv_crossvalidate(cfg, X, clabel)
 % Cross-validation. A classifier is trained and validated for
 % given 2D [samples x features] dataset X.
 %
@@ -8,7 +8,7 @@ function varargout = mv_crossvalidate(cfg, X, clabel)
 % can be used for time generalisation.
 %
 % Usage:
-% [perf, ...] = mv_crossvalidate(cfg,X,clabel)
+% [perf, res] = mv_crossvalidate(cfg,X,clabel)
 %
 %Parameters:
 % X              - [samples x features] data matrix
@@ -22,9 +22,8 @@ function varargout = mv_crossvalidate(cfg, X, clabel)
 %                 function (default [])
 % .metric       - classifier performance metric, default 'acc'. See
 %                 mv_classifier_performance. If set to [], the raw classifier
-%                 output (labels or dvals depending on cfg.output) for each
-%                 sample is returned. Multiple metrics can be requested by
-%                 providing a cell array e.g. {'acc' 'dval'}.
+%                 output (labels or dvals depending on cfg.cf_output) for each
+%                 sample is returned. 
 % .CV           - perform cross-validation, can be set to
 %                 'kfold' (recommended) or 'leaveout' (not recommended
 %                 since it has a higher variance than k-fold) (default
@@ -50,43 +49,41 @@ function varargout = mv_crossvalidate(cfg, X, clabel)
 % .replace      - if balance is set to 'oversample' or 'undersample',
 %                 replace deteremines whether data is drawn with
 %                 replacement (default 1)
-% .verbose      - print information on the console (default 1)
+% .feedback     - print feedback on the console (default 1)
 %
 % Returns:
-% perf          - [time x 1] vector of classifier performances. If multiple
-%                 metrics were requested, multiple output arguments are
-%                 provided.
-%
+% perf          - [time x 1] vector of classifier performances.
+% res           - struct with fields describing the classification result.
+%                 Can be used as input to mv_statistics
+
 
 % (c) Matthias Treder 2017
 
-mv_setDefault(cfg,'classifier','lda');
-mv_setDefault(cfg,'param',[]);
-mv_setDefault(cfg,'metric','acc');
-mv_setDefault(cfg,'CV','kfold');
-mv_setDefault(cfg,'repeat',5);
-mv_setDefault(cfg,'verbose',0);
+mv_set_default(cfg,'classifier','lda');
+mv_set_default(cfg,'param',[]);
+mv_set_default(cfg,'metric','acc');
+mv_set_default(cfg,'CV','kfold');
+mv_set_default(cfg,'repeat',5);
+mv_set_default(cfg,'feedback',1);
 
 if isempty(cfg.metric) || any(ismember({'dval','auc','roc'},cfg.metric))
-    mv_setDefault(cfg,'output','dval');
+    mv_set_default(cfg,'cf_output','dval');
 else
-    mv_setDefault(cfg,'output','clabel');
+    mv_set_default(cfg,'cf_output','clabel');
 end
 
-if ~isempty(cfg.metric) && ~iscell(cfg.metric), cfg.metric = {cfg.metric}; end
-
 % Balance the data using oversampling or undersampling
-mv_setDefault(cfg,'balance','none');
-mv_setDefault(cfg,'replace',1);
+mv_set_default(cfg,'balance','none');
+mv_set_default(cfg,'replace',1);
 
 if strcmp(cfg.CV,'kfold')
-    mv_setDefault(cfg,'K',5);
+    mv_set_default(cfg,'K',5);
 else
-    mv_setDefault(cfg,'K',1);
+    mv_set_default(cfg,'K',1);
 end
 
 % Set non-specified classifier parameters to default
-cfg.param = mv_classifier_defaults(cfg.classifier, cfg.param);
+cfg.param = mv_get_classifier_param(cfg.classifier, cfg.param);
 
 [~,~,clabel] = mv_check_labels(clabel);
 
@@ -106,15 +103,16 @@ test_fun = eval(['@test_' cfg.classifier]);
 X_orig = X;
 label_orig = clabel;
 
+if cfg.feedback, mv_print_classification_info(cfg,X,clabel); end
+
 if ~strcmp(cfg.CV,'none')
-    if cfg.verbose, fprintf('Using %s cross-validation (K=%d) with %d repetitions.\n',cfg.CV,cfg.K,cfg.repeat), end
 
     % Initialise classifier outputs
     cf_output = cell(cfg.repeat, cfg.K);
     testlabel = cell(cfg.repeat, cfg.K);
 
     for rr=1:cfg.repeat                 % ---- CV repetitions ----
-        if cfg.verbose, fprintf('Repetition #%d. Fold ',rr), end
+        if cfg.feedback, fprintf('Repetition #%d. Fold ',rr), end
 
         % Undersample data if requested. We undersample the classes within the
         % loop since it involves chance (samples are randomly over-/under-
@@ -136,7 +134,7 @@ if ~strcmp(cfg.CV,'none')
         CV= cvpartition(clabel,cfg.CV,cfg.K);
 
         for kk=1:cfg.K                      % ---- CV folds ----
-            if cfg.verbose, fprintf('%d ',kk), end
+            if cfg.feedback, fprintf('%d ',kk), end
 
             % Get train data
             Xtrain = X(CV.training(kk),:);
@@ -156,10 +154,10 @@ if ~strcmp(cfg.CV,'none')
             cf= train_fun(cfg.param, Xtrain, trainlabel);
 
             % Obtain classifier output (labels or dvals) on test data
-            cf_output{rr,kk} = mv_classifier_output(cfg.output, cf, test_fun, X(CV.test(kk),:));
+            cf_output{rr,kk} = mv_get_classifier_output(cfg.cf_output, cf, test_fun, X(CV.test(kk),:));
 
         end
-        if cfg.verbose, fprintf('\n'), end
+        if cfg.feedback, fprintf('\n'), end
     end
     
     % Average classification performance across repeats and test folds
@@ -170,7 +168,6 @@ else
     % training/testing time. This gives the classification performance for
     % the training set, but it may lead to overfitting and thus to an
     % artifically inflated performance.
-    if cfg.verbose, fprintf('Training and testing on the same data [no cross-validation]!\n'), end
 
     % Rebalance data using under-/over-sampling if requested
     if ~strcmp(cfg.balance,'none')
@@ -181,20 +178,19 @@ else
     cf= train_fun(cfg.param, X, clabel);
 
     % Obtain classifier output (labels or dvals)
-    cf_output = mv_classifier_output(cfg.output, cf, test_fun, X);
+    cf_output = mv_get_classifier_output(cfg.cf_output, cf, test_fun, X);
 
     testlabel = clabel;
     avdim = [];
 end
 
 if isempty(cfg.metric)
-    % If no metric was requested, return the raw classifier output
-    varargout{1} = cf_output;
+    if cfg.feedback, fprintf('No performance metric requested, returning raw classifier output.\n'), end
+    perf = cf_output;
+    res = [];
 else
-    % Calculate classifier performance, for each selected metric separately
-    if cfg.verbose, fprintf('Calculating classifier performance... '), end
-    varargout = cell(numel(cfg.metric),1);
-    [varargout{:}] = mv_classifier_performance(cfg.metric, cf_output, testlabel, avdim);
-    if cfg.verbose, fprintf('finished\n'), end
+    if cfg.feedback, fprintf('Calculating classifier performance... '), end
+    [perf,res] = mv_calculate_performance(cfg.metric, cf_output, testlabel, avdim);
+    if cfg.feedback, fprintf('finished\n'), end
 end
 
