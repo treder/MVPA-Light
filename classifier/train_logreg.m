@@ -13,10 +13,6 @@ function cf = train_logreg(cfg,X,clabel)
 % clabel         - [samples x 1] vector of class labels
 %
 % cfg          - struct with hyperparameters:
-% zscore         - zscores the training data. The scaling will be saved in
-%                  the classifier and applied to the test set (in test_logreg).
-%                  This option is not required if the data has been
-%                  z-scored already (default 0)
 % lambda         - regularisation hyperparameter controlling the magnitude
 %                  of regularisation. If a single value is given, it is
 %                  used for regularisation. If a vector of values is given,
@@ -84,13 +80,6 @@ function cf = train_logreg(cfg,X,clabel)
 X0 = X;
 
 cf = [];
-
-if cfg.zscore
-    cf.zscore = 1;
-    [X0,cf.mean,cf.std] = zscore(X0);
-else
-    cf.zscore = 0;
-end
 
 % Make sure labels come as column vector
 clabel = double(clabel(:));
