@@ -30,7 +30,6 @@ switch(classifier)
         mv_set_default(param,'evtol',10^8);
     
     case 'logreg'
-        mv_set_default(param,'zscore',0);
         mv_set_default(param,'bias',100);
         mv_set_default(param,'lambda',1);
         mv_set_default(param,'max_iter',400);
@@ -39,10 +38,6 @@ switch(classifier)
         mv_set_default(param,'plot',0);
         mv_set_default(param,'predict_regularisation_path',1);
         mv_set_default(param,'polyorder',3);
-       
-%         mv_set_default(param,'optim',optimoptions('fsolve','Algorithm',...
-%             'trust-region-dogleg',...
-%             'SpecifyObjectiveGradient',true,'Display','none') );
         
     case 'svm'
         mv_set_default(param,'bias','auto');
@@ -52,6 +47,7 @@ switch(classifier)
         mv_set_default(param,'K',5);
         mv_set_default(param,'regularise_kernel',10e-10);
         mv_set_default(param,'tolerance',0.1);
+        mv_set_default(param,'Q',[]);
         
         % parameters for specific kernels
         mv_set_default(param,'gamma',1); % RBF regularisation parameter
