@@ -1,4 +1,4 @@
-function [clabel,dval] = test_logreg(cf,X)
+function [clabel,dval,prob] = test_logreg(cf,X)
 % Applies an Logistic Regression classifier to test data and produces class labels,
 % decision values.
 % 
@@ -23,4 +23,8 @@ end
 
 dval = X*cf.w + cf.b; % unlike LDA, b needs to be added here
 clabel= double(dval >= 0) + 2*double(dval < 0);
+
+if nargout>2    
+    prob = 0.5 + 0.5 * tanh(0.5 * dval);
+end
 
