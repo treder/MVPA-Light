@@ -28,6 +28,10 @@ function cf = train_svm(cfg,X,clabel)
 %                  Alternatively, a custom kernel can be provided if there
 %                  is a function called *_kernel is in the MATLAB path, 
 %                  where "*" is the name of the kernel (e.g. rbf_kernel).
+% Q              - optional kernel matrix with absorbed class labels, i.e. 
+%                  Q = KER .* (clabel * clabel'), where KER is the kernel
+%                  matrix. If Q is provided, the .kernel parameter is
+%                  ignored. (Default [])
 %
 % Note: The regularisation parameter lambda is reciprocally related to the 
 % cost parameter C used in LIBSVM/LIBLINEAR, ie C = 1/lambda roughly.
@@ -40,15 +44,24 @@ function cf = train_svm(cfg,X,clabel)
 %                 bias is 1 for linear kernel and 0 for non-linear
 %                 kernel (default 'auto')
 % K             - the number of folds in the K-fold cross-validation for
-%                 the lambda search
+%                 the lambda search (default 5)
 % plot          - if a lambda search is performed, produces diagnostic
 %                 plots including the regularisation path and
-%                 cross-validated accuracy as a function of lambda
+%                 cross-validated accuracy as a function of lambda (default
+%                 0)
 %
 %Output:
 % cf - struct specifying the classifier with the following fields:
 % w            - normal to the hyperplane (for linear SVM)
 % b            - bias term, setting the threshold
+% alpha        - dual vector specifying the weighting of training samples
+%                for evaluating the classifier. For alpha > 0 a particular
+%                sample is a support vector
+%
+% IMPLEMENTATION DETAILS:
+% A Dual Coordinate Descent algorithm is used to find the optimal alpha
+% (weights on the samples).  *** TODO ***
+
 
 % (c) Matthias Treder 2017
 
@@ -79,23 +92,27 @@ if cfg.bias > 0
 end
 
 
-%% Compute and regularise kernel
+%% Precompute and regularise kernel
 
-% Kernel function
-kernelfun = eval(['@' cfg.kernel '_kernel']);
-
-% Compute kernel matrix
-Q = kernelfun(cfg, X);
-
-% Q = compute_kernel_matrix(cfg, X(:,1:end-1));
-
-% Regularise
-if cfg.regularise_kernel > 0
-    Q = Q + cfg.regularise_kernel * eye(size(X,1));
+if isempty(cfg.Q)
+    
+    % Kernel function
+    kernelfun = eval(['@' cfg.kernel '_kernel']);
+    
+    % Compute kernel matrix
+    Q = kernelfun(cfg, X);
+    
+    % Regularise
+    if cfg.regularise_kernel > 0
+        Q = Q + cfg.regularise_kernel * eye(size(X,1));
+    end
+    
+    % Absorb class labels 1 and -1 in the kernel matrix
+    Q = Q .* (clabel * clabel');
+    
+else
+    Q = cfg.Q;
 end
-
-%% Absorb class labels 1 and -1 in the kernel matrix
-Q = Q .* (clabel * clabel');
 
 %% Automatically set the search grid for C
 if ischar(cfg.C) && strcmp(cfg.C,'auto')
@@ -104,6 +121,8 @@ end
 
 %% Find best lambda using cross-validation
 if numel(cfg.C)>1
+    
+    %%% --- TODO ---
     
     % The regularisation path for logistic regression is needed. ...
     CV = cvpartition(N,'KFold',cfg.K);
@@ -170,9 +189,6 @@ end
 %% Train classifier on the full training data (using the best lambda)
 C = cfg.C(best_idx);
 
-% Initialise alpha
-alpha = zeros(N,1);
-
 % Solve the dual problem and obtain alpha
 alpha = DualCoordinateDescentL1(Q, C, ONE, cfg.tolerance);
 
@@ -203,19 +219,22 @@ else
     % Class labels for the support vectors
     cf.y                = clabel(cf.support_vector_indices);
     
-    % For convenience we save the product alpha x y for the support vectors
+    % For convenience we save the product alpha * y for the support vectors
     cf.alpha_y = cf.alpha(cf.support_vector_indices) .* cf.y(:);
     
     if cfg.bias > 0
-        % remove bias part
+        %%% ???
+        cf.b = 0;
+        
+        % remove bias part from support vectors
         cf.support_vectors = cf.support_vectors(:,1:end-1);
+    else
+        cf.b = 0;
     end
     
     % Save kernel function
     cf.kernelfun = kernelfun;
     
-    %%% ???
-    cf.b = 0;
 end
 
 end
