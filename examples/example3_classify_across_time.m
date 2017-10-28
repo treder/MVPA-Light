@@ -5,7 +5,7 @@
 clear all
 
 % Load data (in /examples folder)
-[dat,clabel] = load_example_data('epoched1');
+[dat,clabel] = load_example_data('epoched2');
 
 %% Setup configuration struct for LDA and Logistic Regression
 
@@ -19,7 +19,7 @@ cfg_LDA.K          = 5;
 cfg_LDA.repeat     = 2;
 cfg_LDA.classifier = 'lda';
 cfg_LDA.param      = struct('lambda','auto');
-cfg_LDA.metric     = 'auc';
+cfg_LDA.metric     = 'acc';
 
 % We are interested in comparing LDA and Logistic Regression (LR). To this 
 % end, we setup a configuration struct for logreg as well. Again, the

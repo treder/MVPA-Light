@@ -20,7 +20,7 @@ ccfg.metric     = 'acc';
 
 acc = mv_classify_timextime(ccfg, dat.trial, clabel);
 
-ccfg.metric     = 'acc';
+ccfg.metric     = 'auc';
 auc = mv_classify_timextime(ccfg, dat.trial, clabel);
 
 %% Plot time generalisation matrix
