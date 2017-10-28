@@ -1,8 +1,6 @@
-function stat = mv_statistics(cfg, out1, varargin)
-% 
-%
+function stat = mv_statistics(cfg, varargin)
 % Usage:
-% stat = mv_statistics(cfg, out1, <out2, ...>)
+% stat = mv_statistics(cfg, result1, <out2, ...>)
 %
 %Parameters:
 % out1         - struct describing the classification outcome. Can be
@@ -19,11 +17,8 @@ function stat = mv_statistics(cfg, out1, varargin)
 %                out2, out3, etc.
 %
 % cfg          - struct with parameters:
-% .lambda        - regularisation parameter between 0 and 1 (where 0 means
-%                   no regularisation and 1 means full max regularisation).
-%                   If 'auto' then the regularisation parameter is
-%                   calculated automatically using the Ledoit-Wolf formula(
-%                   function cov1para.m)
+% .test        - 'binomial'
+%
 % .prob          - if 1, probabilities are returned as decision values. If
 %                  0, the decision values are simply the distance to the
 %                  hyperplane. Calculating probabilities takes more time
