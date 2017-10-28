@@ -1,6 +1,8 @@
 function h = mv_plot_result(varargin)
-%Plots classification results obtained with the functions mv_crossvalidate,
-%mv_classify_across_time, mv_classify_timextime, and mv_searchlight.
+%Provides a simple visual representation of the results obtained with the
+%functions mv_crossvalidate, mv_classify_across_time, mv_classify_timextime, 
+%and mv_searchlight. The type of plot depends on which of these functions 
+%was used (see below).
 %
 %Usage:
 % h = mv_plot_result(result,<...>)
@@ -9,18 +11,21 @@ function h = mv_plot_result(varargin)
 % result            - results struct obtained from one of the
 %                     classification functions above. A cell array of
 %                     results can be provided (e.g. results for different
-%                     subjects). In this case, a single plot is created for
-%                     each cell and an additional figure with a grand
-%                     average.
+%                     subjects); all results need to be created with the
+%                     same function.
 %                     
+%Additional arguments can be provided depending on which classification
+%function was used to create the results:
 %
-%The exact plot depends on which function was used to obtain the results
+%MV_CROSSVALIDATE:
+%Usage: h = mv_plot_result(result)
 %
-% MV_CROSSVALIDATE:
-% h = mv_plot_result(result)
+% Plots the classification result as a barplot. Plots multiple bars, if
+% the result consists of multiple cells. If all metrics are the same, an
+% additional mean plot is generated.
 %
 % MV_CLASSIFY_ACROSS_TIME:
-% h = mv_plot_result(result,x)
+% Usage: h = mv_plot_result(result,x)
 %
 % MV_CLASSIFY_TIMExTIME:
 % h = mv_plot_result(result,x,y)
@@ -55,3 +60,32 @@ function h = mv_plot_result(varargin)
 % h        - struct with handles to the graphical elements 
 
 % (c) Matthias Treder 2017
+
+if ~iscell(result), result = {result}; end
+
+name = result{1}.name;
+
+nCells = numel(result);
+metric = result{1}.metric;
+
+fprintf('Plotting the results of %s.\n', result{1}.name);
+
+%% Struct with handles to graphical objects
+h =struct();
+
+%% Perform the plotting
+switch(name)
+    %% --------------- MV_CROSSVALIDATE ---------------
+    case 'mv_crossvalidate'
+        h.bar = bar(1:nCells, 
+    %% --------------- MV_CLASSIFY_ACROSS_TIME ---------------
+    case 'mv_classify_across_time'
+
+    %% --------------- MV_CLASSIFY_TIMEXTIME ---------------
+    case 'mv_classify_timextime'
+
+    %% --------------- MV_SEARCHLIGHT ---------------
+    case 'mv_searchlight'
+end
+
+
