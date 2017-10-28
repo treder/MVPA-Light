@@ -1,12 +1,12 @@
-function [perf,res] = mv_calculate_performance(metric, cf_output, clabel, dim)
+function perf = mv_calculate_performance(metric, cf_output, clabel, dim)
 %Calculates a classifier performance metric such as classification accuracy
-%based on the classifier output (labels or decision values). In
+%based on the classifier output (e.g. labels or decision values). In
 %cross-validation, the metric needs to be calculated on each test fold
 %separately and then averaged across folds, since a different classifier
 %has been trained in each fold.
 %
 %Usage:
-%  [perf, res] = mv_classifier_performance(metric, cf_output, clabel, dim)
+%  perf = mv_classifier_performance(metric, cf_output, clabel, dim)
 %
 %Parameters:
 % metric            - desired performance metric:
@@ -16,8 +16,10 @@ function [perf,res] = mv_calculate_performance(metric, cf_output, clabel, dim)
 %                     for each class separately. The first dimension of
 %                     the output refers to the class, ie perf(1,...)
 %                     refers to class 1 and perf(2,...) refers to class 2
+%                     'tval': independent samples t-test statistic for
+%                     unequal sample sizes. It is calculated across the 
+%                     distribution of dvals for two classes
 %                     'auc': area under the ROC curve
-%                     'roc': ROC curve TODO
 % cf_output         - vector of classifier outputs (labels or dvals). If
 %                     multiple test sets have been validated using
 %                     cross-validation, a (possibly mult-dimensional)
@@ -25,7 +27,8 @@ function [perf,res] = mv_calculate_performance(metric, cf_output, clabel, dim)
 %                     corresponding to one test set.
 % clabel            - vector of true class labels. If multiple test sets
 %                     have been validated using cross-validation, a cell
-%                     array of labels should be provided
+%                     array of labels should be provided (same size as
+%                     cf_output)
 % dim               - index of dimension across which values are averaged
 %                     (e.g. dim=2 if the second dimension is the number of
 %                     repeats of a cross-validation). Default: [] (no
@@ -51,9 +54,8 @@ function [perf,res] = mv_calculate_performance(metric, cf_output, clabel, dim)
 %
 %Returns:
 % perf     - performance metric
-% res      - struct with fields describing the classification result. Can 
-%            be used as input to mv_statistics
 
+% (c) Matthias Treder 2017
 
 if nargin<4
     dim=[];
@@ -86,7 +88,7 @@ perf = cell(sz_cf_output);
 switch(metric)
     
     case 'acc'
-        %%% ACC: classification accuracy -------------------------------
+        %%% ------ ACC: classification accuracy -----
         
         if isClassLabel
             % Compare predicted labels to the true labels. To this end, we
@@ -116,7 +118,7 @@ switch(metric)
         end
         
     case 'dval'
-        %%% DVAL: average decision value for each class -------------------------------
+        %%% ------ DVAL: average decision value for each class ------
         
         perf = cell([sz_cf_output,2]);
         
@@ -131,8 +133,51 @@ switch(metric)
             end
         end
         
+    case 'tval'
+        %%% ------ TVAL: independent samples t-test values ------
+        % Using the formula for unequal sample size, equal variance: 
+        % https://en.wikipedia.org/wiki/Student%27s_t-test#Equal_or_unequal_sample_sizes.2C_equal_variance
+        perf = cell(sz_cf_output);
+        
+        
+        error('todo for mv_classify_timextime')
+        
+         % Aggregate across samples, for each class separately
+        if nExtra == 1
+            % Get means
+            M1 = cellfun( @(cfo,lab) nanmean(cfo(lab==1,:,:,:,:,:),1), cf_output, clabel, 'Un',0);
+            M2 = cellfun( @(cfo,lab) nanmean(cfo(lab==2,:,:,:,:,:),1), cf_output, clabel, 'Un',0);
+            % Variances
+            V1 = cellfun( @(cfo,lab) nanvar(cfo(lab==1,:,:,:,:,:)), cf_output, clabel, 'Un',0);
+            V2 = cellfun( @(cfo,lab) nanvar(cfo(lab==2,:,:,:,:,:)), cf_output, clabel, 'Un',0);
+            % Class frequencies
+            N1 = cellfun( @(lab) sum(lab==1), clabel, 'Un',0);
+            N2 = cellfun( @(lab) sum(lab==2), clabel, 'Un',0);
+            % Pooled standard deviation
+            SP = cellfun( @(v1,v2,n1,n2) sqrt( ((n1-1)*v1 + (n2-1)*v2) / (n1+n2-2)  ), V1,V2,N1,N2, 'Un',0);
+            % T-value
+            perf = cellfun( @(m1,m2,n1,n2,sp) (m1-m2)/(sp*sqrt(1/n1 + 1/n2)) , M1,M2,N1,N2,SP,'Un',0);
+        else
+            for xx=1:nExtra % Looping across the extra dimensions if cf_output is multi-dimensional
+                % Get means
+                M1 = cellfun( @(cfo,lab) nanmean(cfo(lab==1,:,:,:,:,:),1), cf_output(dimSkipToken{:},xx), clabel, 'Un',0);
+                M2 = cellfun( @(cfo,lab) nanmean(cfo(lab==2,:,:,:,:,:),1), cf_output(dimSkipToken{:},xx), clabel, 'Un',0);
+                % Variances
+                V1 = cellfun( @(cfo,lab) nanvar(cfo(lab==1,:,:,:,:,:)), cf_output(dimSkipToken{:},xx), clabel, 'Un',0);
+                V2 = cellfun( @(cfo,lab) nanvar(cfo(lab==2,:,:,:,:,:)), cf_output(dimSkipToken{:},xx), clabel, 'Un',0);
+                % Class frequencies
+                N1 = cellfun( @(lab) sum(lab==1), clabel, 'Un',0);
+                N2 = cellfun( @(lab) sum(lab==2), clabel, 'Un',0);
+                % Pooled standard deviation
+                SP = cellfun( @(v1,v2,n1,n2) sqrt( ((n1-1)*v1 + (n2-1)*v2) / (n1+n2-2)  ), V1,V2,N1,N2, 'Un',0);
+                % T-value
+                perf(dimSkipToken{:},xx) = cellfun( @(m1,m2,n1,n2,sp) (m1-m2)/(sp*sqrt(1/n1 + 1/n2)) , M1,M2,N1,N2,SP,'Un',0);
+            end
+        end
+        
     case 'auc'
-        %%% AUC: area under the ROC curve -------------------------------
+        %%% ----- AUC: area under the ROC curve -----
+        
         % AUC can be calculated by sorting the dvals, traversing the
         % positive examples (class 1) and counting the number of negative
         % examples (class 2) with lower values
@@ -223,7 +268,4 @@ end
 
 perf = squeeze(perf);
 
-% Prepare output struct with richer description of the classification
-% result
-res = [];
 
