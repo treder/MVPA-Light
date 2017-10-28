@@ -80,7 +80,7 @@ if hasX2, mv_set_default(cfg,'time2',1:size(X2,3));
 else,     mv_set_default(cfg,'time2',1:size(X,3));
 end
 
-if isempty(cfg.metric) || any(ismember({'dval','auc','roc'},cfg.metric))
+if isempty(cfg.metric) || any(ismember({'dval','auc','roc','tval'},cfg.metric))
     mv_set_default(cfg,'cf_output','dval');
 else
     mv_set_default(cfg,'cf_output','clabel');
@@ -291,7 +291,14 @@ else
     if cfg.feedback, fprintf('finished\n'), end
 end
 
+
+result = [];
 if nargout>1
-else
-    res = [];
+   result.function  = mfilename;
+   result.perf      = perf;
+   result.metric    = cfg.metric;
+   result.CV        = cfg.CV;
+   result.K         = cfg.K;
+   result.repeat    = cfg.repeat;
+   result.classifier = cfg.classifier;
 end

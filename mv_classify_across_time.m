@@ -67,7 +67,7 @@ mv_set_default(cfg,'repeat',5);
 mv_set_default(cfg,'time',1:size(X,3));
 mv_set_default(cfg,'feedback',1);
 
-if isempty(cfg.metric) || any(ismember({'dval','auc','roc'},cfg.metric))
+if isempty(cfg.metric) || any(ismember({'dval','auc','roc','tval'},cfg.metric))
     mv_set_default(cfg,'cf_output','dval');
 else
     mv_set_default(cfg,'cf_output','clabel');
