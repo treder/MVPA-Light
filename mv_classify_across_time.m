@@ -201,6 +201,7 @@ end
 if isempty(cfg.metric)
     if cfg.feedback, fprintf('No performance metric requested, returning raw classifier output.\n'), end
     perf = cf_output;
+    perf_std = [];
 else
     if cfg.feedback, fprintf('Calculating classifier performance... '), end
     [perf, perf_std] = mv_calculate_performance(cfg.metric, cf_output, testlabel, avdim);
