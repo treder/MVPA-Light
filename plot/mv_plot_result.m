@@ -43,29 +43,6 @@ function h = mv_plot_result(result, varargin)
 % MV_SEARCHLIGHT:
 % h = mv_plot_result(result,chanlocs)
 %
-%Parameters:
-% time              - [N x 1] vector of times representing the x-axis
-% dat               - [N x M] data matrix with results. Plots M lines of
-%                     length M
-% err               - [N x M] data matrix specifying errorbars (optional) 
-%                     The external boundedline function is used to plot the
-%                     error as a shaded area
-%
-% cfg          - struct with hyperparameters (use [] to keep all parameters at default):
-% xlabel,ylabel     - label for x and y axes (defaults 'Time' and 'Accuracy')
-% title             - axis title (default '')
-% grid              - options for the grid function (default {'on'})
-% lineorder         - order of line types when multiple lines are plotted
-%                     (default {'-' '--' ':'})
-% hor               - y-value corresponding to horizontal line (default 0.5)
-% ver               - x-value corresponding to vertical line (default 0)
-% cross             - Give the line options for horizontal and vertical
-%                     lines forming a crosshair as cell array (default 
-%                     {'--k'}). Set to [] to remove lines
-% bounded           - cell array with additional arguments passed to
-%                     boundedline.m when a plot with errorbars is created
-%                     (default {'alpha'})
-%
 % Returns:
 % h        - struct with handles to the graphical elements 
 
@@ -77,78 +54,78 @@ nResults = numel(result);
 metric = result{1}.metric;
 fun = result{1}.function;
 
-fprintf('Plotting the results of %s.\n', result{1}.function);
+if numel(unique(cellfun( @(res) res.function, result,'Un',0))) > 1
+    error('All results must come from the same function')
+end
+if numel(unique(cellfun( @(res) res.metric, result,'Un',0))) > 1
+    error('All results must use the same metric')
+end
 
-%% Extract performance metrics
-% perf = 
-
-%% Check whether all results have the same classifier
-allSameClassifier = numel(unique(cellfun( @(res) res.classifier, result, 'Un', 0)))==1;
+fprintf('Plotting the results of %s.\n', fun);
 
 %% Extract all performance measures into a matrix
-perf = cell2mat(cellfun( @(res) res.perf(:), result, 'Un', 0));
-perf_std = cell2mat(cellfun( @(res) res.perf_std(:), result, 'Un', 0));
+perf = cellfun( @(res) res.perf, result, 'Un', 0);
+perf_std = cellfun( @(res) res.perf_std, result, 'Un', 0);
 
 if strcmp(fun,'mv_classify_timextime')
-    perf = cat(3, perf{:});
+    cat_dim = 3;
 else
-    perf = cat(2, perf{:});
+    cat_dim = 2;
 end
+
+if strcmp(metric,'dval')
+    cat_dim = cat_dim + 1;
+end
+
+perf = cat(cat_dim, perf{:});
+perf_std = cat(cat_dim, perf_std{:});
 
 %% Get axis or legend labels
 lab = arrayfun( @(x) [num2str(x) ' (' result{x}.classifier ')'], 1:nResults,'Un',0);
 
 %% If multiple results are given, calculate mean
 if nResults > 1
-    hasMean = 1;
-    % Find out along which dimension we have to concatenate
-    if strcmp(result{1}.function,'mv_classify_timextime')
-        if strcmp(result{1}.metrc,'dval')
-            cat_dim = 4;
-        else
-            cat_dim = 3;
-        end
-    else
-        cat_dim = 2;
-    end
-    
-    perf = cat(cat_dim, perf, mean(perf,cat_dim));
-    perf_std = cat(cat_dim, perf_std, mean(perf_std,cat_dim));
-    nResults = nResults + 1;
-    lab = [lab 'MEAN'];
-else
-    hasMean = 0;
+    perf_mean = mean(perf,ndims(perf));
+    perf_std_mean = mean(perf_std,ndims(perf_std));
+    mean_lab = 'MEAN';
 end
 
 %% Struct with handles to graphical objects
 h =struct();
+h.ax = [];
+h.title = [];
 
 %% Plot
-clf
 switch(fun)
     
     
     %% --------------- MV_CROSSVALIDATE ---------------
     case 'mv_crossvalidate'
 
+        figure
+        h.ax = gca;
         if nResults == 1
             h.bar = bar(perf');
         else
-            h.bar = bar(1:nResults, perf');
-            set(gca,'XTick',1:nResults, 'XTickLabel',lab)
+            h.bar = bar(1:nResults+1, [perf, perf_mean]');
+            set(gca,'XTick',1:nResults+1, 'XTickLabel',[lab mean_lab])
         end
         
         % Indicate SEM if the bars are not grouped
-        if any(strcmp(result{1}.metric,{'auc' 'acc'}))
+        if any(strcmp(metric,{'auc' 'acc'}))
             hold on
-            errorbar(1:nResults,perf',perf_std','.')
+            errorbar(1:nResults+1,[perf, perf_mean]', [perf_std, perf_std_mean]','.')
         end
         
         % X and Y labels
-        h.ylabel = ylabel(result{1}.metric);
+        h.ylabel = ylabel(metric);
         h.fig = gcf;
-        h.title = title(result{1}.function,'Interpreter','none');
-
+        h.title = title(fun,'Interpreter','none');
+        
+        % Set Y label
+        for ii=1:numel(h.ax)
+            h.ylabel(ii) = ylabel(h.ax(ii),metric);
+        end
 
     %% --------------- MV_CLASSIFY_ACROSS_TIME ---------------
     case 'mv_classify_across_time'
@@ -157,48 +134,185 @@ switch(fun)
         else,           x = 1:length(result{1}.perf);
         end
         
+        figure
         cfg = [];
-        if any(strcmp(result{1}.metric,{'auc', 'acc'}))
+        if any(strcmp(metric,{'auc', 'acc'}))
             cfg.hor = 0.5;
-        elseif any(strcmp(result{1}.metric,{'dval', 'tval'}))
+        elseif any(strcmp(metric,{'dval', 'tval'}))
             cfg.hor = 0;
-            
         end
             
-        if hasMean
-            % If there is a mean, we put it in a separate plot
-            title('Single results')
-            tmp = mv_plot_1D(cfg,x, perf(:,1:nResults-1), perf_std(:,1:nResults-1) );
-            legend(lab(1:nResults-1))
-            h.ylabel(1) = ylabel(result{1}.metric);
-            h.ax(1) = tmp.ax;
+        if strcmp(metric,'dval')
+            % dval: create separate subplot for each result
+            N = size(perf,3);
+            nc = ceil(sqrt(N));
+            nr = ceil(N/nc);
+            h.plt = [];
+            for ii=1:N
+                subplot(nr,nc,ii)
+                tmp = mv_plot_2D(cfg,x, squeeze(perf(:,:,ii)), squeeze(perf_std(:,:,ii)) );
+                legend(lab(ii))
+                h.ax = [h.ax; tmp.ax];
+                h.plt = [h.plt; tmp.plt];
+                h.fig = gcf;
+                h.title = [h.title; title(fun,'Interpreter','none')];
+            end
+        else
+            tmp = mv_plot_1D(cfg,x, perf, perf_std);
+            legend(lab)
+            h.ax = tmp.ax;
             h.plt = tmp.plt;
             h.fig = gcf;
-            h.ylabel(1) = ylabel(result{1}.metric);
-            h.title = title(result{1}.function,'Interpreter','none');
-
+            h.title = title(fun,'Interpreter','none');
+        end
+        
+        % Plot mean
+        if nResults > 1
             figure
-            tmp = mv_plot_1D(cfg,x, perf(:,nResults), perf_std(:,nResults) );
-            h.ylabel(2) = ylabel(result{1}.metric);
-            h.ax(2) = tmp.ax;
+            tmp = mv_plot_1D(cfg,x, perf_mean, perf_std_mean );
+            set(tmp.plt, 'LineWidth',2);
+            h.ax = [h.ax; tmp.ax];
             h.plt = [h.plt; tmp.plt];
             legend({'MEAN'})
             h.fig(2) = gcf;
-            h.ylabel(2) = ylabel(result{1}.metric);
-            h.title(2) = title([result{1}.function ' (MEAN)'],'Interpreter','none');
-            
-        else
-            tmp = mv_plot_1D(cfg,x, perf, perf_std );
-            h.ylabel = ylabel(result{1}.metric);
+            h.title = [h.title; title([fun ' (MEAN)'],'Interpreter','none')];
         end
 
+        % Set Y label
+        for ii=1:numel(h.ax)
+            h.ylabel(ii) = ylabel(h.ax(ii),metric);
+        end
 
     %% --------------- MV_CLASSIFY_TIMEXTIME ---------------
     case 'mv_classify_timextime'
 
+        if nargin > 1,  x = varargin{1};
+        else,           x = 1:size(result{1}.perf,1);
+        end
+        if nargin > 2,  y = varargin{2};
+        else,           y = 1:size(result{1}.perf,2);
+        end
+        
+        % settings for 2d plot
+        cfg= [];
+        cfg.x   = x;
+        cfg.y   = y;
+        if any(strcmp(metric,{'auc', 'acc'}))
+            cfg.climzero = 0.5;
+        elseif any(strcmp(metric,{'dval', 'tval'}))
+            cfg.climzero = 0;
+        end
+        
+        if strcmp(metric,'dval')
+            % dval: create figure each class
+            hs = cell(1,2);
+            for cl=1:2
+                figure
+                cfg.title = strcat(fun, ' - ' ,lab, ' (class ', num2str(cl),')');
+                hs{cl} = mv_plot_2D(cfg, squeeze(perf(:,cl,:,:)) );
+            end
+            h = [hs{:}];
+            
+            % Plot mean
+            if nResults > 1
+                figure
+                cfg.title = strcat(fun, '-' ,mean_lab);
+                h(numel(h)+1) = mv_plot_2D(cfg, cat(3,squeeze(perf_mean(:,1,:)), squeeze(perf_mean(:,2,:))) );
+            end
+        else
+            cfg.title = strcat(fun, '-' ,lab);
+            h = mv_plot_2D(cfg, perf);
+            
+            % Plot mean
+            if nResults > 1
+                figure
+                cfg.title = strcat(fun, '-' ,mean_lab);
+                h(numel(h)+1) = mv_plot_2D(cfg, perf_mean );
+            end
+        end
+        
+        % set metric as title for colorbar
+        for ii=1:numel(h)
+            set(get(h(ii).colorbar,'title'),'String',metric)
+        end
+        
+
+
     %% --------------- MV_SEARCHLIGHT ---------------
     case 'mv_searchlight'
+       
+        if nargin>1
+            % If a struct with channel information is given, we use it to plot
+            % a topography
+            chans = varargin{1};
+            cfg = [];
+            cfg.cbtitle = metric;
+            cfg.clim = 'sym';
+            
+            if any(strcmp(metric,{'auc', 'acc'}))
+                cfg.climzero = 0.5;
+            elseif any(strcmp(metric,{'dval', 'tval'}))
+                cfg.climzero = 0;
+            end
+
+            if isfield(chans,'outline'), cfg.outline = chans.outline; end
+            
+            if strcmp(metric,'dval')
+                % dval: create figure each class
+                hs = cell(1,2);
+                for cl=1:2
+                    figure
+                    cfg.title = strcat(fun, ' - ' ,lab, ' (class ', num2str(cl),')');
+                    hs{cl} = mv_plot_topography(cfg, squeeze(perf(:,cl,:)), chans.pos);
+                    axis on
+                    axis off
+                end
+                h = [hs{:}];
+            else
+                % no dval: all plots in one figure
+                cfg.title = strcat(fun, ' - ' ,lab);
+                h = mv_plot_topography(cfg, perf, chans.pos);
+            end
+            
+            % Plot mean
+            if nResults > 1
+                figure
+                cfg.title = strcat(fun, '-' ,mean_lab);
+                h(numel(h)+1) = mv_plot_topography(cfg, perf_mean, chans.pos);
+            end
+
+        else
+            % If no chans are provided: plot classification performance 
+            % for each feature as a grouped bar graph
+            
+            if strcmp(metric,'dval')
+                % dval: create figure each class
+                hs = cell(1,2);
+                for cl=1:2
+                    figure
+                    hs{cl}.bar = bar(squeeze(perf(:,cl,:))');
+                    hs{cl}.title= title(sprintf('%s - class %d',fun,cl),'Interpreter','none');
+                    hs{cl}.ylabel = ylabel(metric);
+                    set(gca,'XTick',1:nResults,'XTickLabel',lab)
+                end
+                h = [hs{:}];
+            else
+                figure
+                h.bar = bar(perf');
+                h.ylabel = ylabel(metric);
+                set(gca,'XTick',1:nResults,'XTickLabel',lab)
+                h.title= title(fun,'Interpreter','none');
+            end
+            
+            % Plot mean
+            if nResults > 1
+                figure
+                h(2).bar = bar(perf_mean');
+                h(2).ylabel = ylabel(metric);
+                h(2).title= title(strcat(fun, '-' ,mean_lab),'Interpreter','none');
+            end
+        end
+        
 end
 
 grid on
-
