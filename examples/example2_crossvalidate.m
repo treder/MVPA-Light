@@ -32,7 +32,7 @@ cfg_LDA.K               = 5;
 cfg_LDA.repeat          = 10;
 cfg_LDA.balance         = 'undersample';
 
-acc_LDA = mv_crossvalidate(cfg_LDA, X, clabel);
+[acc_LDA, result_LDA] = mv_crossvalidate(cfg_LDA, X, clabel);
 
 % Compare the result for LDA to Logistic Regression (LR).
 cfg_LR = cfg_LDA;
@@ -40,12 +40,16 @@ cfg_LR.classifier       = 'logreg';
 cfg_LR.param            = [];
 cfg_LR.param.lambda     = 'auto';
 
-acc_LR = mv_crossvalidate(cfg_LR, X, clabel);
+[acc_LR, result_LR] = mv_crossvalidate(cfg_LR, X, clabel);
 
 fprintf('\nClassification accuracy (LDA): %2.2f%%\n', 100*acc_LDA)
 fprintf('Classification accuracy (Logreg): %2.2f%%\n', 100*acc_LR)
 
+% Produce plot of results
+h = mv_plot_result({result_LDA, result_LR});
+
 %% Comparing cross-validation to train-test on the same data
+cfg_LDA.metric = 'acc';
 
 % Select only the first samples
 nReduced = 29;
