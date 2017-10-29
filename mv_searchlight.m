@@ -145,7 +145,14 @@ for ff=1:nFeat
     
 end
 
+
+result = [];
 if nargout>1
-else
-    res = [];
+   result.function  = mfilename;
+   result.perf      = perf;
+   result.metric    = cfg.metric;
+   result.CV        = cfg.CV;
+   result.K         = cfg.K;
+   result.repeat    = cfg.repeat;
+   result.classifier = cfg.classifier;
 end
