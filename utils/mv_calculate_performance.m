@@ -1,4 +1,4 @@
-function perf = mv_calculate_performance(metric, cf_output, clabel, dim)
+function [perf, perf_std] = mv_calculate_performance(metric, cf_output, clabel, dim)
 %Calculates a classifier performance metric such as classification accuracy
 %based on the classifier output (e.g. labels or decision values). In
 %cross-validation, the metric needs to be calculated on each test fold
@@ -54,6 +54,10 @@ function perf = mv_calculate_performance(metric, cf_output, clabel, dim)
 %
 %Returns:
 % perf     - performance metric
+% perf_SEM - standard error of the mean of the performance metric (averaged 
+%            across folds and repetitions). Typically calculated across
+%            folds and repetitions, it gives some information about the 
+%            variability of the metric.
 
 % (c) Matthias Treder 2017
 
@@ -259,13 +263,25 @@ if nd>1
         perf{ii} = tmp;
     end
 end
+
 perf = cell2mat(perf);
+perf_std = [];
 
 % Average across requested dimensions
 for nn=1:numel(dim)
+    % Calculate standard error
+    if nn==1
+        perf_std = nanstd(perf, [], dim(nn));
+    else
+        perf_std = mean(perf_std, dim(nn));
+    end
+    
+    % Average
     perf = nanmean(perf, dim(nn));
 end
 
 perf = squeeze(perf);
+perf_std = squeeze(perf_std);
+
 
 

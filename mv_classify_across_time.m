@@ -203,7 +203,7 @@ if isempty(cfg.metric)
     perf = cf_output;
 else
     if cfg.feedback, fprintf('Calculating classifier performance... '), end
-    perf = mv_calculate_performance(cfg.metric, cf_output, testlabel, avdim);
+    [perf, perf_std] = mv_calculate_performance(cfg.metric, cf_output, testlabel, avdim);
     if cfg.feedback, fprintf('finished\n'), end
 end
 
@@ -211,6 +211,7 @@ result = [];
 if nargout>1
    result.function  = mfilename;
    result.perf      = perf;
+   result.perf_std  = perf_std;
    result.metric    = cfg.metric;
    result.CV        = cfg.CV;
    result.K         = cfg.K;
