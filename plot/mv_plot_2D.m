@@ -74,8 +74,8 @@ mv_set_default(cfg,'climzero',0.5);
 mv_set_default(cfg,'globalclim',1);
 mv_set_default(cfg,'grid',{'on'});
 mv_set_default(cfg,'zero',{'--k'});
-mv_set_default(cfg,'nrow',ceil(sqrt(P)));
 mv_set_default(cfg,'ncol',ceil(sqrt(P)));
+mv_set_default(cfg,'nrow',ceil(P/cfg.ncol));
 mv_set_default(cfg,'colorbar',1);
 mv_set_default(cfg,'cblocation','EastOutside');
 mv_set_default(cfg,'ydir','normal');
@@ -179,22 +179,23 @@ if cfg.colorbar
             cbpos = P;
         end
         
-        oldpos = get(h.ax(cbpos),'Position');
-        cb = colorbar('peer',h.ax(cbpos),'location',cfg.cblocation);
-        h.colorbar = cb;
-        set(h.ax(cbpos),'Position',oldpos);
+%         oldpos = get(h.ax(cbpos),'Position');
+        h.colorbar = colorbar('peer',h.ax(cbpos),'location',cfg.cblocation);
+%         set(h.ax(cbpos),'Position',oldpos);
     else
         for ii=1:P
             h.colorbar(ii) = colorbar('peer',h.ax(ii),'location',cfg.cblocation);
         end
     end
+else
+    h.colorbar = [];
 end
 
 %% Add labels and title
 for ii=1:P  
     if ~isempty(cfg.xlabel{ii}), h.xlabel(ii) = xlabel(h.ax(ii),cfg.xlabel{ii}); end
     if ~isempty(cfg.ylabel{ii}), h.ylabel(ii) = ylabel(h.ax(ii),cfg.ylabel{ii}); end
-    if ~isempty(cfg.title{ii}), h.title(ii) = title(h.ax(ii),cfg.title{ii}); end
+    if ~isempty(cfg.title{ii}), h.title(ii) = title(h.ax(ii),cfg.title{ii},'Interpreter','none'); end
 end
 
 %% Set Y-Dir
