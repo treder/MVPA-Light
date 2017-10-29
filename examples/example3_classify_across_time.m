@@ -33,7 +33,8 @@ cfg_LR.param      = struct('lambda','auto' );
 [auc_LR, result_LR] = mv_classify_across_time(cfg_LR, dat.trial, clabel);
 
 %% Plot classification accuracy across time
-mv_plot_result({result_LDA, result_LR}, dat.time)
+close all
+mv_plot_result({result_LDA, result_LR}, dat.time) % second argument is optional
 
 %% Classification across time for all subjects
 nSbj = 3;
@@ -52,5 +53,6 @@ for nn=1:nSbj
     
 end
 
+% Plot 3 subjects and mean across subjects
 close all
-h = mv_plot_result(result);
+h = mv_plot_result(result, dat.time);

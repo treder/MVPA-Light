@@ -1,5 +1,4 @@
 %%% Time generalisation example
-
 clear all
 
 % Load data (in /examples folder)
@@ -15,15 +14,18 @@ ccfg =  [];
 ccfg.classifier = 'lda';
 ccfg.param      = struct('lambda','auto');
 ccfg.normalise  = 'demean';  % 'demean' 'none'
-ccfg.cf_output  = 'dval';
 ccfg.metric     = 'acc';
 
-acc = mv_classify_timextime(ccfg, dat.trial, clabel);
+[acc, result_acc] = mv_classify_timextime(ccfg, dat.trial, clabel);
 
 ccfg.metric     = 'auc';
-auc = mv_classify_timextime(ccfg, dat.trial, clabel);
+[auc, result_auc] = mv_classify_timextime(ccfg, dat.trial, clabel);
 
 %% Plot time generalisation matrix
+close all
+mv_plot_result(result_acc, dat.time, dat.time) % 2nd and 3rd argument are optional
+
+
 figure
 cfg= [];
 cfg.x   = dat.time;
@@ -73,10 +75,10 @@ ccfg.param      = struct('lambda','auto');
 ccfg.normalise  = 'demean';  % 'demean' 'none'
 ccfg.metric     = 'acc';
 
-acc31 = mv_classify_timextime(ccfg, dat.trial, clabel, dat2.trial, clabel2);
+[acc31, result31] = mv_classify_timextime(ccfg, dat.trial, clabel, dat2.trial, clabel2);
 
 % Reverse the analysis: train the classifier on epoched1, test on epoched3
-acc13 = mv_classify_timextime(ccfg, dat2.trial, clabel2, dat.trial, clabel);
+[acc13, result13]= mv_classify_timextime(ccfg, dat2.trial, clabel2, dat.trial, clabel);
 
 figure
 cfg =[];
@@ -91,3 +93,5 @@ mv_plot_2D(cfg, acc13 );
 colormap jet
 title('Training on epoched1, testing on epoched3')
 
+close all
+mv_plot_result({result13, result31}, dat.time, dat.time)
