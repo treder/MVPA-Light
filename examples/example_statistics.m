@@ -1,4 +1,7 @@
-%%% Time generalisation example
+%%% This example demostates statistical analysis of classification results
+%%% using the function mv_statistics. We will analyse the results of the
+%%% four major functions mv_crossvalidate, mv_classify_across_time,
+%%% mv_classify_timextime, and mv_searchlight.
 clear all
 
 % Load data (in /examples folder)
@@ -43,12 +46,12 @@ colormap jet
 title('AUC')
 
 %% Compare accuracy/AUC when no normalisation is performed
-cfg.normalise  = 'none';
-cfg.metric     = 'acc';
-acc = mv_classify_timextime(cfg, dat.trial, clabel);
+ccfg.normalise  = 'none';
+ccfg.metric     = 'acc';
+acc = mv_classify_timextime(ccfg, dat.trial, clabel);
 
-cfg.metric     = 'auc';
-auc = mv_classify_timextime(cfg, dat.trial, clabel);
+ccfg.metric     = 'auc';
+auc = mv_classify_timextime(ccfg, dat.trial, clabel);
 
 figure
 mv_plot_2D(cfg, acc);
@@ -69,16 +72,16 @@ title('AUC')
 % The subject loaded above will serve as training data.
 [dat2, clabel2] = load_example_data('epoched1');
 
-cfg =  [];
-cfg.classifier = 'lda';
-cfg.param      = struct('lambda','auto');
-cfg.normalise  = 'demean';  % 'demean' 'none'
-cfg.metric     = 'acc';
+ccfg =  [];
+ccfg.classifier = 'lda';
+ccfg.param      = struct('lambda','auto');
+ccfg.normalise  = 'demean';  % 'demean' 'none'
+ccfg.metric     = 'acc';
 
-[acc31, result31] = mv_classify_timextime(cfg, dat.trial, clabel, dat2.trial, clabel2);
+[acc31, result31] = mv_classify_timextime(ccfg, dat.trial, clabel, dat2.trial, clabel2);
 
 % Reverse the analysis: train the classifier on epoched1, test on epoched3
-[acc13, result13]= mv_classify_timextime(cfg, dat2.trial, clabel2, dat.trial, clabel);
+[acc13, result13]= mv_classify_timextime(ccfg, dat2.trial, clabel2, dat.trial, clabel);
 
 figure
 cfg =[];

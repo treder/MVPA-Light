@@ -1,6 +1,6 @@
 function stat = mv_statistics(cfg, varargin)
 % Usage:
-% stat = mv_statistics(cfg, result1, <out2, ...>)
+% stat = mv_statistics(cfg, result1, <result2, ...>)
 %
 %Parameters:
 % out1         - struct describing the classification outcome. Can be
@@ -33,5 +33,7 @@ function stat = mv_statistics(cfg, varargin)
 
 
 % (c) Matthias Treder 2017
+
+
 
 
