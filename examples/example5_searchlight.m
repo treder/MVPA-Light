@@ -59,6 +59,7 @@ mv_plot_result(result, chans)
 mv_plot_result(result)
 
 %% -- end of example --
+return
 
 %% Alternative approach for defining the neighbours  using Fieldtrip
 %%% Note: This example requires FieldTrip, since we define the
@@ -71,7 +72,7 @@ cfg = [];
 % cfg.method      = 'triangulation';  %'distance'
 cfg.method      = 'distance';
 cfg.neighbourdist = 0.195;
-cfg.layout      = 'EasycapM1';
+cfg.layout      = 'easycapM1';
 cfg.feedback    = 'yes';
 cfg.channel     = dat.label;
 neighbours= ft_prepare_neighbours(cfg);
