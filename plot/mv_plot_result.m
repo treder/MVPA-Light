@@ -43,6 +43,12 @@ function h = mv_plot_result(result, varargin)
 % MV_SEARCHLIGHT:
 % h = mv_plot_result(result,chanlocs)
 %
+% Plots classification performance for each feature. 
+% If the features correspond to EEG/MEG channels and channel locations are
+% provided (chanlocs must be a struct with a field pos specifying their 2d
+% positions) the performance is plotted as a topography.
+% In any other case, the features are plotted as bars in a bar graph.
+%
 % Returns:
 % h        - struct with handles to the graphical elements 
 
@@ -303,6 +309,7 @@ switch(fun)
                 set(gca,'XTick',1:nResults,'XTickLabel',lab)
                 h.title= title(fun,'Interpreter','none');
             end
+            grid on
             
             % Plot mean
             if nResults > 1
