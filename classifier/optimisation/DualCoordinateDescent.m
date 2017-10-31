@@ -1,4 +1,4 @@
-function [alpha,iter] = DualCoordinateDescentL1(Q,C,ONE,tolerance)
+function [alpha,iter] = DualCoordinateDescent(Q,C,ONE,tolerance)
 % Implementation of a dual coordinate descent algorithm for optimising 
 % linear and non-linear SVMs with L1 loss.
 %
@@ -18,7 +18,7 @@ function [alpha,iter] = DualCoordinateDescentL1(Q,C,ONE,tolerance)
 %
 % 
 %
-% Usage: [w,iter] = DualCoordinateDescentL1(a,Q,ONE,tolerance)
+% Usage: [w,iter] = DualCoordinateDescent(a,Q,ONE,tolerance)
 %
 % alpha     - start dual vector
 % Q         - kernel matrix with class labels absorbed
@@ -163,7 +163,7 @@ while iter < max_iter
 
 end
 
-%%% debug
+%%% uncomment for debugging
 % fprintf('#iterations = %d\n',iter)
 % fprintf('Objective value = %3.9f\n', calculate_dual_loss())
 
