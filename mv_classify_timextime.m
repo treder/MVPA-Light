@@ -116,8 +116,14 @@ test_fun = eval(['@test_' cfg.classifier]);
 %% Normalise
 if strcmp(cfg.normalise,'zscore')
     X = zscore(X,[],1);
+    if hasX2
+        X2 = zscore(X2,[],1);
+    end
 elseif strcmp(cfg.normalise,'demean')
     X  = X  - repmat(mean(X,1), [size(X,1) 1 1]);
+    if hasX2
+        X2  = X2  - repmat(mean(X2,1), [size(X2,1) 1 1]);
+    end
 end
 
 %% Time x time generalisation
