@@ -59,6 +59,7 @@ mv_plot_result(result, chans)
 mv_plot_result(result)
 
 %% -- end of example --
+return
 
 %% Alternative approach for defining the neighbours  using Fieldtrip
 %%% Note: This example requires FieldTrip, since we define the
