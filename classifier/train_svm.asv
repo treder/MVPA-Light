@@ -24,11 +24,9 @@ function cf = train_svm(cfg,X,clabel)
 %                  'auto').
 % kernel         - kernel function:
 %                  'linear'     - linear kernel, trains a linear SVM
-%                                 ker(x,y) = x' * y
+%                                  
 %                  'rbf'        - radial basis function or Gaussian kernel
-%                                 ker(x,y) = exp(-gamma * |x-y|^2);
 %                  'polynomial' - polynomial kernel
-%                                 ker(x,y) = (gamma * x * y' + coef0)^degree
 %                  Alternatively, a custom kernel can be provided if there
 %                  is a function called *_kernel is in the MATLAB path, 
 %                  where "*" is the name of the kernel (e.g. rbf_kernel).
@@ -43,14 +41,8 @@ function cf = train_svm(cfg,X,clabel)
 %
 % Hyperparameters for specific kernels:
 %
-% gamma         - (kernel: rbf, polynomial) controls the 'width' of the
-%                  kernel. If set to 'auto', gamma is set to 1/(nr of features)
-%                  (default 'auto')
-% coef0         - (kernel: polynomial) constant added to the polynomial
-%                 term in the polynomial kernel. If 0, the kernel is
-%                 homogenous (default 1)
-% degree        - (kernel: polynomial) degree of the polynomial term. A too
-%                 high degree makes overfitting likely (default 2)
+% RBF KERNEL:
+% gamma         - 
 %
 % Further parameters (that usually do not need to be changed):
 % bias          - if >0 augments the data with a bias term equal to the
@@ -78,6 +70,7 @@ function cf = train_svm(cfg,X,clabel)
 % A Dual Coordinate Descent algorithm is used to find the optimal alpha
 % (weights on the samples), implemented in DualCoordinateDescentL1.
 
+
 % (c) Matthias Treder 2017
 
 [N, nFeat] = size(X);
@@ -90,11 +83,6 @@ clabel = double(clabel(:));
 
 % Need class labels 1 and -1 here
 clabel(clabel == 2) = -1;
-
-%% Set kernel hyperparameter defaults
-if ischar(cfg.gamma) && strcmp(cfg.gamma,'auto')
-    cfg.gamma = 1/ nFeat;
-end
 
 %% Bias
 if ischar(cfg.bias) && strcmp(cfg.bias,'auto')
@@ -163,14 +151,7 @@ if numel(cfg.C)>1
         end
 
         % --- Loop through lambdas ---
-        % Train classifier on the full training data (using the best lambda)
-        C = cfg.C(best_idx);
-        
-
         for ll=1:numel(cfg.C)
-                    % Solve the dual problem and obtain alpha
-        alpha = DualCoordinateDescentL1(Q, C, ONE, cfg.tolerance);
-
             ws(:,ll) = optim_fun(X(CV.training(ff),:), clabel(CV.training(ff)), cfg.C(ll), o);
         end
         
@@ -190,6 +171,13 @@ if numel(cfg.C)>1
     
     % Diagnostic plots if requested
     if cfg.plot
+        figure,
+        imagesc(C); title({'Mean correlation' 'between w''s'}),xlabel('lambda#')
+        
+        % Plot regularisation path (for the last training fold)
+        figure
+        for ii=1:nFeat, semilogx(cfg.C,ws(ii,:),'-'), hold all, end
+        plot(xlim,[0,0],'k-'),title('Regularisation path for last iteration'),xlabel('lambda#')
         
         % Plot cross-validated classification performance
         figure
@@ -210,7 +198,7 @@ end
 C = cfg.C(best_idx);
 
 % Solve the dual problem and obtain alpha
-alpha = DualCoordinateDescent(Q, C, ONE, cfg.tolerance);
+alpha = DualCoordinateDescentL1(Q, C, ONE, cfg.tolerance);
 
 %% Set up classifier
 cf= [];
@@ -254,11 +242,6 @@ else
     
     % Save kernel function
     cf.kernelfun = kernelfun;
-    
-    % Save hyperparameters
-    cf.gamma    = cfg.gamma;
-    cf.coef0    = cfg.coef0;
-    cf.degree   = cfg.degree;
     
 end
 

@@ -203,7 +203,7 @@ if numel(cfg.lambda)>1
         
         % Plot regularisation path (for the last training fold)
         figure
-        for ii=1:nFeat, semilogx(cfg.lambda,ws(ii,:),'-'), hold all, end
+        for ii=1:nFeat, semilogx(cfg.lambda,ws(ii,:),'o-','MarkerFaceColor','w'), hold all, end
         plot(xlim,[0,0],'k-'),title('Regularisation path for last iteration'),xlabel('lambda#')
         
         % Plot cross-validated classification performance
@@ -216,8 +216,9 @@ if numel(cfg.lambda)>1
         
         % Plot first two dimensions
         figure
-        plot(ws(1,:),ws(12,:),'ko-')
-        hold all, plot(wspred(1,2:end),wspred(12,2:end),'+')
+        plot(ws(1,:),ws(end,:),'ko-')
+        hold all, plot(wspred(1,2:end),wspred(end,2:end),'+')
+        title('Regularisation path for 2 features')
         legend({'w' 'predicted w'})
         
     end
