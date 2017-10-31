@@ -31,8 +31,6 @@ cfg_plot = [];
 cfg_plot.outline = chans.outline;
 figure
 mv_plot_topography(cfg_plot, auc, chans.pos);
-% cb = colorbar;
-% title(cb, upper(cfg.metric))
 colormap jet
 title(sprintf('Searchlight [%d neighbours]', cfg.size))
 
@@ -56,7 +54,7 @@ end
 mv_plot_result(result, chans)
 
 %% Plot result as bar graph
-mv_plot_result(result)
+h= mv_plot_result(result);
 
 %% -- end of example --
 return

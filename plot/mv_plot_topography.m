@@ -168,7 +168,7 @@ for mm=1:P
     end
     
     % title
-    title(cfg.title{max(mod(mm,numel(cfg.title)),1)},'Interpreter','none')
+    title(cfg.title{mod(mm-1,numel(cfg.title))+1},'Interpreter','none')
     
     axis off
 end
