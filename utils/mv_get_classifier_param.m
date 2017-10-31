@@ -42,7 +42,7 @@ switch(classifier)
     case 'svm'
         mv_set_default(param,'bias','auto');
         mv_set_default(param,'C','auto');
-        mv_set_default(param,'kernel','linear');
+        mv_set_default(param,'kernel','linear'); % 'poly' 'rbf'
         mv_set_default(param,'plot',0);
         mv_set_default(param,'K',5);
         mv_set_default(param,'regularise_kernel',10e-10);
@@ -50,7 +50,10 @@ switch(classifier)
         mv_set_default(param,'Q',[]);
         
         % parameters for specific kernels
-        mv_set_default(param,'gamma',1); % RBF regularisation parameter
+        mv_set_default(param,'gamma','auto'); % RBF and polynomial kernel regularisation parameter
+        mv_set_default(param,'coef0',1);    % polynomial kernel
+        mv_set_default(param,'degree',2);   % degree of polynomial kernel
+        
         
     case 'svm_sgd'
         mv_set_default(param,'bias',1);
