@@ -5,7 +5,7 @@
 clear all
 
 % Load data (in /examples folder)
-[dat,clabel] = load_example_data('epoched1');
+[dat,clabel] = load_example_data('epoched2');
 
 %% Setup configuration struct for LDA and Logistic Regression
 
@@ -19,7 +19,7 @@ cfg_LDA.K          = 5;
 cfg_LDA.repeat     = 2;
 cfg_LDA.classifier = 'lda';
 cfg_LDA.param      = struct('lambda','auto');
-cfg_LDA.metric     = 'auc';
+cfg_LDA.metric     = 'acc';
 
 % We are interested in comparing LDA and Logistic Regression (LR). To this 
 % end, we setup a configuration struct for logreg as well. Again, the
@@ -29,20 +29,18 @@ cfg_LR.classifier = 'logreg';
 cfg_LR.param      = struct('lambda','auto' );
 
 %% Run classification across time
-auc_LDA = mv_classify_across_time(cfg_LDA, dat.trial, clabel);
-auc_LR = mv_classify_across_time(cfg_LR, dat.trial, clabel);
+[auc_LDA, result_LDA] = mv_classify_across_time(cfg_LDA, dat.trial, clabel);
+[auc_LR, result_LR] = mv_classify_across_time(cfg_LR, dat.trial, clabel);
 
 %% Plot classification accuracy across time
 close all
-mv_plot_1D([],dat.time, cat(2,auc_LDA,auc_LR) )
-ylabel(cfg_LDA.metric)
-legend({'LDA' 'LR'})
+mv_plot_result({result_LDA, result_LR}, dat.time) % second argument is optional
 
 %% Classification across time for all subjects
 nSbj = 3;
 acc = cell(nSbj,1);         % classification accuracies for all subjects
 auc = cell(nSbj,1);         % AUC values for all subjects
-
+result = cell(nSbj,1);
 cfg_LDA.metric  = 'auc';
 
 for nn=1:nSbj
@@ -51,24 +49,10 @@ for nn=1:nSbj
     [dat,clabel] = load_example_data(['epoched' num2str(nn)]);
 
     % Run classification across time
-    auc{nn} = mv_classify_across_time(cfg_LDA, dat.trial, clabel);
+    [auc{nn}, result{nn}] = mv_classify_across_time(cfg_LDA, dat.trial, clabel);
     
 end
 
-auc = cat(2,auc{:});
-
-% Average and standard error of classifier performance across subjects
-av_auc = mean(auc,2);
-se_auc = std(auc,[],2)/sqrt(nSbj);
-
-%% Plot results
+% Plot 3 subjects and mean across subjects
 close all
-subplot(1,2,1)
-    mv_plot_1D([],dat.time,auc)
-    title('Single-subject AUCs')
-    legend(arrayfun(@(x) {['Subject ' num2str(x)]},1:nSbj))
-subplot(1,2,2)
-    mv_plot_1D([],dat.time, av_auc, se_auc)
-    title('Grand average AUC')
-    ylabel('AUC')
-
+h = mv_plot_result(result, dat.time);

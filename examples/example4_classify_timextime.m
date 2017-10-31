@@ -1,5 +1,4 @@
 %%% Time generalisation example
-
 clear all
 
 % Load data (in /examples folder)
@@ -11,19 +10,22 @@ clear all
 % perform 5-fold cross-validation with 10 repetitions. As classifier, we
 % use LDA. The value of the regularisation parameter lambda is determined 
 % automatically.
-ccfg =  [];
-ccfg.classifier = 'lda';
-ccfg.param      = struct('lambda','auto');
-ccfg.normalise  = 'demean';  % 'demean' 'none'
-ccfg.cf_output  = 'dval';
-ccfg.metric     = 'acc';
+cfg =  [];
+cfg.classifier = 'lda';
+cfg.param      = struct('lambda','auto');
+cfg.normalise  = 'demean';  % 'demean' 'none'
+cfg.metric     = 'acc';
 
-acc = mv_classify_timextime(ccfg, dat.trial, clabel);
+[acc, result_acc] = mv_classify_timextime(cfg, dat.trial, clabel);
 
-ccfg.metric     = 'acc';
-auc = mv_classify_timextime(ccfg, dat.trial, clabel);
+cfg.metric     = 'auc';
+[auc, result_auc] = mv_classify_timextime(cfg, dat.trial, clabel);
 
 %% Plot time generalisation matrix
+close all
+mv_plot_result(result_acc, dat.time, dat.time) % 2nd and 3rd argument are optional
+
+
 figure
 cfg= [];
 cfg.x   = dat.time;
@@ -41,12 +43,12 @@ colormap jet
 title('AUC')
 
 %% Compare accuracy/AUC when no normalisation is performed
-ccfg.normalise  = 'none';
-ccfg.metric     = 'acc';
-acc = mv_classify_timextime(ccfg, dat.trial, clabel);
+cfg.normalise  = 'none';
+cfg.metric     = 'acc';
+acc = mv_classify_timextime(cfg, dat.trial, clabel);
 
-ccfg.metric     = 'auc';
-auc = mv_classify_timextime(ccfg, dat.trial, clabel);
+cfg.metric     = 'auc';
+auc = mv_classify_timextime(cfg, dat.trial, clabel);
 
 figure
 mv_plot_2D(cfg, acc);
@@ -67,16 +69,16 @@ title('AUC')
 % The subject loaded above will serve as training data.
 [dat2, clabel2] = load_example_data('epoched1');
 
-ccfg =  [];
-ccfg.classifier = 'lda';
-ccfg.param      = struct('lambda','auto');
-ccfg.normalise  = 'demean';  % 'demean' 'none'
-ccfg.metric     = 'acc';
+cfg =  [];
+cfg.classifier = 'lda';
+cfg.param      = struct('lambda','auto');
+cfg.normalise  = 'demean';  % 'demean' 'none'
+cfg.metric     = 'acc';
 
-acc31 = mv_classify_timextime(ccfg, dat.trial, clabel, dat2.trial, clabel2);
+[acc31, result31] = mv_classify_timextime(cfg, dat.trial, clabel, dat2.trial, clabel2);
 
 % Reverse the analysis: train the classifier on epoched1, test on epoched3
-acc13 = mv_classify_timextime(ccfg, dat2.trial, clabel2, dat.trial, clabel);
+[acc13, result13]= mv_classify_timextime(cfg, dat2.trial, clabel2, dat.trial, clabel);
 
 figure
 cfg =[];
@@ -91,3 +93,5 @@ mv_plot_2D(cfg, acc13 );
 colormap jet
 title('Training on epoched1, testing on epoched3')
 
+close all
+mv_plot_result({result13, result31}, dat.time, dat.time)
