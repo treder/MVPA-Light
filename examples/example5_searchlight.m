@@ -9,7 +9,6 @@
 %%% 'searchlight'
 %%%
 clear
-
 [dat, clabel, chans] = load_example_data('epoched3');
 
 % We want to classify on the 300-500 ms window
@@ -23,9 +22,8 @@ cfg = [];
 cfg.nb          = nb_mat;
 cfg.average     = 1;
 cfg.metric      = 'auc';
-cfg.verbose     = 1;
+cfg.size        = 3;    % consider each electrode and its 3 closest neighbouring electrodes
 
-cfg.num     = 3;    % consider each electrode and its 3 closest neighbouring electrodes
 [auc, result] = mv_searchlight(cfg, dat.trial(:,:,time_idx), clabel);
 
 %% Plot classification performance as a topography
@@ -36,27 +34,29 @@ mv_plot_topography(cfg_plot, auc, chans.pos);
 % cb = colorbar;
 % title(cb, upper(cfg.metric))
 colormap jet
-title(sprintf('Searchlight [%d neighbours]', cfg.num))
+title(sprintf('Searchlight [%d neighbours]', cfg.size))
 
 %% Simpler way: call mv_plot_result
 mv_plot_result(result, chans)
 
 %% Repeat the searchlight analysis for different numbers of neighbours
+result = cell(1,6);
 for nn=0:5
+
+    fprintf('\n----- Searchlight [%d neighbours] -----\n', cfg.size)
     
     % Vary the number of neighbours
-    cfg.num     = nn;
+    cfg.size    = nn;
     
-    auc = mv_searchlight(cfg, dat.trial(:,:,time_idx), clabel);
+    [~, result{nn+1}] = mv_searchlight(cfg, dat.trial(:,:,time_idx), clabel);
     
-    % Plot classification performance as a topography
-    figure
-    mv_plot_topography(auc, chans.pos, chans.outline);
-    cb = colorbar;
-    title(cb, upper(cfg.metric))
-    colormap jet
-    title(sprintf('Searchlight [%d neighbours]', cfg.num))
 end
+
+%% Plot result as topography
+mv_plot_result(result, chans)
+
+%% Plot result as bar graph
+mv_plot_result(result)
 
 %% -- end of example --
 
@@ -71,10 +71,12 @@ cfg = [];
 % cfg.method      = 'triangulation';  %'distance'
 cfg.method      = 'distance';
 cfg.neighbourdist = 0.195;
-cfg.layout      = 'EasycapM1';
+cfg.layout      = 'easycapM1';
 cfg.feedback    = 'yes';
 cfg.channel     = dat.label;
 neighbours= ft_prepare_neighbours(cfg);
+
+nChan = numel(dat.label);
 
 % Create neighbours matrix
 nb_mat = zeros(nChan);
@@ -108,14 +110,13 @@ maxstep = 2;        % maximum neighbourhood size
 auc = cell(1,maxstep);
 
 %%% Start classification 
-%%% - In the first iteration, nbstep = 0, i.e. only an electrode alone is
+%%% - In the first iteration, size = 0, i.e. only an electrode alone is
 %%%   considered
-%%% - In the second iteration, nbstep = 1, and an electrode as well as its
+%%% - In the second iteration, size = 1, and an electrode as well as its
 %%%   direct neighbours are considered
-%%% - In the third iteration, nbstep = 2, so an electrode, its direct
+%%% - In the third iteration, size = 2, so an electrode, its direct
 %%%   neighbours, and the neighbours of the neighbours are considered
-for nbstep=0:maxstep
-    cfg.nbstep  = nbstep;
-%     cfg.max     = nbstep + 2;
-    auc{nbstep+1} = mv_searchlight(cfg, dat.trial(:,:,time_idx), clabel);
+for size=0:maxstep
+    cfg.size  = size;
+    auc{size+1} = mv_searchlight(cfg, dat.trial(:,:,time_idx), clabel);
 end
