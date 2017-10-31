@@ -2,7 +2,7 @@
 clear all
 
 % Load data (in /examples folder)
-[dat, clabel] = load_example_data('epoched3');
+[dat, clabel] = load_example_data('epoched3', 0);
 
 %% Setup configuration struct
 
@@ -12,7 +12,6 @@ clear all
 % automatically.
 cfg =  [];
 cfg.classifier = 'lda';
-cfg.param      = struct('lambda','auto');
 cfg.normalise  = 'demean';  % 'demean' 'none'
 cfg.metric     = 'acc';
 
@@ -22,23 +21,19 @@ cfg.metric     = 'auc';
 [auc, result_auc] = mv_classify_timextime(cfg, dat.trial, clabel);
 
 %% Plot time generalisation matrix
-close all
-mv_plot_result(result_acc, dat.time, dat.time) % 2nd and 3rd argument are optional
-
+% close all
+% mv_plot_result(result_acc, dat.time, dat.time) % 2nd and 3rd argument are optional
 
 figure
-cfg= [];
-cfg.x   = dat.time;
-cfg.y   = cfg.x;
-mv_plot_2D(cfg, acc);
+cfg_plot= [];
+cfg_plot.x   = dat.time;
+cfg_plot.y   = cfg_plot.x;
+mv_plot_2D(cfg_plot, acc);
 colormap jet
 title('Accuracy')
 
 figure
-cfg= [];
-cfg.x   = dat.time;
-cfg.y   = cfg.x;
-mv_plot_2D(cfg, auc);
+mv_plot_2D(cfg_plot, auc);
 colormap jet
 title('AUC')
 
@@ -51,12 +46,12 @@ cfg.metric     = 'auc';
 auc = mv_classify_timextime(cfg, dat.trial, clabel);
 
 figure
-mv_plot_2D(cfg, acc);
+mv_plot_2D(cfg_plot, acc);
 colormap jet
 title('Accuracy')
 
 figure
-mv_plot_2D(cfg, auc);
+mv_plot_2D(cfg_plot, auc);
 colormap jet
 title('AUC')
 
@@ -64,6 +59,7 @@ title('AUC')
 % The classifier is trained on one dataset, and tested on another dataset.
 % As two datasets, two different subjects are taken. 
 
+[dat, clabel] = load_example_data('epoched3', 0);
 % Load data from a different subject (epoched1). This will served as the 
 % test data.
 % The subject loaded above will serve as training data.
@@ -71,8 +67,7 @@ title('AUC')
 
 cfg =  [];
 cfg.classifier = 'lda';
-cfg.param      = struct('lambda','auto');
-cfg.normalise  = 'demean';  % 'demean' 'none'
+cfg.normalise  = 'zscore';  % 'demean' 'none' 'zscore'
 cfg.metric     = 'acc';
 
 [acc31, result31] = mv_classify_timextime(cfg, dat.trial, clabel, dat2.trial, clabel2);
@@ -80,18 +75,27 @@ cfg.metric     = 'acc';
 % Reverse the analysis: train the classifier on epoched1, test on epoched3
 [acc13, result13]= mv_classify_timextime(cfg, dat2.trial, clabel2, dat.trial, clabel);
 
+% Train AND test on epoched1 (overfitting!)
+[acc11, result11]= mv_classify_timextime(cfg, dat2.trial, clabel2, dat2.trial, clabel2);
+
 figure
-cfg =[];
-cfg.y = dat.time; cfg.x = dat2.time;
-mv_plot_2D(cfg, acc31 );
+cfg_plot =[];
+cfg_plot.y = dat.time; cfg_plot.x = dat2.time;
+mv_plot_2D(cfg_plot, acc31 );
 colormap jet
 title('Training on epoched3, testing on epoched1')
 
 figure
-cfg.x = dat.time; cfg.y = dat2.time;
-mv_plot_2D(cfg, acc13 );
+cfg_plot.x = dat.time; cfg_plot.y = dat2.time;
+mv_plot_2D(cfg_plot, acc13 );
 colormap jet
 title('Training on epoched1, testing on epoched3')
 
-close all
-mv_plot_result({result13, result31}, dat.time, dat.time)
+figure
+cfg_plot.x = dat.time; cfg_plot.y = dat.time;
+mv_plot_2D(cfg_plot, acc11 );
+colormap jet
+title('Training AND testing on epoched1 (overfitting!)')
+
+% close all
+% mv_plot_result({result13, result31}, dat.time, dat.time)

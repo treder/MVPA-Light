@@ -127,11 +127,6 @@ elseif strcmp(cfg.normalise,'demean')
 end
 
 %% Time x time generalisation
-
-% Save original data and labels in case we do over/undersampling
-X_orig = X;
-label_orig = clabel;
-
 if ~strcmp(cfg.CV,'none') && ~hasX2
     % -------------------------------------------------------
     % One dataset X has been provided as input. X is hence used for both
@@ -139,6 +134,10 @@ if ~strcmp(cfg.CV,'none') && ~hasX2
     % performed.
     if cfg.feedback, mv_print_classification_info(cfg,X,clabel); end
 
+    % Save original data and labels in case we do over/undersampling
+    X_orig = X;
+    label_orig = clabel;
+    
     % Initialise classifier outputs
     cf_output = cell(cfg.repeat, cfg.K, nTime1);
     testlabel = cell(cfg.repeat, cfg.K);
