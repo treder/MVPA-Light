@@ -68,15 +68,20 @@ end
 
 %% Mark zero line
 if ~isempty(cfg.cross)
-    if time(1)<0 && time(end)>0
+    if time(1)<0 && time(end)>0 && ~isempty(cfg.ver)
+        % vertical zero line
         hold on
         yl = ylim(gca);
         plot(gca,[1 1] * cfg.ver, yl(:), cfg.cross{:})
         set(gca,'YLim',yl)
     end
     hold on
-    xl = xlim(gca);
-    plot(gca,xl(:), [1 1] * cfg.hor, cfg.cross{:})
+    
+    % horizontal zero line
+    if ~isempty(cfg.hor)
+        xl = xlim(gca);
+        plot(gca,xl(:), [1 1] * cfg.hor, cfg.cross{:})
+    end
 %     set(gca,'YLim',yl)
 end
 
