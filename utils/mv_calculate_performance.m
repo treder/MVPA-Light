@@ -6,7 +6,7 @@ function [perf, perf_std] = mv_calculate_performance(metric, cf_output, clabel, 
 %has been trained in each fold.
 %
 %Usage:
-%  perf = mv_classifier_performance(metric, cf_output, clabel, dim)
+%  [perf, perf_std] = mv_classifier_performance(metric, cf_output, clabel, dim)
 %
 %Parameters:
 % metric            - desired performance metric:
@@ -54,9 +54,8 @@ function [perf, perf_std] = mv_calculate_performance(metric, cf_output, clabel, 
 %
 %Returns:
 % perf     - performance metric
-% perf_SEM - standard error of the mean of the performance metric (averaged 
-%            across folds and repetitions). Typically calculated across
-%            folds and repetitions, it gives some information about the 
+% perf_std - standard deviation of the performance metric across folds 
+%            and repetitions, indicating the 
 %            variability of the metric.
 
 % (c) Matthias Treder 2017
@@ -282,6 +281,4 @@ end
 
 perf = squeeze(perf);
 perf_std = squeeze(perf_std);
-
-
 
