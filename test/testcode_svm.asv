@@ -45,19 +45,18 @@ toc
 acc = mv_calculate_performance('acc', dval, clabel)
 
 
-%% SVM -- crossvalidate
+%% 
 cfg =[] ;
 cfg.metric          = 'acc';
 cfg.classifier      = 'svm';
 cfg.param           = [];
-cfg.param.kernel    = 'rbf';
-% cfg.param.kernel    = 'polynomial';
+% cfg.param.kernel    = 'rbf';
+cfg.param.kernel    = 'polynomial';
 % cfg.param.kernel    = 'linear';
 cfg.param.C = 1;
 
-tic
-acc = mv_crossvalidate(cfg, X, clabel);
-toc
+acc = mv_crossvalidate(cfg, X, clabel)
+
 
 %% LIBSVM
 param = mv_get_classifier_param('libsvm');
@@ -79,14 +78,9 @@ cfg.metric          = 'acc';
 cfg.classifier      = 'libsvm';
 cfg.param           = [];
 
-cfg.param.kernel_type = 0; % linear
-cfg.param.kernel_type = 1; % polynomial
-cfg.param.kernel_type = 2; % RBF
-% cfg.param.kernel_type = 3; % sigmoid
+cfg.param.kernel_type = 1;
 
-tic
-acc = mv_crossvalidate(cfg, X, clabel);
-toc
+acc = mv_crossvalidate(cfg, X, clabel)
 
 %% -- Logistic regression
 param = mv_classifier_defaults('logreg');

@@ -11,7 +11,7 @@ ival_idx = find(dat.time >= 0.6 & dat.time <= 0.8);
 X = squeeze(mean(dat.trial(:,:,ival_idx),3));
 
 % Get default hyperparameters
-param = mv_classifier_defaults('lda');
+param = mv_get_classifier_param('lda');
 
 % Train an LDA classifier
 tic
@@ -21,10 +21,10 @@ toc
 [predlabel, dval] = test_lda(cf, X);
 
 % Calculate AUC
-auc_lda= mv_classifier_performance('auc', dval, clabel)
+auc_lda= mv_calculate_performance('auc', dval, clabel)
 
 %% LIBSVM
-param = mv_classifier_defaults('libsvm');
+param = mv_get_classifier_param('libsvm');
 
 tic
 rng(1);
@@ -32,11 +32,11 @@ cf = train_libsvm(param, X, clabel);
 toc
 
 [predlabel, dval] = test_libsvm(cf, X);
-auc_libsvm= mv_classifier_performance('auc', dval, clabel)
-acc_libsvm= mv_classifier_performance('acc', predlabel, clabel)
+auc_libsvm= mv_calculate_performance('auc', dval, clabel)
+acc_libsvm= mv_calculate_performance('acc', predlabel, clabel)
 
 %% LIBLINEAR (log reg)
-param = mv_classifier_defaults('liblinear');
+param = mv_get_classifier_param('liblinear');
 param.type = 0;   % L2-regularised logistic regression
 param.C = 1;
 param.quiet = 1;
@@ -47,8 +47,8 @@ cf = train_liblinear(param, X, clabel);
 toc
 
 [predlabel, dval] = test_liblinear(cf, X);
-auc_liblinear = mv_classifier_performance('auc', dval, clabel)
-acc_liblinear = mv_classifier_performance('acc', predlabel, clabel)
+auc_liblinear = mv_calculate_performance('auc', dval, clabel)
+acc_liblinear = mv_calculate_performance('acc', predlabel, clabel)
 
 %% LIBLINEAR
 param = mv_classifier_defaults('liblinear');
