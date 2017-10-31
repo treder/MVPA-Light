@@ -1,4 +1,4 @@
-function [perf, res] = mv_crossvalidate(cfg, X, clabel)
+function [perf, result] = mv_crossvalidate(cfg, X, clabel)
 % Cross-validation. A classifier is trained and validated for
 % given 2D [samples x features] dataset X.
 %
@@ -66,7 +66,7 @@ mv_set_default(cfg,'CV','kfold');
 mv_set_default(cfg,'repeat',5);
 mv_set_default(cfg,'feedback',1);
 
-if isempty(cfg.metric) || any(ismember({'dval','auc','roc'},cfg.metric))
+if isempty(cfg.metric) || any(ismember({'dval','auc','roc','tval'},cfg.metric))
     mv_set_default(cfg,'cf_output','dval');
 else
     mv_set_default(cfg,'cf_output','clabel');
@@ -187,10 +187,21 @@ end
 if isempty(cfg.metric)
     if cfg.feedback, fprintf('No performance metric requested, returning raw classifier output.\n'), end
     perf = cf_output;
-    res = [];
+    perf_std = [];
 else
     if cfg.feedback, fprintf('Calculating classifier performance... '), end
-    [perf,res] = mv_calculate_performance(cfg.metric, cf_output, testlabel, avdim);
+    [perf, perf_std] = mv_calculate_performance(cfg.metric, cf_output, testlabel, avdim);
     if cfg.feedback, fprintf('finished\n'), end
 end
 
+result = [];
+if nargout>1
+   result.function  = mfilename;
+   result.perf      = perf;
+   result.perf_std  = perf_std;
+   result.metric    = cfg.metric;
+   result.CV        = cfg.CV;
+   result.K         = cfg.K;
+   result.repeat    = cfg.repeat;
+   result.classifier = cfg.classifier;
+end

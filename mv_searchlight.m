@@ -1,4 +1,4 @@
-function perf = mv_searchlight(cfg, X, clabel)
+function [perf,result] = mv_searchlight(cfg, X, clabel)
 % Classification using a feature searchlight approach can highlight which
 % feature(s) are informative. To this end, classification is performed on 
 % each feature separately. However, neighbouring features can enter the 
@@ -66,6 +66,12 @@ mv_set_default(cfg,'size',1);
 mv_set_default(cfg,'metric','auc');
 mv_set_default(cfg,'average',0);
 mv_set_default(cfg,'feedback',1);
+mv_set_default(cfg,'classifier','lda');
+mv_set_default(cfg,'param',[]);
+mv_set_default(cfg,'metric','acc');
+mv_set_default(cfg,'CV','kfold');
+mv_set_default(cfg,'repeat',5);
+mv_set_default(cfg,'K',5);
 
 if cfg.average && ~ismatrix(X)
     X = mean(X,3);
@@ -73,8 +79,8 @@ end
 
 [N, nFeat, ~] = size(X);
 
-perf = nan(nFeat,1);
-
+perf = cell(nFeat,1);
+perf_std = cell(nFeat,1);
 
 %% Find the neighbourhood of the requested size
 if isempty(cfg.nb)
@@ -140,12 +146,23 @@ for ff=1:nFeat
     % way for each channel, increasing comparability
     rng(rng_state);
     
-    % Perform cross-validation
-    perf(ff) = mv_crossvalidate(tmp_cfg, Xfeat, clabel);
+    % Perform cross-validation for specific feature(s)
+    [perf{ff}, res] = mv_crossvalidate(tmp_cfg, Xfeat, clabel);
+    perf_std{ff} = res.perf_std;
     
 end
 
+perf = cat(2,perf{:})';
+perf_std = cat(2,perf_std{:})';
+
+result = [];
 if nargout>1
-else
-    res = [];
+   result.function  = mfilename;
+   result.perf      = perf;
+   result.perf_std  = perf_std;
+   result.metric    = cfg.metric;
+   result.CV        = cfg.CV;
+   result.K         = cfg.K;
+   result.repeat    = cfg.repeat;
+   result.classifier = cfg.classifier;
 end

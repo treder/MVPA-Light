@@ -1,4 +1,4 @@
-function [perf, res] = mv_classify_across_time(cfg, X, clabel)
+function [perf, result] = mv_classify_across_time(cfg, X, clabel)
 % Classification across time. A classifier is trained and validate for
 % different time points in the dataset X. Cross-validation should be used
 % to get a realistic estimate of classification performance.
@@ -52,8 +52,8 @@ function [perf, res] = mv_classify_across_time(cfg, X, clabel)
 %
 % Returns:
 % perf          - [time x 1] vector of classifier performances. 
-% res           - struct with fields describing the classification result.
-%                 Can be used as input to mv_statistics
+% result        - struct with fields describing the classification result.
+%                 Can be used as input to mv_statistics and mv_plot_result
 %
 % Note: For time x time generalisation, use mv_classify_timextime
 
@@ -67,7 +67,7 @@ mv_set_default(cfg,'repeat',5);
 mv_set_default(cfg,'time',1:size(X,3));
 mv_set_default(cfg,'feedback',1);
 
-if isempty(cfg.metric) || any(ismember({'dval','auc','roc'},cfg.metric))
+if isempty(cfg.metric) || any(ismember({'dval','auc','roc','tval'},cfg.metric))
     mv_set_default(cfg,'cf_output','dval');
 else
     mv_set_default(cfg,'cf_output','clabel');
@@ -201,15 +201,21 @@ end
 if isempty(cfg.metric)
     if cfg.feedback, fprintf('No performance metric requested, returning raw classifier output.\n'), end
     perf = cf_output;
+    perf_std = [];
 else
     if cfg.feedback, fprintf('Calculating classifier performance... '), end
-    perf = mv_calculate_performance(cfg.metric, cf_output, testlabel, avdim);
+    [perf, perf_std] = mv_calculate_performance(cfg.metric, cf_output, testlabel, avdim);
     if cfg.feedback, fprintf('finished\n'), end
 end
 
+result = [];
 if nargout>1
-    res = [];
-
-else
-    res = [];
+   result.function  = mfilename;
+   result.perf      = perf;
+   result.perf_std  = perf_std;
+   result.metric    = cfg.metric;
+   result.CV        = cfg.CV;
+   result.K         = cfg.K;
+   result.repeat    = cfg.repeat;
+   result.classifier = cfg.classifier;
 end

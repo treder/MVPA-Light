@@ -1,4 +1,4 @@
-function [perf, res] = mv_classify_timextime(cfg, X, clabel, X2, clabel2)
+function [perf, result] = mv_classify_timextime(cfg, X, clabel, X2, clabel2)
 % Time x time generalisation. A classifier is trained on the training data
 % X and validated on either the same dataset X. Cross-validation is
 % recommended to avoid overfitting. If another dataset X2 is provided,
@@ -80,7 +80,7 @@ if hasX2, mv_set_default(cfg,'time2',1:size(X2,3));
 else,     mv_set_default(cfg,'time2',1:size(X,3));
 end
 
-if isempty(cfg.metric) || any(ismember({'dval','auc','roc'},cfg.metric))
+if isempty(cfg.metric) || any(ismember({'dval','auc','roc','tval'},cfg.metric))
     mv_set_default(cfg,'cf_output','dval');
 else
     mv_set_default(cfg,'cf_output','clabel');
@@ -285,13 +285,21 @@ end
 if isempty(cfg.metric)
     if cfg.feedback, fprintf('No performance metric requested, returning raw classifier output.\n'), end
     perf = cf_output;
+    perf_std = [];
 else
     if cfg.feedback, fprintf('Calculating classifier performance... '), end
-    perf = mv_calculate_performance(cfg.metric, cf_output, testlabel, avdim);
+    [perf, perf_std] = mv_calculate_performance(cfg.metric, cf_output, testlabel, avdim);
     if cfg.feedback, fprintf('finished\n'), end
 end
 
+result = [];
 if nargout>1
-else
-    res = [];
+   result.function  = mfilename;
+   result.perf      = perf;
+   result.perf_std  = perf_std;
+   result.metric    = cfg.metric;
+   result.CV        = cfg.CV;
+   result.K         = cfg.K;
+   result.repeat    = cfg.repeat;
+   result.classifier = cfg.classifier;
 end
