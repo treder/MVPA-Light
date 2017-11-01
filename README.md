@@ -96,17 +96,16 @@ This section gives some basic examples. More detailed examples and data can be f
 X = dat.trial(:,:,100);
 
 % Get default hyperparameters for the classifier
-cfg_lda = mv_classifier_defaults('lda');
+param = mv_get_classifier_param('lda');
 
 % Train an LDA classifier
-cf = train_lda(cfg_lda, X, clabel);
+cf = train_lda(param, X, clabel);
 
 % Test classifier on the same data and get the predicted labels
 predlabel = test_lda(cf, X);
 
 % Calculate classification accuracy
-acc = mv_classifier_performance('acc',predlabel,clabel)
-
+acc = mv_calculate_performance('acc',predlabel,clabel)
 ```
 
 See `examples/example1_train_and_test.m` for more details.
