@@ -151,7 +151,7 @@ auc = mv_classify_timextime(cfg, dat.trial, clabel);
 
 ```
 
-See `examples/example5_classify_timextime.m` for more details.
+See `examples/example4_classify_timextime.m` for more details.
 
 #### Searchlight analysis
 
