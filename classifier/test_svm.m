@@ -15,7 +15,11 @@ function [predlabel,dval] = test_svm(cf,X)
 if strcmp(cf.kernel,'linear')
     dval = X*cf.w + cf.b;
 else
-    dval = cf.kernelfun(cf, X, cf.support_vectors) * cf.alpha_y   + cf.b;
+    if cf.bias > 0
+        dval = cf.kernelfun(cf, cat(2,X, ones(size(X,1),1) * cf.bias ), cf.support_vectors) * cf.alpha_y   + cf.b;
+    else
+        dval = cf.kernelfun(cf, X, cf.support_vectors) * cf.alpha_y   + cf.b;
+    end
 end
 
 predlabel= double(dval >= 0) + 2*double(dval < 0);
