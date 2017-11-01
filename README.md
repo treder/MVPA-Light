@@ -120,7 +120,6 @@ cfg.metric          = 'acc';
 cfg.CV              = 'kfold';
 cfg.K               = 5;
 cfg.repeat          = 2;
-cfg.verbose         = 1;
 
 % Perform 5-fold cross-validation with 2 repetitions.
 % As classification performance measure we request accuracy (acc).
