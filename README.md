@@ -15,7 +15,7 @@ cd('your-path-to/MVPA-Light/utils/')
 startup_MVPA_Light
 ```
 
-Alternatively, use [MATLAB's Path tool](https://uk.mathworks.com/help/matlab/matlab_env/add-remove-or-reorder-folders-on-the-search-path.html) to manually add the `MVPA-Light` folder and its subfolders to your MATLAB path. The Git repository contains two branches: the `master` branch (recommended) is the stable branch that should always work. `devel` is the development branch that contains new features that are either under construction or not tested.
+Alternatively, use [MATLAB's Path tool](https://uk.mathworks.com/help/matlab/matlab_env/add-remove-or-reorder-folders-on-the-search-path.html) to manually add the `MVPA-Light` folder and its subfolders to your MATLAB path. The Git repository contains two branches: the `master` branch (recommended) is the stable branch that should always work. `devel` is the development branch that contains new features that are either under construction or not tested. `MVPA-Light` has been tested with Matlab `R2012a` and newer. There may be issues with earlier Matlab versions.
 
 ## Overview <a name="overview"></a>
 `MVPA-Light` provides functions for the binary classification of neuroimaging data. It is meant to address the basic issues in MVPA (such as classification across time and generalisation) in a fast and robust way while retaining a slim and readable codebase. For Fieldtrip users, the use of the toolbox will be familiar: The first argument to the main functions is a configuration struct `cfg` that contains all the parameters. However, the toolbox does *not* require or use Fieldtrip.
