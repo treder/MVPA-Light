@@ -53,7 +53,7 @@ function [perf, result] = mv_crossvalidate(cfg, X, clabel)
 %
 % Returns:
 % perf          - [time x 1] vector of classifier performances.
-% res           - struct with fields describing the classification result.
+% result        - struct with fields describing the classification result.
 %                 Can be used as input to mv_statistics
 
 
