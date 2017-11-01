@@ -298,6 +298,7 @@ switch(fun)
                     figure
                     hs{cl}.bar = bar(squeeze(perf(:,cl,:))');
                     hs{cl}.title= title(sprintf('%s - class %d',fun,cl),'Interpreter','none');
+                    hs{cl}.xlabel = xlabel('features');
                     hs{cl}.ylabel = ylabel(metric);
                     set(gca,'XTick',1:nResults,'XTickLabel',lab)
                 end
@@ -305,6 +306,7 @@ switch(fun)
             else
                 figure
                 h.bar = bar(perf');
+                h.xlabel = xlabel('features');
                 h.ylabel = ylabel(metric);
                 set(gca,'XTick',1:nResults,'XTickLabel',lab)
                 h.title= title(fun,'Interpreter','none');
@@ -315,6 +317,7 @@ switch(fun)
             if nResults > 1
                 figure
                 h(2).bar = bar(perf_mean');
+                h(2).xlabel = xlabel('features');
                 h(2).ylabel = ylabel(metric);
                 h(2).title= title(strcat(fun, '-' ,mean_lab),'Interpreter','none');
             end
