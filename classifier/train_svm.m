@@ -76,7 +76,7 @@ function cf = train_svm(cfg,X,clabel)
 %
 % IMPLEMENTATION DETAILS:
 % A Dual Coordinate Descent algorithm is used to find the optimal alpha
-% (weights on the samples), implemented in DualCoordinateDescentL1.
+% (weights on the samples), implemented in DualCoordinateDescent.
 
 % (c) Matthias Treder 2017
 
@@ -142,49 +142,60 @@ end
 %% Find best lambda using cross-validation
 if numel(cfg.C)>1
     
-    %%% --- TODO ---
-    
-    % The regularisation path for logistic regression is needed. ...
     CV = cvpartition(N,'KFold',cfg.K);
-    ws = zeros(nFeat, numel(cfg.C));
     acc = zeros(numel(cfg.C),1);
     
     if cfg.plot
         C = zeros(numel(cfg.C));
     end
 
+    LABEL = (clabel * clabel');
+    
     % --- Start cross-validation ---
     for ff=1:cfg.K
         
-        % Random order of the samples
-        o = zeros(CV.TrainSize(ff)*cfg.n_epochs,1);
-        for ee=1:cfg.n_epochs
-            o( (ee-1)*CV.TrainSize(ff)+1:ee*CV.TrainSize(ff)) = randperm(CV.TrainSize(ff));
-        end
-
-        % --- Loop through lambdas ---
-        % Train classifier on the full training data (using the best lambda)
-        C = cfg.C(best_idx);
+        %%% TODO: this code can probably be made faster
         
-
+        %%% TODO: seems to be a bug here
+        
+        % Training data
+        Xtrain = X(CV.training(ff),:);
+        Xtest= X(CV.test(ff),:);
+        Qtrain = Q(CV.training(ff),CV.training(ff));
+        Qtest = Q(CV.test(ff),CV.training(ff));
+        ONEtrain = ONE(CV.training(ff));
+        LABELtest = LABEL(CV.test(ff),CV.training(ff));
+        
+        % --- Loop through C's ---
         for ll=1:numel(cfg.C)
-                    % Solve the dual problem and obtain alpha
-        alpha = DualCoordinateDescentL1(Q, C, ONE, cfg.tolerance);
+            
+            % Solve the dual problem and obtain alpha
+            alpha = DualCoordinateDescent(Qtrain, cfg.C(ll), ONEtrain, cfg.tolerance);
+            
+            %%% TODO: b needs fixing
+            b = 0;
+            
+            support_vector_indices = find(alpha>0);
+            support_vectors  = Xtrain(support_vector_indices,:);
+            
+            % Class labels for the support vectors
+            y                = clabel(support_vector_indices);
+            
+            % For convenience we save the product alpha * y for the support vectors
+            alpha_y = alpha(support_vector_indices) .* y(:);
 
-            ws(:,ll) = optim_fun(X(CV.training(ff),:), clabel(CV.training(ff)), cfg.C(ll), o);
+            dval = kernelfun(cfg, Xtest, support_vectors) * alpha_y   + b;
+            
+            % accuracy
+            acc(ll) = acc(ll) + sum( clabel(CV.test(ff)) == double(sign(dval(:)))  );
         end
         
         if cfg.plot
-            C = C + corr(ws);
+            C = C + corr(alpha);
         end
-        
-        cl = clabel(CV.test(ff));
-        % Calculate classification accuracy by multiplying decision values
-        % with the class label
-        acc = acc + sum( (X(CV.test(ff),:) * ws) .* cl(:) > 0)' / CV.TestSize(ff);
     end
     
-    acc = acc / cfg.K;
+    acc = acc / N;
     
     [~, best_idx] = max(acc);
     
@@ -217,6 +228,7 @@ cf= [];
 cf.kernel = cfg.kernel;
 cf.alpha  = alpha;
 cf.gamma  = cfg.gamma;
+cf.bias   = cfg.bias;
 
 if strcmp(cfg.kernel,'linear')
     % Calculate linear weights w and bias b from alpha
@@ -243,11 +255,11 @@ else
     cf.alpha_y = cf.alpha(cf.support_vector_indices) .* cf.y(:);
     
     if cfg.bias > 0
-        %%% ???
+        %%% TODO: this part needs fixing
         cf.b = 0;
         
-        % remove bias part from support vectors
-        cf.support_vectors = cf.support_vectors(:,1:end-1);
+%         % remove bias part from support vectors
+%         cf.support_vectors = cf.support_vectors(:,1:end-1);
     else
         cf.b = 0;
     end
