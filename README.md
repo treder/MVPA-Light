@@ -77,6 +77,7 @@ Classifier output comes in form of decision values (=distances to the hyperplane
 * `acc`: Classification accuracy, representing the fraction correctly predicted class labels.
 * `auc`: Area under the ROC curve. An alternative to classification accuracy that is more robust to imbalanced classes and independent of changes to the classifier threshold.
 * `dval`: Average decision value for each class.
+* `tval`: t-test statistic, calculated by comparing the sets of decision values for two classes. Can be useful for a subsequent second-level analysis across subjects.
 
 There is usually no need to call `mv_classifier_performance` directly. By setting the `cfg.metric` field, the performance metric is calculated automatically in `mv_crossvalidate`, `mv_classify_across_time`,  `mv_classify_timextime` and `mv_searchlight`.
 
