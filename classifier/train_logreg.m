@@ -1,9 +1,9 @@
 function cf = train_logreg(cfg,X,clabel)
 % Trains a logistic regression classifier with L2 regularisation. 
 %
-% Note: Due to the exponential term in the cost function, it is recommended 
-% that X (the data) is z-scored to reduce the probability of numerical
-% issues due to round-off errors.
+% Note: Due to the exponential term in the cost function, X (the data) 
+% should be z-scored or scaled in a similar fashion to prevent large values
+% of the features. Otherwise round-eff errors lead to numerical issues.
 %
 % Usage:
 % cf = train_logreg(cfg,X,clabel)

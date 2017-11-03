@@ -188,7 +188,7 @@ else
         Xtraintest= squeeze(X(:,:,cfg.time(tt)));
 
         % Train classifier
-        cf= train_fun(Xtraintest, clabel, cfg.param);
+        cf= train_fun(cfg.param, Xtraintest, clabel);
         
         % Obtain classifier output (class labels or dvals)
         cf_output(:,tt) = mv_get_classifier_output(cfg.cf_output, cf, test_fun, Xtraintest);
