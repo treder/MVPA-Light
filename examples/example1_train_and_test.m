@@ -35,10 +35,10 @@ ival_idx = find(dat.time >= 0.6 & dat.time <= 0.8);
 X = squeeze(mean(dat.trial(:,:,ival_idx),3));
 
 % Get default hyperparameters
-param_lr = mv_get_classifier_param('lda');
+param = mv_get_classifier_param('lda');
 
 % Train an LDA classifier
-cf = train_lda(param_lr, X, clabel);
+cf = train_lda(param, X, clabel);
 
 % Test classifier on the same data: the function gives the predicted
 % labels (predlabel) and the decision values (dval) which represent the

@@ -55,15 +55,15 @@ function cf = train_ensemble(cfg,X,clabel)
 [N,F] = size(X);
 
 % default settings
-mv_setDefault(cfg,'learner','lda');
-mv_setDefault(cfg,'learner_param',[]);
-mv_setDefault(cfg,'nSamples', 0.5);
-mv_setDefault(cfg,'nFeatures', 0.2);
-mv_setDefault(cfg,'nLearners', 500);
-mv_setDefault(cfg,'stratify', false);
-mv_setDefault(cfg,'replace', 1);
-mv_setDefault(cfg,'strategy', 'dval');
-mv_setDefault(cfg,'simplify', false);
+mv_set_default(cfg,'learner','lda');
+mv_set_default(cfg,'learner_param',[]);
+mv_set_default(cfg,'nSamples', 0.5);
+mv_set_default(cfg,'nFeatures', 0.2);
+mv_set_default(cfg,'nLearners', 500);
+mv_set_default(cfg,'stratify', false);
+mv_set_default(cfg,'replace', 1);
+mv_set_default(cfg,'strategy', 'dval');
+mv_set_default(cfg,'simplify', false);
 
 % if fractions are given for nFeatures and nLearners, turn them into
 % absolute numbers
@@ -94,7 +94,10 @@ if cfg.stratify > 0
     Nsub1= round(cfg.nSamples * p1);
     Nsub2= cfg.nSamples - Nsub1;
 end
-    
+
+%% Get learner hyperparameters
+param = mv_get_classifier_param(cfg.learner, cfg.learner_param);
+
 %% Select random features for the learners
 randomFeatures = sparse(false(F,cfg.nLearners));
 for ll=1:cfg.nLearners
@@ -155,11 +158,11 @@ if cfg.simplify
     cf.b = cf.b / cfg.nLearners;
 else
     % Initialise struct array of learners
-    cf.classifier(cfg.nLearners) = cf.train(X(randomSamples(:,cfg.nLearners),randomFeatures(:,cfg.nLearners)),clabel(randomSamples(:,cfg.nLearners)),cfg.learner_param);
+    cf.classifier(cfg.nLearners) = cf.train(param, X(randomSamples(:,cfg.nLearners),randomFeatures(:,cfg.nLearners)),clabel(randomSamples(:,cfg.nLearners)));
     
     % Train all the other learners
     for ll=1:cfg.nLearners-1
-        cf.classifier(ll) = cf.train(X(randomSamples(:,ll),randomFeatures(:,ll)),clabel(randomSamples(:,ll)),cfg.learner_param);
+        cf.classifier(ll) = cf.train(param, X(randomSamples(:,ll),randomFeatures(:,ll)),clabel(randomSamples(:,ll)));
     end
 end
 
