@@ -51,6 +51,9 @@ function [perf,result] = mv_searchlight(cfg, X, clabel)
 % .average     - if 1 and X is [samples x features x time], the time
 %                dimension is averaged ot a single feature (default 0). If
 %                0, each time point is used as a separate feature
+% .normalise    - normalises the data across samples, for each time point 
+%                 and each feature separately, using 'zscore' or 'demean' 
+%                 (default 'zscore'). Set to 'none' or [] to avoid normalisation.
 % .feedback     - print feedback on the console (default 1)
 %
 % Additionally, you can pass on parameters for cross-validation. Refer to

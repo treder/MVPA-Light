@@ -53,9 +53,9 @@ function [perf, result] = mv_classify_timextime(cfg, X, clabel, X2, clabel2)
 % .replace      - if balance is set to 'oversample' or 'undersample',
 %                 replace deteremines whether data is drawn with
 %                 replacement (default 1)
-% .normalise    - for evoked data is it recommended to normalise the samples
-%                 across trials, for each time point and each sensor
-%                 separately, using 'zscore' or 'demean' (default 'none')
+% .normalise    - normalises the data across samples, for each time point 
+%                 and each feature separately, using 'zscore' or 'demean' 
+%                 (default 'zscore'). Set to 'none' or [] to avoid normalisation.
 % .feedback     - print feedback on the console (default 1)
 %
 % Returns:
@@ -72,7 +72,7 @@ mv_set_default(cfg,'metric','acc');
 mv_set_default(cfg,'CV','kfold');
 mv_set_default(cfg,'repeat',5);
 mv_set_default(cfg,'time1',1:size(X,3));
-mv_set_default(cfg,'normalise','none');
+mv_set_default(cfg,'normalise','zscore');
 mv_set_default(cfg,'feedback',1);
 
 hasX2 = (nargin==5);
@@ -114,12 +114,12 @@ train_fun = eval(['@train_' cfg.classifier]);
 test_fun = eval(['@test_' cfg.classifier]);
 
 %% Normalise
-if strcmp(cfg.normalise,'zscore')
+if ischar(cfg.normalise) && strcmp(cfg.normalise,'zscore')
     X = zscore(X,[],1);
     if hasX2
         X2 = zscore(X2,[],1);
     end
-elseif strcmp(cfg.normalise,'demean')
+elseif ischar(cfg.normalise) && strcmp(cfg.normalise,'demean')
     X  = X  - repmat(mean(X,1), [size(X,1) 1 1]);
     if hasX2
         X2  = X2  - repmat(mean(X2,1), [size(X2,1) 1 1]);
