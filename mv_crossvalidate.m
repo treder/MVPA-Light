@@ -49,6 +49,9 @@ function [perf, result] = mv_crossvalidate(cfg, X, clabel)
 % .replace      - if balance is set to 'oversample' or 'undersample',
 %                 replace deteremines whether data is drawn with
 %                 replacement (default 1)
+% .normalise    - normalises the data across samples, for each time point 
+%                 and each feature separately, using 'zscore' or 'demean' 
+%                 (default 'zscore'). Set to 'none' or [] to avoid normalisation.
 % .feedback     - print feedback on the console (default 1)
 %
 % Returns:
@@ -64,6 +67,7 @@ mv_set_default(cfg,'param',[]);
 mv_set_default(cfg,'metric','acc');
 mv_set_default(cfg,'CV','kfold');
 mv_set_default(cfg,'repeat',5);
+mv_set_default(cfg,'normalise','zscore');
 mv_set_default(cfg,'feedback',1);
 
 if isempty(cfg.metric) || any(ismember({'dval','auc','roc','tval'},cfg.metric))
@@ -96,6 +100,13 @@ N2 = sum(clabel == 2);
 %% Get train and test functions
 train_fun = eval(['@train_' cfg.classifier]);
 test_fun = eval(['@test_' cfg.classifier]);
+
+%% Normalise
+if ischar(cfg.normalise) && strcmp(cfg.normalise,'zscore')
+    X = zscore(X,[],1);
+elseif ischar(cfg.normalise) && strcmp(cfg.normalise,'demean')
+    X  = X  - repmat(mean(X,1), [size(X,1) 1 1]);
+end
 
 %% Classify across time
 
