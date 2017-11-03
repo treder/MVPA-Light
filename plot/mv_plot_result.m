@@ -71,7 +71,11 @@ fprintf('Plotting the results of %s.\n', fun);
 
 %% Extract all performance measures into a matrix
 perf = cellfun( @(res) res.perf, result, 'Un', 0);
-perf_std = cellfun( @(res) res.perf_std, result, 'Un', 0);
+if ~isempty(result{1}.perf_std)
+    perf_std = cellfun( @(res) res.perf_std, result, 'Un', 0);
+else
+    perf_std = cellfun( @(res) res.perf * 0, result, 'Un', 0);
+end
 
 if strcmp(fun,'mv_classify_timextime')
     cat_dim = 3;
