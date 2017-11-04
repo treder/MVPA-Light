@@ -17,9 +17,9 @@ X = squeeze(mean(dat.trial(:,:,ival_idx),3));
 
 %% Logistic regression
 
-param = mv_classifier_defaults('logreg');
+param = mv_get_classifier_param('logreg');
 
-cf = train_logreg(X, truelabel, param);
+cf = train_logreg(param, X, label);
 
 %% Hyperparameter Alpha: classification accuracy and computation duration
 %%% Investigate the effects on classification performance and computation
