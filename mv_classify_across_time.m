@@ -62,6 +62,8 @@ function [perf, result] = mv_classify_across_time(cfg, X, clabel)
 
 % (c) Matthias Treder 2017
 
+X = double(X);
+
 mv_set_default(cfg,'classifier','lda');
 mv_set_default(cfg,'param',[]);
 mv_set_default(cfg,'metric','acc');

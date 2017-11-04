@@ -64,6 +64,8 @@ function [perf,result] = mv_searchlight(cfg, X, clabel)
 
 % (c) Matthias Treder 2017
 
+X = double(X);
+
 mv_set_default(cfg,'nb',[]);
 mv_set_default(cfg,'size',1);
 mv_set_default(cfg,'metric','auc');
