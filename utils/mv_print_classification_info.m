@@ -44,10 +44,18 @@ if nargin <= 3
         fprintf('.\n')
     end
     
+    % Under- or oversampling
+    if isfield(cfg,'balance')
+        if any(strcmp(cfg.balance,{'oversample','undersample'}))
+            fprintf('Uses %sing to balance the data.\n', cfg.balance(1:end-1))
+        end
+    end
+    
 else
     %% Transfer classification using two datasets
     fprintf('Training on dataset 1, testing on dataset 2 using a %s classifier.\n',upper(cfg.classifier));
 
+    % Dataset 1
     if ndims(X)==2
         fprintf('Dataset 1 has %d samples and %d features.\n', size(X))
     elseif ndims(X)==3
@@ -63,9 +71,10 @@ else
     end
     fprintf('.\n')
     
-    if ndims(X)==2
+    % Dataset 2
+    if ndims(X2)==2
         fprintf('Dataset 2 has %d samples and %d features.\n', size(X2))
-    elseif ndims(X)==3
+    elseif ndims(X2)==3
         fprintf('Dataset 2 has %d samples, %d features, and %d time points.\n', size(X2))
     end
     
@@ -77,4 +86,12 @@ else
         if ii<numel(u), fprintf(', '), end
     end
     fprintf('.\n')
+    
+    % Under- or oversampling
+    if isfield(cfg,'balance')
+        if any(strcmp(cfg.balance,{'oversample','undersample'}))
+            fprintf('Uses %sing to balance the data.\n', cfg.balance(1:end-1))
+        end
+    end
+
 end
