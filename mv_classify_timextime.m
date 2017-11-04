@@ -66,6 +66,11 @@ function [perf, result] = mv_classify_timextime(cfg, X, clabel, X2, clabel2)
 
 % (c) Matthias Treder 2017
 
+X = double(X);
+if nargin > 3
+    X2 = double(X2);
+end
+
 mv_set_default(cfg,'classifier','lda');
 mv_set_default(cfg,'param',[]);
 mv_set_default(cfg,'metric','acc');
