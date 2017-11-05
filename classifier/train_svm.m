@@ -66,6 +66,16 @@ function cf = train_svm(cfg,X,clabel)
 %                 cross-validated accuracy as a function of lambda (default
 %                 0)
 %
+%Further parameters controlling the Dual Coordinate Descent optimisation:
+% shrinkage_multiplier  - multiplier that controls the Dual Coordinate
+%                 Descent algorithm with active set strategy. If the
+%                 multiplier is < 1, the active set is shrunk more
+%                 aggressively, potentially leading to speed ups (default
+%                 1)
+% tolerance     - controls the stopping criterion. If the change in
+%                 projected gradient is below tolerance, the algorithm
+%                 terminates
+%
 %Output:
 % cf - struct specifying the classifier with the following fields:
 % w            - normal to the hyperplane (for linear SVM)
@@ -170,7 +180,7 @@ if numel(cfg.C)>1
         for ll=1:numel(cfg.C)
             
             % Solve the dual problem and obtain alpha
-            alpha = DualCoordinateDescent(Qtrain, cfg.C(ll), ONEtrain, cfg.tolerance);
+            [alpha,iter] = DualCoordinateDescent(Qtrain, cfg.C(ll), ONEtrain, cfg.tolerance, cfg.shrinkage_multiplier);
             
             %%% TODO: b needs fixing
             b = 0;
@@ -221,7 +231,7 @@ end
 C = cfg.C(best_idx);
 
 % Solve the dual problem and obtain alpha
-alpha = DualCoordinateDescent(Q, C, ONE, cfg.tolerance);
+alpha = DualCoordinateDescent(Q, C, ONE, cfg.tolerance, cfg.shrinkage_multiplier);
 
 %% Set up classifier
 cf= [];
