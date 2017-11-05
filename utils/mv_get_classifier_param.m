@@ -47,6 +47,7 @@ switch(classifier)
         mv_set_default(param,'K',5);
         mv_set_default(param,'regularise_kernel',10e-10);
         mv_set_default(param,'tolerance',0.1);
+        mv_set_default(param,'shrinkage_multiplier',1);
         mv_set_default(param,'Q',[]);
         
         % parameters for specific kernels
