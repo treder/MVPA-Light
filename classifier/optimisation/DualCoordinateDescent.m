@@ -1,4 +1,4 @@
-function [alpha,iter] = DualCoordinateDescent(Q,C,ONE,tolerance)
+function [alpha,iter] = DualCoordinateDescent(Q,C,ONE,tolerance, shrinkage_multiplier)
 % Implementation of a dual coordinate descent algorithm for optimising 
 % linear and non-linear SVMs with L1 loss.
 %
@@ -26,6 +26,8 @@ function [alpha,iter] = DualCoordinateDescent(Q,C,ONE,tolerance)
 % ONE       - column vectors of 1's, same size as a 
 % tolerance - stopping criterion. When the relative change in function
 %             value is below tolerance, iteration stops
+% shrinkage_multiplier - if the multiplier is < 1, the active set is shrunk more
+%                 aggressively, potentially leading to speed up
 %
 
 % (c) Matthias Treder 2017
@@ -80,7 +82,7 @@ while iter < max_iter
         PG = 0;
         if alpha(o(ii)) == 0
             
-            if (g(o(ii)) > PGmax_old  * 0.8)
+            if (g(o(ii)) > PGmax_old  * shrinkage_multiplier)
                 % Shrink (=remove) this item from the active set and restart
                 active_size = active_size - 1;
                 tmp = o(active_size+1);
@@ -93,7 +95,7 @@ while iter < max_iter
             
         elseif alpha(o(ii)) == C
             
-            if (g(o(ii)) < PGmin_old * 0.8)
+            if (g(o(ii)) < PGmin_old * shrinkage_multiplier)
                 % Shrink (=remove) this item from the active set and restart
                 active_size = active_size - 1;
                 tmp = o(active_size+1);
