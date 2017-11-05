@@ -11,8 +11,6 @@ clear all
 ival_idx = find(dat.time >= 0.6 & dat.time <= 0.8);
 X = squeeze(mean(dat.trial(:,:,ival_idx),3));
 
-X= zscore(X);
-
 %% Cross-validation
 
 % Configuration struct for cross-validation. As classifier, we
