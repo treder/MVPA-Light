@@ -14,7 +14,7 @@ clear all
 % use LDA. The value of the regularisation parameter lambda is determined 
 % automatically.
 cfg_LDA =  [];
-cfg_LDA.CV         = 'kfold';
+cfg_LDA.CV         = 'kfold';   % 'kfold' 'holdout' 'leaveout'
 cfg_LDA.K          = 5;
 cfg_LDA.repeat     = 2;
 cfg_LDA.classifier = 'lda';
