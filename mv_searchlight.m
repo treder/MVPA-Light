@@ -56,8 +56,16 @@ function [perf,result] = mv_searchlight(cfg, X, clabel)
 %                 (default 'zscore'). Set to 'none' or [] to avoid normalisation.
 % .feedback     - print feedback on the console (default 1)
 %
-% Additionally, you can pass on parameters for cross-validation. Refer to
-% mv_crossvalidate for a description of cross-validation parameters.
+% CROSS-VALIDATION parameters:
+% .CV           - perform cross-validation, can be set to 'kfold',
+%                 'leaveout', 'holdout', or 'none' (default 'kfold')
+% .K            - number of folds in k-fold cross-validation (default 5)
+% .P            - if CV is 'holdout', P is the fraction of test samples
+%                 (default 0.1)
+% .stratify     - if 1, the class proportions are approximately preserved
+%                 in each fold (default 1)
+% .repeat       - number of times the cross-validation is repeated with new
+%                 randomly assigned folds (default 1)
 %
 % Returns:
 % perf          - [features x 1] vector of classifier performances
@@ -74,9 +82,18 @@ mv_set_default(cfg,'feedback',1);
 mv_set_default(cfg,'classifier','lda');
 mv_set_default(cfg,'param',[]);
 mv_set_default(cfg,'metric','acc');
+
+% Cross-validation settings
 mv_set_default(cfg,'CV','kfold');
 mv_set_default(cfg,'repeat',5);
 mv_set_default(cfg,'K',5);
+mv_set_default(cfg,'P',0.1);
+mv_set_default(cfg,'stratify',1);
+
+switch(cfg.CV)
+    case 'leaveout', cfg.K = size(X,1);
+    case 'holdout', cfg.K = 1;
+end
 
 if cfg.average && ~ismatrix(X)
     X = mean(X,3);

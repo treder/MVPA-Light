@@ -18,8 +18,9 @@ function mv_print_classification_info(cfg, X, clabel, X2, clabel2)
 if nargin <= 3
     % Print type of classification
     if ~strcmp(cfg.CV,'none')
-        fprintf('Performing %s cross-validation (K=%d) with %d repetitions using a %s classifier.\n', ...
-            cfg.CV, cfg.K, cfg.repeat, upper(cfg.classifier))
+        if strcmp(cfg.CV,'kfold'), K=sprintf(' (K=%d)', cfg.K); else K=''; end
+        fprintf('Performing %s cross-validation%s with %d repetitions using a %s classifier.\n', ...
+            cfg.CV, K, cfg.repeat, upper(cfg.classifier))
     else
         fprintf('Training and testing on the same data using a %s classifier.\n',upper(cfg.classifier))
     end

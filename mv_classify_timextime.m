@@ -24,16 +24,6 @@ function [perf, result] = mv_classify_timextime(cfg, X, clabel, X2, clabel2)
 % .metric       - classifier performance metric, default 'acc'. See
 %                 mv_classifier_performance. If set to [], the raw classifier
 %                 output (labels or dvals depending on cfg.cf_output) is returned.
-% .CV           - perform cross-validation, can be set to
-%                 'kfold' (recommended) or 'leaveout' (not recommended
-%                 since it has a higher variance than k-fold) (default
-%                 'none')
-% .K            - number of folds (the K in K-fold cross-validation).
-%                 For leave-one-out, K should be 1. (default 5 for kfold,
-%                 1 for leave-one-out)
-% .repeat       - number of times the cross-validation is repeated with new
-%                 randomly assigned folds. Only useful for CV = 'kfold'
-%                 (default 1)
 % .time1        - indices of training time points (by default all time
 %                 points in X are used)
 % .time2        - indices of test time points (by default all time points
@@ -58,6 +48,17 @@ function [perf, result] = mv_classify_timextime(cfg, X, clabel, X2, clabel2)
 %                 (default 'zscore'). Set to 'none' or [] to avoid normalisation.
 % .feedback     - print feedback on the console (default 1)
 %
+% CROSS-VALIDATION parameters:
+% .CV           - perform cross-validation, can be set to 'kfold',
+%                 'leaveout', 'holdout', or 'none' (default 'kfold')
+% .K            - number of folds in k-fold cross-validation (default 5)
+% .P            - if CV is 'holdout', P is the fraction of test samples
+%                 (default 0.1)
+% .stratify     - if 1, the class proportions are approximately preserved
+%                 in each fold (default 1)
+% .repeat       - number of times the cross-validation is repeated with new
+%                 randomly assigned folds (default 1)
+%
 % Returns:
 % perf          - time1 x time2 classification matrix of classification
 %                performance. 
@@ -74,11 +75,21 @@ end
 mv_set_default(cfg,'classifier','lda');
 mv_set_default(cfg,'param',[]);
 mv_set_default(cfg,'metric','acc');
-mv_set_default(cfg,'CV','kfold');
-mv_set_default(cfg,'repeat',5);
 mv_set_default(cfg,'time1',1:size(X,3));
 mv_set_default(cfg,'normalise','zscore');
 mv_set_default(cfg,'feedback',1);
+
+% Cross-validation settings
+mv_set_default(cfg,'CV','kfold');
+mv_set_default(cfg,'repeat',5);
+mv_set_default(cfg,'K',5);
+mv_set_default(cfg,'P',0.1);
+mv_set_default(cfg,'stratify',1);
+
+switch(cfg.CV)
+    case 'leaveout', cfg.K = size(X,1);
+    case 'holdout', cfg.K = 1;
+end
 
 hasX2 = (nargin==5);
 if hasX2, mv_set_default(cfg,'time2',1:size(X2,3));
@@ -94,12 +105,6 @@ end
 % Balance the data using oversampling or undersampling
 mv_set_default(cfg,'balance','none');
 mv_set_default(cfg,'replace',1);
-
-if strcmp(cfg.CV,'kfold')
-    mv_set_default(cfg,'K',5);
-else
-    mv_set_default(cfg,'K',1);
-end
 
 % Set non-specified classifier parameters to default
 cfg.param = mv_get_classifier_param(cfg.classifier, cfg.param);
@@ -149,7 +154,7 @@ if ~strcmp(cfg.CV,'none') && ~hasX2
     
     for rr=1:cfg.repeat                 % ---- CV repetitions ----
         if cfg.feedback, fprintf('Repetition #%d. Fold ',rr), end
-
+        
         % Undersample data if requested. We undersample the classes within the
         % loop since it involves chance (samples are randomly over-/under-
         % sampled) so randomly repeating the process reduces the variance
@@ -167,10 +172,11 @@ if ~strcmp(cfg.CV,'none') && ~hasX2
             % subconditions)
             [X,clabel] = mv_balance_classes(X_orig,label_orig,cfg.balance,cfg.replace);
         end
-
-        CV= cvpartition(clabel,cfg.CV,cfg.K);
-
-        for kk=1:cfg.K                      % ---- CV folds ----
+        
+        % Define cross-validation
+        CV = mv_get_crossvalidation_folds(cfg.CV, clabel, cfg.K, cfg.stratify, cfg.P);
+        
+        for kk=1:CV.NumTestSets                      % ---- CV folds ----
             if cfg.feedback, fprintf('%d ',kk), end
 
             % Train data
