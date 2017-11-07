@@ -35,7 +35,7 @@ A *classifier* is the main workhorse of MVPA. The input brain data, e.g. channel
 
 #### Training
 
-In order to learn which features in the data discriminate between the experimental conditions, a classifier needs to be exposed to *training data*. During training, the classifier's parameters are optimised (analogous to determining the beta's in linear regression). All training functions start with `train_` (e.g. [`train_lda`](classifier/train_lda.m).
+In order to learn which features in the data discriminate between the experimental conditions, a classifier needs to be exposed to *training data*. During training, the classifier's parameters are optimised (analogous to determining the beta's in linear regression). All training functions start with `train_` (e.g. [`train_lda`](classifier/train_lda.m)).
 
 #### Testing
 
