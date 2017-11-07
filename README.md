@@ -20,7 +20,7 @@ Alternatively, use [MATLAB's Path tool](https://uk.mathworks.com/help/matlab/mat
 ## Overview <a name="overview"></a>
 `MVPA-Light` provides functions for the binary classification of neuroimaging data. It is meant to address the basic issues in MVPA (such as classification across time and generalisation) in a fast and robust way while retaining a slim and readable codebase. For Fieldtrip users, the use of the toolbox will be familiar: The first argument to the main functions is a configuration struct `cfg` that contains all the parameters. However, the toolbox does *not* require or use Fieldtrip.
 
-Classifiers can be trained and tested by hand using the `train_*` and `test_*` functions. For data with a trial structure, such as ERP datasets, `mv_classify_across_time` can be used to obtain classification performance for each time point in a trial. `mv_classify_timextime` implements time generalisation, i.e., training on a specific time point, and testing the classifier on all other time points in a trial. Cross-validation, balancing unequal class proportions, and different performance metrics are automatically implemented in these functions.
+Classifiers can be trained and tested by hand using the `train_*` and `test_*` functions. For data with a trial structure, such as ERP datasets, [`mv_classify_across_time`](mv_classify_across_time.m) can be used to obtain classification performance for each time point in a trial. [`mv_classify_timextime`](mv_classify_timextime.m) implements time generalisation, i.e., training on a specific time point, and testing the classifier on all other time points in a trial. Cross-validation, balancing unequal class proportions, and different performance metrics are automatically implemented in these functions.
 
 ## Classification <a name="classification"></a>
 
@@ -35,18 +35,18 @@ A *classifier* is the main workhorse of MVPA. The input brain data, e.g. channel
 
 #### Training
 
-In order to learn which features in the data discriminate between the experimental conditions, a classifier needs to be exposed to *training data*. During training, the classifier's parameters are optimised (analogous to determining the beta's in linear regression). All training functions start with `train_` (e.g. `train_lda`).
+In order to learn which features in the data discriminate between the experimental conditions, a classifier needs to be exposed to *training data*. During training, the classifier's parameters are optimised (analogous to determining the beta's in linear regression). All training functions start with `train_` (e.g. [`train_lda`](classifier/train_lda.m).
 
 #### Testing
 
-Classifier performance is evaluated on a dataset called *test data*. To this end, the classifier is applied to samples from the test data. The class label predicted by the classifier can then be compared to the true class label in order to quantify classification performance. All test functions start with `test_` (e.g. `test_lda`).
+Classifier performance is evaluated on a dataset called *test data*. To this end, the classifier is applied to samples from the test data. The class label predicted by the classifier can then be compared to the true class label in order to quantify classification performance. All test functions start with `test_` (e.g. [`test_lda`](classifier/test_lda.m)).
 
 #### Classifiers
 
-* `lda`: Regularised Linear Discriminant Analysis (LDA). For two classes, LDA is equivalent to Fisher's discriminant analysis (FDA). Hence, LDA searches for a projection of the data into 1D such that the class means are separated as far as possible and the within-class variability is as small as possible. To prevent overfitting and assure invertibility of the covariance matrix, the regularisation parameter λ (lambda) can be varied between λ=0 (no regularisation) and λ=1 (maximum regularisation). It can also be set to 'auto'. In this case, λ is estimated automatically. For more details on regularised LDA see [[Bla2011]](#Bla2011). LDA has been shown to be formally equivalent to LCMV beamforming and it can be used for recovering time series of ERP sources [[Tre2011]](#Tre2011). See `train_lda` for a full description of the parameters.
-* `logreg`: Logistic regression (LR) with L2-regularisation. LR directly models class probabilities by fitting a logistic function to the data. Like LDA, LR is a linear classifier and hence its operation is expressed by a weight vector w and a bias b. To prevent overfitting the regularisation parameter λ (lambda) is used to control the penalisation of the classifier weights.  λ has to be positive but its value is unbounded. It can also be set to 'auto'. In this case, different λ's are tried out using a searchgrid; the value of λ maximising cross-validation performance is then used for training on the full dataset. See `train_logreg` for a full description of the parameters.
-* `svm`: Support Vector Machine (SVM). The parameter C is the cost parameter that controls the amount of regularisation. It is inversely related to the lambda defined above. By default, a linear SVM is used. By setting the `.kernel` parameter (e.g. to 'polynomial' or 'rbf'), non-linear SVMs can be trained as well. See `train_svm` for a full description of the parameters.
-* `ensemble`: Uses an ensemble of classifiers trained on random subsets of the features and random subsets of the samples. Can use any classifier with train/test functions as a learner. See `train_ensemble` for a full description of the parameters.
+* `lda`: Regularised Linear Discriminant Analysis (LDA). For two classes, LDA is equivalent to Fisher's discriminant analysis (FDA). Hence, LDA searches for a projection of the data into 1D such that the class means are separated as far as possible and the within-class variability is as small as possible. To prevent overfitting and assure invertibility of the covariance matrix, the regularisation parameter λ (lambda) can be varied between λ=0 (no regularisation) and λ=1 (maximum regularisation). It can also be set to 'auto'. In this case, λ is estimated automatically. For more details on regularised LDA see [[Bla2011]](#Bla2011). LDA has been shown to be formally equivalent to LCMV beamforming and it can be used for recovering time series of ERP sources [[Tre2011]](#Tre2011). See [`train_lda`](classifier/train_lda.m) for a full description of the parameters.
+* `logreg`: Logistic regression (LR) with L2-regularisation. LR directly models class probabilities by fitting a logistic function to the data. Like LDA, LR is a linear classifier and hence its operation is expressed by a weight vector w and a bias b. To prevent overfitting the regularisation parameter λ (lambda) is used to control the penalisation of the classifier weights.  λ has to be positive but its value is unbounded. It can also be set to 'auto'. In this case, different λ's are tried out using a searchgrid; the value of λ maximising cross-validation performance is then used for training on the full dataset. See [`train_logreg`](classifier/train_logreg.m) for a full description of the parameters.
+* `svm`: Support Vector Machine (SVM). The parameter C is the cost parameter that controls the amount of regularisation. It is inversely related to the lambda defined above. By default, a linear SVM is used. By setting the `.kernel` parameter (e.g. to 'polynomial' or 'rbf'), non-linear SVMs can be trained as well. See [`train_svm`](classifier/train_svm.m) for a full description of the parameters.
+* `ensemble`: Uses an ensemble of classifiers trained on random subsets of the features and random subsets of the samples. Can use any classifier with train/test functions as a learner. See [`train_ensemble`](classifier/train_ensemble.m) for a full description of the parameters.
 
 <!--
 * `train_svm`, `test_svm`: Support vector machines (SVM). Uses the [LIBSVM package](https://github.com/arnaudsj/libsvm) that needs to be installed.
@@ -55,7 +55,7 @@ Classifier performance is evaluated on a dataset called *test data*. To this end
 
 #### Cross-validation
 
-To obtain a realistic estimate of classifier performance and control for overfitting, a classifier should be tested on an independent dataset that has not been used for training. In most neuroimaging experiments, there is only one dataset with a restricted number of trials. *K-fold cross-validation* makes efficient use of this data by splitting it into k different folds. In each iteration, one of the k folds is held out and used as test set, whereas all other folds are used for training. This is repeated until every fold has been used as test set once. See [[Lemm2011]](#Lemm2011) for a discussion of cross-validation and potential pitfalls. Cross-validation is implemented in `mv_crossvalidate`. Note that the more specialised functions `mv_classify_across_time`, `mv_classify_timextime` and `mv_searchlight` implement cross-validation too. Cross-validation is always controlled by the following parameters:
+To obtain a realistic estimate of classifier performance and control for overfitting, a classifier should be tested on an independent dataset that has not been used for training. In most neuroimaging experiments, there is only one dataset with a restricted number of trials. *K-fold cross-validation* makes efficient use of this data by splitting it into k different folds. In each iteration, one of the k folds is held out and used as test set, whereas all other folds are used for training. This is repeated until every fold has been used as test set once. See [[Lemm2011]](#Lemm2011) for a discussion of cross-validation and potential pitfalls. Cross-validation is implemented in [`mv_crossvalidate`](mv_crossvalidate.m). Note that the more specialised functions [`mv_classify_across_time`](mv_classify_across_time.m), [`mv_classify_timextime`](mv_classify_timextime.m) and [`mv_searchlight`](mv_searchlight.m) implement cross-validation too. Cross-validation is always controlled by the following parameters:
 
 * `cfg.CV`: cross-validation type, either 'kfold', 'leaveout' or 'holdout' (default 'kfold')
 * `cfg.K`: number of folds in k-fold cross-validation (default 5)
@@ -65,33 +65,33 @@ To obtain a realistic estimate of classifier performance and control for overfit
 
 
 #### Classification across time
-Many neuroimaging datasets have a 3-D structure (trials x channels x time). The start of the trial (t=0) typically corresponds to stimulus or response onset. Classification across time can help identify at which time point in a trial discriminative information shows up. To this end, classification is performed across trials, for each time point separately. This is implemented in the function `mv_classify_across_time`. It returns classification performance calculated for each time point in a trial. `mv_plot_1D` can be used to plot the result.
+Many neuroimaging datasets have a 3-D structure (trials x channels x time). The start of the trial (t=0) typically corresponds to stimulus or response onset. Classification across time can help identify at which time point in a trial discriminative information shows up. To this end, classification is performed across trials, for each time point separately. This is implemented in the function [`mv_classify_across_time`](mv_classify_across_time.m). It returns classification performance calculated for each time point in a trial. [`mv_plot_result`](plot/mv_plot_result.m) can be used to plot the result.
 
 
 #### Time x time generalisation
 
-Classification across time does not give insight into whether information is shared across different time points. For example, is the information that the classifier uses early in a trial (t=80 ms) the same that it uses later (t=300ms)? In time generalisation, this question is answered by training the classifier at a certain time point t. The classifer is then tested at the same time point t but it is also tested at all *other* time points in the trial [[King2014]](#King2014). `mv_classify_timextime` implements time generalisation. It returns a 2D matrix of classification performance, with performance calculated for each combination of training time point and testing time point. `mv_plot_2D` can be used to plot the result.
+Classification across time does not give insight into whether information is shared across different time points. For example, is the information that the classifier uses early in a trial (t=80 ms) the same that it uses later (t=300ms)? In time generalisation, this question is answered by training the classifier at a certain time point t. The classifer is then tested at the same time point t but it is also tested at all *other* time points in the trial [[King2014]](#King2014). [`mv_classify_timextime`](mv_classify_timextime.m) implements time generalisation. It returns a 2D matrix of classification performance, with performance calculated for each combination of training time point and testing time point. [`mv_plot_result`](plot/mv_plot_result.m) can be used to plot the result.
 
 #### Searchlight analysis
 
-Which features contribute most to classification performance? The answer to this question can be used to better interpret the data or to perform feature selection. To this end, `mv_searchlight` performs cross-validated classification for each feature separately. If there is a spatial structure in the features (e.g. neighbouring eletrodes, neighbouring voxels), groups of features rather than single features can be considered. The result is a classification performance measure for each feature. If the features are e.g. channels, the result can be plotted as a topography.
+Which features contribute most to classification performance? The answer to this question can be used to better interpret the data or to perform feature selection. To this end, [`mv_searchlight`](mv_searchlight.m) performs cross-validated classification for each feature separately. If there is a spatial structure in the features (e.g. neighbouring eletrodes, neighbouring voxels), groups of features rather than single features can be considered. The result is a classification performance measure for each feature. If the features are e.g. channels, the result can be plotted as a topography.
 
 
 #### Classifier performance metrics
 
-Classifier output comes in form of decision values (=distances to the hyperplane for linear methods) or directly in form of class labels. However,  one is often only interested in a performance metric that summarises how well the classifier discriminates between the classes. The following metrics can be calculated by the function `mv_classifier_performance`:
+Classifier output comes in form of decision values (=distances to the hyperplane for linear methods) or directly in form of class labels. However,  one is often only interested in a performance metric that summarises how well the classifier discriminates between the classes. The following metrics can be calculated by the function [`mv_classifier_performance`](mv_classifier_performance.m):
 
 * `acc`: Classification accuracy, representing the fraction correctly predicted class labels.
 * `auc`: Area under the ROC curve. An alternative to classification accuracy that is more robust to imbalanced classes and independent of changes to the classifier threshold.
 * `dval`: Average decision value for each class.
 * `tval`: t-test statistic, calculated by comparing the sets of decision values for two classes. Can be useful for a subsequent second-level analysis across subjects.
 
-There is usually no need to call `mv_classifier_performance` directly. By setting the `cfg.metric` field, the performance metric is calculated automatically in `mv_crossvalidate`, `mv_classify_across_time`,  `mv_classify_timextime` and `mv_searchlight`.
+There is usually no need to call [`mv_classifier_performance`](mv_classifier_performance.m) directly. By setting the `cfg.metric` field, the performance metric is calculated automatically in [`mv_crossvalidate`](mv_crossvalidate.m), [`mv_classify_across_time`](mv_classify_across_time.m),  [`mv_classify_timextime`](mv_classify_timextime.m) and [`mv_searchlight`](mv_searchlight.m).
 
 
 ## Examples<a name="examples"></a>
 
-This section gives some basic examples. More detailed examples and data can be found in the `examples/` subfolder.
+This section gives some basic examples. More detailed examples and data can be found in the [`examples/`](examples) subfolder.
 
 #### Training and testing by hand
 
@@ -116,7 +116,7 @@ predlabel = test_lda(cf, X);
 acc = mv_calculate_performance('acc',predlabel,clabel)
 ```
 
-See `examples/example1_train_and_test.m` for more details.
+See [`examples/example1_train_and_test.m`](examples/example1_train_and_test.m) for more details.
 
 #### Cross-validation
 
@@ -134,7 +134,7 @@ cfg.repeat          = 2;
 acc = mv_crossvalidate(cfg, X, clabel);
 ```
 
-See `examples/example2_crossvalidate.m` for more details.
+See [`examples/example2_crossvalidate.m`](examples/example2_crossvalidate.m) for more details.
 
 #### Classification across time
 
@@ -146,7 +146,7 @@ acc = mv_classify_across_time(cfg, dat.trial, clabel);
 
 ```
 
-See `examples/example3_classify_across_time.m` for more details.
+See [`examples/example3_classify_across_time.m`](examples/example3_classify_across_time.m) for more details.
 
 #### Time generalisation (time x time classification)
 
@@ -159,7 +159,7 @@ auc = mv_classify_timextime(cfg, dat.trial, clabel);
 
 ```
 
-See `examples/example4_classify_timextime.m` for more details.
+See [`examples/example4_classify_timextime.m`](examples/example4_classify_timextime.m) for more details.
 
 #### Searchlight analysis
 
@@ -171,7 +171,7 @@ auc = mv_searchlight(cfg, dat.trial, clabel);
 
 ```
 
-See `examples/example5_searchlight.m` for more details.
+See [`examples/example5_searchlight.m`](examples/example5_searchlight.m) for more details.
 
 
 
