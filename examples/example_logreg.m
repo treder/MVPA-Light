@@ -4,12 +4,7 @@ close all
 clear all
 
 % Load data (in /examples folder)
-load('epoched2')
-
-% Create class labels (1's and 2's)
-label = zeros(nTrial, 1);
-label(attended_deviant)  = 1;   % Class 1: attended deviants
-label(~attended_deviant) = 2;  % Class 2: unattended deviants
+[dat, clabel] = load_example_data('epoched3', 0);
 
 % Average activity in 0.6-0.8 interval (see example1)
 ival_idx = find(dat.time >= 0.6 & dat.time <= 0.8);
@@ -19,7 +14,7 @@ X = squeeze(mean(dat.trial(:,:,ival_idx),3));
 
 param = mv_get_classifier_param('logreg');
 
-cf = train_logreg(param, X, label);
+cf = train_logreg(param, X, clabel);
 
 %% Hyperparameter Alpha: classification accuracy and computation duration
 %%% Investigate the effects on classification performance and computation
