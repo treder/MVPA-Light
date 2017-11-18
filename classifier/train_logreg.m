@@ -328,8 +328,7 @@ end
 %     function xo = log_logreg_fix(x)
 %         % This is a fix to the LOG logistic loss function found on
 %         % http://fa.bianp.net/blog/2013/numerical-optimizers-for-logistic-regression/
-%         % and allegedly used in the LIBLINEAR code. It prevents exp from
-%         % overflowing
+%         % also used in the LIBLINEAR code. It prevents exp from overflow.
 %         xo = x;
 %         xo(x>=0) = log(1+exp(-x(x>=0)));
 %         xo(x<0)  = log(1+exp(x(x<0))) - x(x<0);
@@ -338,8 +337,7 @@ end
     function xo = logreg_fix(x)
         % This is a fix to the logistic loss function found on
         % http://fa.bianp.net/blog/2013/numerical-optimizers-for-logistic-regression/
-        % and allegedly used in the LIBLINEAR code. It prevents exp from
-        % overflowing
+        % and used in the LIBLINEAR code. It prevents exp from overflowing.
         % Logistic loss: 1./1+exp(-YX*w);
         xo = x;
         xo(x>=0) = 1./(1+exp(-x(x>=0)));
