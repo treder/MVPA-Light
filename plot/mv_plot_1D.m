@@ -56,7 +56,7 @@ if nargin==4
     % We use boundedline to plot the error as well
     tmp = zeros( size(err,1), 1, size(err,2));
     tmp(:,1,:) = err;
-    h.plt = boundedline(time, dat, tmp, cfg.bounded{:});
+    [h.plt, h.patch] = boundedline(time, dat, tmp, cfg.bounded{:});
 else
     % Ordinary plot without error
     h.plt = plot(time, dat);
@@ -72,7 +72,7 @@ if ~isempty(cfg.cross)
         % vertical zero line
         hold on
         yl = ylim(gca);
-        plot(gca,[1 1] * cfg.ver, yl(:), cfg.cross{:})
+        h.vertical_line = plot(gca,[1 1] * cfg.ver, yl(:), cfg.cross{:});
         set(gca,'YLim',yl)
     end
     hold on
@@ -80,7 +80,7 @@ if ~isempty(cfg.cross)
     % horizontal zero line
     if ~isempty(cfg.hor)
         xl = xlim(gca);
-        plot(gca,xl(:), [1 1] * cfg.hor, cfg.cross{:})
+        h.horizontal_line = plot(gca,xl(:), [1 1] * cfg.hor, cfg.cross{:});
     end
 %     set(gca,'YLim',yl)
 end
