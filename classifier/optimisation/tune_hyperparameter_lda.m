@@ -1,5 +1,5 @@
 % Inverting the covariance matrix is computationally expensive. To reduce
-% computation time, perform PCA first. The covariance matrix is then
+% computation time, PCA is performed first. The covariance matrix is then
 % diagonal, which is easy to invert.
 
 % Eigenvalue decomposition

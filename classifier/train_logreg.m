@@ -119,8 +119,12 @@ end
 
 %% Find best lambda using (nested) cross-validation
 if numel(cfg.lambda)>1
+    % Perform inner cross validation by again partitioning the training
+    % data into folds. Then, cycle through all the lambda's, calculate
+    % the classifier, and validate it on the test set. The lambda giving
+    % the best result is then taken forward and a model is trained on the
+    % full data using the best lambda.
     
-    % The regularisation path for logistic regression is needed. ...
     CV = cvpartition(N,'KFold',cfg.K);
     ws = zeros(nFeat, numel(cfg.lambda));
     acc = zeros(numel(cfg.lambda),1);
@@ -135,7 +139,7 @@ if numel(cfg.lambda)>1
     end
     
     if cfg.predict_regularisation_path
-        % Create predictor matrix for quadratic polynomial approximation 
+        % Create predictor matrix for the polynomial approximation 
         % of the regularisation path by taking the lambda's to the powers
         % up to the polyorder.
         polyvec = 0:cfg.polyorder;
