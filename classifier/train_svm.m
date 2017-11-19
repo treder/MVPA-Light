@@ -32,10 +32,8 @@ function cf = train_svm(cfg,X,clabel)
 %                  Alternatively, a custom kernel can be provided if there
 %                  is a function called *_kernel is in the MATLAB path, 
 %                  where "*" is the name of the kernel (e.g. rbf_kernel).
-% Q              - optional kernel matrix with absorbed class labels, i.e. 
-%                  Q = KER .* (clabel * clabel'), where KER is the kernel
-%                  matrix. If Q is provided, the .kernel parameter is
-%                  ignored. (Default [])
+% Q              - optional kernel matrix. If Q is provided, the .kernel 
+%                  parameter is ignored. (Default [])
 %
 % Note: C is implemented analogous to the classical SVM implementations,
 % see libsvm and liblinear. It is roughly reciprocally related to the
@@ -58,7 +56,8 @@ function cf = train_svm(cfg,X,clabel)
 %                 vector with the bias variable w <- [w; b].
 %                 If 0, the bias is assumed to be 0. If set to 'auto', the
 %                 bias is 1 for linear kernel and 0 for non-linear
-%                 kernel (default 'auto')
+%                 kernel (default 'auto'). This is because for non-linear
+%                 kernels, a bias is usally not needed (Kecman 2001, p.182)
 % K             - the number of folds in the K-fold cross-validation for
 %                 the lambda search (default 5)
 % plot          - if a lambda search is performed, produces diagnostic
@@ -79,14 +78,20 @@ function cf = train_svm(cfg,X,clabel)
 %Output:
 % cf - struct specifying the classifier with the following fields:
 % w            - normal to the hyperplane (for linear SVM)
-% b            - bias term, setting the threshold
+% b            - bias term, setting the threshold  (for linear SVM with bias)
 % alpha        - dual vector specifying the weighting of training samples
 %                for evaluating the classifier. For alpha > 0 a particular
-%                sample is a support vector
+%                sample is a support vector (for kernel SVM)
 %
 % IMPLEMENTATION DETAILS:
 % A Dual Coordinate Descent algorithm is used to find the optimal alpha
 % (weights on the samples), implemented in DualCoordinateDescent.
+%
+% REFERENCES:
+% V Kecman (2001). Learning and Soft Computing: Support Vector Machines, 
+% Neural Networks, and Fuzzy Logic Models. MIT Press
+
+%
 
 % (c) Matthias Treder 2017
 
@@ -137,91 +142,24 @@ if isempty(cfg.Q)
         Q = Q + cfg.regularise_kernel * eye(size(X,1));
     end
     
-    % Absorb class labels 1 and -1 in the kernel matrix
-    Q = Q .* (clabel * clabel');
-    
 else
     Q = cfg.Q;
 end
 
-%% Automatically set the search grid for C
+% Create a copy of Q wherein class labels 1 and -1 are absorbed in the
+% kernel matrix. This is useful for optimisation.
+Q_cl = Q .* (clabel * clabel');
+
+% %% Automatically set the search grid for C
 if ischar(cfg.C) && strcmp(cfg.C,'auto')
     cfg.C = logspace(-4,4,10);
 end
 
-%% Find best lambda using cross-validation
+%% Optimise hyperparemeters using nested cross-validation
 if numel(cfg.C)>1
     
-    CV = cvpartition(N,'KFold',cfg.K);
-    acc = zeros(numel(cfg.C),1);
-    
-    if cfg.plot
-        C = zeros(numel(cfg.C));
-    end
-
-    LABEL = (clabel * clabel');
-    
-    % --- Start cross-validation ---
-    for ff=1:cfg.K
-        
-        %%% TODO: this code can probably be made faster
-        
-        %%% TODO: seems to be a bug here
-        
-        % Training data
-        Xtrain = X(CV.training(ff),:);
-        Xtest= X(CV.test(ff),:);
-        Qtrain = Q(CV.training(ff),CV.training(ff));
-        Qtest = Q(CV.test(ff),CV.training(ff));
-        ONEtrain = ONE(CV.training(ff));
-        LABELtest = LABEL(CV.test(ff),CV.training(ff));
-        
-        % --- Loop through C's ---
-        for ll=1:numel(cfg.C)
-            
-            % Solve the dual problem and obtain alpha
-            [alpha,iter] = DualCoordinateDescent(Qtrain, cfg.C(ll), ONEtrain, cfg.tolerance, cfg.shrinkage_multiplier);
-            
-            %%% TODO: b needs fixing
-            b = 0;
-            
-            support_vector_indices = find(alpha>0);
-            support_vectors  = Xtrain(support_vector_indices,:);
-            
-            % Class labels for the support vectors
-            y                = clabel(support_vector_indices);
-            
-            % For convenience we save the product alpha * y for the support vectors
-            alpha_y = alpha(support_vector_indices) .* y(:);
-
-            dval = kernelfun(cfg, Xtest, support_vectors) * alpha_y   + b;
-            
-            % accuracy
-            acc(ll) = acc(ll) + sum( clabel(CV.test(ff)) == double(sign(dval(:)))  );
-        end
-        
-        if cfg.plot
-            C = C + corr(alpha);
-        end
-    end
-    
-    acc = acc / N;
-    
-    [~, best_idx] = max(acc);
-    
-    % Diagnostic plots if requested
-    if cfg.plot
-        
-        % Plot cross-validated classification performance
-        figure
-        semilogx(cfg.C,acc)
-        title([num2str(cfg.K) '-fold cross-validation performance'])
-        hold all
-        plot([cfg.C(best_idx), cfg.C(best_idx)],ylim,'r--'),plot(cfg.C(best_idx), acc(best_idx),'ro')
-        xlabel('Lambda'),ylabel('Accuracy'),grid on
-        
-        
-    end
+   tune_hyperparameter_svm
+   
 else
     % there is just one lambda: no grid search
     best_idx = 1;
@@ -231,9 +169,9 @@ end
 C = cfg.C(best_idx);
 
 % Solve the dual problem and obtain alpha
-alpha = DualCoordinateDescent(Q, C, ONE, cfg.tolerance, cfg.shrinkage_multiplier);
+alpha = DualCoordinateDescent(Q_cl, C, ONE, cfg.tolerance, cfg.shrinkage_multiplier);
 
-%% Set up classifier
+%% Set up classifier struct
 cf= [];
 cf.kernel = cfg.kernel;
 cf.alpha  = alpha;
