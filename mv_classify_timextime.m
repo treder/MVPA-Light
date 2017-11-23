@@ -22,8 +22,9 @@ function [perf, result] = mv_classify_timextime(cfg, X, clabel, X2, clabel2)
 % .param        - struct with parameters passed on to the classifier train
 %                 function (default [])
 % .metric       - classifier performance metric, default 'acc'. See
-%                 mv_classifier_performance. If set to [], the raw classifier
-%                 output (labels or dvals depending on cfg.cf_output) is returned.
+%                 mv_classifier_performance. If set to [] or 'none', the 
+%                 raw classifier output (labels or dvals depending on 
+%                 cfg.cf_output) for each sample is returned. 
 % .time1        - indices of training time points (by default all time
 %                 points in X are used)
 % .time2        - indices of test time points (by default all time points
@@ -239,7 +240,7 @@ elseif hasX2
     cf_output = nan(size(X2,1), nTime1, nTime2);
 
     % permute and reshape into [ (trials x test times) x features]
-    Xtest= permute(X2, [1 3 2]);
+    Xtest= permute(X2(:,:,cfg.time2), [1 3 2]);
     Xtest= reshape(Xtest, size(X2,1)*nTime2, []);
 
     % ---- Training time ----
@@ -298,7 +299,7 @@ else
 
 end
 
-if isempty(cfg.metric)
+if isempty(cfg.metric) || strcmp(cfg.metric,'none')
     if cfg.feedback, fprintf('No performance metric requested, returning raw classifier output.\n'), end
     perf = cf_output;
     perf_std = [];

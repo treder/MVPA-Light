@@ -17,10 +17,9 @@ function [perf, result] = mv_classify_across_time(cfg, X, clabel)
 % .param        - struct with parameters passed on to the classifier train
 %                 function (default [])
 % .metric       - classifier performance metric, default 'acc'. See
-%                 mv_classifier_performance. If set to [], the raw classifier
-%                 output (labels or dvals depending on cfg.cf_output) for each
-%                 sample is returned. Multiple metrics can be requested by
-%                 providing a cell array e.g. {'acc' 'dval'}
+%                 mv_classifier_performance. If set to [] or 'none', the 
+%                 raw classifier output (labels or dvals depending on 
+%                 cfg.cf_output) for each sample is returned. 
 % .time         - indices of time points (by default all time
 %                 points in X are used)
 % .balance      - for imbalanced data with a minority and a majority class.
@@ -217,7 +216,7 @@ else
     avdim = [];
 end
 
-if isempty(cfg.metric)
+if isempty(cfg.metric) || strcmp(cfg.metric,'none')
     if cfg.feedback, fprintf('No performance metric requested, returning raw classifier output.\n'), end
     perf = cf_output;
     perf_std = [];
