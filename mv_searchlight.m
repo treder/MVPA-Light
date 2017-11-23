@@ -17,10 +17,10 @@ function [perf,result] = mv_searchlight(cfg, X, clabel)
 %                  1's (class 1) and 2's (class 2)
 %
 % cfg          - struct with parameters:
-% .metric      - classifier performance metric, default 'acc'. See
-%                mv_classifier_performance. If set to [], the raw classifier
-%                output (labels or dvals depending on cfg.output) for each
-%                sample is returned
+% .metric       - classifier performance metric, default 'acc'. See
+%                 mv_classifier_performance. If set to [] or 'none', the 
+%                 raw classifier output (labels or dvals depending on 
+%                 cfg.cf_output) for each sample is returned. 
 % .nb          - [features x features] matrix specifying which features
 %                are neighbours of each other.
 %                          - EITHER - 
