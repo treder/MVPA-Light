@@ -32,7 +32,10 @@ function [perf, perf_std] = mv_calculate_performance(metric, cf_output, clabel, 
 % dim               - index of dimension across which values are averaged
 %                     (e.g. dim=2 if the second dimension is the number of
 %                     repeats of a cross-validation). Default: [] (no
-%                     averaging)
+%                     averaging).
+%                     Note that a weighted mean is used, that is, folds
+%                     are weighed proportionally to their number of test
+%                     samples.
 %
 %Note: cf_output is typically a cell array. The following functions provide
 %classifier output as multi-dimensional cell arrays:
@@ -266,17 +269,42 @@ end
 perf = cell2mat(perf);
 perf_std = [];
 
+%% Average the performance metric 
+
 % Average across requested dimensions
 for nn=1:numel(dim)
-    % Calculate standard error
+
+    % Calculate standard error [use unweighted averages here]
     if nn==1
         perf_std = nanstd(perf, [], dim(nn));
     else
         perf_std = mean(perf_std, dim(nn));
     end
     
-    % Average
-    perf = nanmean(perf, dim(nn));
+    % For averaging, use a weighted mean: Since some test sets may have
+    % more samples than others (since the number of data points is not
+    % always integer divisible by K), folds with more test samples give
+    % better estimates. They should be weighted higher proportionally to
+    % the number of samples.
+    % To achieve this, first multiply the statistic for each fold with the
+    % number of samples in this fold. Then sum up the statistic and divide
+    % by the total number of samples.
+    if nn==1
+        num_samples = cellfun(@numel,clabel);
+        
+        % Multiply metric in each fold with its number of samples
+        perf = bsxfun(@times, perf, num_samples);
+    end
+    
+    % Sum metric and respective number of samples
+    perf = nansum(perf, dim(nn));
+    num_samples = nansum(num_samples, dim(nn));
+    
+    % Finished - we need to normalise again by the number of samples to get
+    % back to the original scale
+    if nn==numel(dim)
+        perf = perf ./ num_samples;
+    end
 end
 
 perf = squeeze(perf);
