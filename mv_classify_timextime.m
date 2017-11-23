@@ -120,22 +120,18 @@ nLabel = numel(clabel);
 N1 = sum(clabel == 1);
 N2 = sum(clabel == 2);
 
+%% Reduce data to selected time points and normalise
+X = X(:,:,cfg.time1);
+X = mv_normalise(cfg.normalise, X);
+
+if hasX2
+    X2 = X2(:,:,cfg.time2);
+    X2 = mv_normalise(cfg.normalise, X2);
+end
+
 %% Get train and test functions
 train_fun = eval(['@train_' cfg.classifier]);
 test_fun = eval(['@test_' cfg.classifier]);
-
-%% Normalise
-if ischar(cfg.normalise) && strcmp(cfg.normalise,'zscore')
-    X = zscore(X,[],1);
-    if hasX2
-        X2 = zscore(X2,[],1);
-    end
-elseif ischar(cfg.normalise) && strcmp(cfg.normalise,'demean')
-    X  = X  - repmat(mean(X,1), [size(X,1) 1 1]);
-    if hasX2
-        X2  = X2  - repmat(mean(X2,1), [size(X2,1) 1 1]);
-    end
-end
 
 %% Time x time generalisation
 if ~strcmp(cfg.CV,'none') && ~hasX2
@@ -211,7 +207,7 @@ if ~strcmp(cfg.CV,'none') && ~hasX2
             for t1=1:nTime1
 
                 % Training data for time point t1
-                Xtrain_tt= squeeze(Xtrain(:,:,cfg.time1(t1)));
+                Xtrain_tt= squeeze(Xtrain(:,:,t1));
 
                 % Train classifier
                 cf= train_fun(cfg.param, Xtrain_tt, trainlabel);
@@ -240,14 +236,14 @@ elseif hasX2
     cf_output = nan(size(X2,1), nTime1, nTime2);
 
     % permute and reshape into [ (trials x test times) x features]
-    Xtest= permute(X2(:,:,cfg.time2), [1 3 2]);
+    Xtest= permute(X2, [1 3 2]);
     Xtest= reshape(Xtest, size(X2,1)*nTime2, []);
 
     % ---- Training time ----
     for t1=1:nTime1
 
         % Training data for time point t1
-        Xtrain= squeeze(X(:,:,cfg.time1(t1)));
+        Xtrain= squeeze(X(:,:,t1));
 
         % Train classifier
         cf= train_fun(cfg.param, Xtrain, clabel);
@@ -260,41 +256,40 @@ elseif hasX2
     testlabel = clabel2;
     avdim = [];
 
-else
+elseif strcmp(cfg.CV,'none')
     % -------------------------------------------------------
     % One dataset X has been provided as input. X is hence used for both
     % training and testing. However, cross-validation is not performed.
     % Note that this can lead to overfitting.
 
-    error('Needs fixing: remove the second (t2) time loop and add performance metrics')
+    if cfg.feedback
+        fprintf('Training and testing on X (can lead to overfitting).\n')
+    end
 
-    for t1=1:nTime1          % ---- Training time ----
-        % Training data
-        Xtrain= squeeze(X(:,:,cfg.time1(t1)));
+    % Initialise classifier outputs
+    cf_output = nan(size(X,1), nTime1, nTime2);
+
+    % permute and reshape into [ (trials x test times) x features]
+    Xtest= permute(X, [1 3 2]);
+    Xtest= reshape(Xtest, size(X,1)*nTime1, []);
+    % permute and reshape into [ (trials x test times) x features]
+  
+    % ---- Training time ----
+    for t1=1:nTime1
+
+        % Training data for time point t1
+        Xtrain= squeeze(X(:,:,t1));
 
         % Train classifier
         cf= train_fun(cfg.param, Xtrain, clabel);
 
-        for t2=1:nTime2      % ---- Testing time ----
+        % Obtain classifier output (labels or dvals)
 
-            % Test data
-            Xtest=  squeeze(X(:,:,cfg.time2(t2)));
+        cf_output(:,t1,:) = reshape( mv_get_classifier_output(cfg.cf_output, cf, test_fun, Xtest), size(X,1),[]);
 
-            % Obtain the predicted class labels
-            predlabels = test_fun(cf,Xtest);
-
-            % Sum number of correctly predicted labels
-            acc(t1,t2)= acc(t1,t2) + sum(predlabels(:) == clabel(:));
-        end
     end
 
-    acc = acc / nSam;
-
-   % Calculate classifier performance
-    if cfg.feedback, fprintf('Calculating classifier performance... '), end
-    for mm=1:nMetrics
-        perf{mm} = mv_classifier_performance(cfg.metric{mm}, cf_output, clabel);
-    end
+    testlabel = clabel;
     avdim = [];
 
 end
