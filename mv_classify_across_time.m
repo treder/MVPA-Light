@@ -110,11 +110,7 @@ train_fun = eval(['@train_' cfg.classifier]);
 test_fun = eval(['@test_' cfg.classifier]);
 
 %% Normalise
-if ischar(cfg.normalise) && strcmp(cfg.normalise,'zscore')
-    X = zscore(X,[],1);
-elseif ischar(cfg.normalise) && strcmp(cfg.normalise,'demean')
-    X  = X  - repmat(mean(X,1), [size(X,1) 1 1]);
-end
+X = mv_normalise(cfg.normalise, X);
 
 %% Classify across time
 
