@@ -155,7 +155,7 @@ if ischar(cfg.C) && strcmp(cfg.C,'auto')
     cfg.C = logspace(-4,4,10);
 end
 
-%% Optimise hyperparemeters using nested cross-validation
+%% Optimise hyperparameters using nested cross-validation
 if numel(cfg.C)>1
     
    tune_hyperparameter_svm
