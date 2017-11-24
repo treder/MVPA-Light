@@ -19,8 +19,8 @@ for ff=1:cfg.K
     
     %%% TODO: consider adding tuning loop for other hyperparameters like gamma
     
-    %%% TODO: check whether there's a bug: classification performances
-    %%% expected to be more different for different parameters.
+    %%% TODO: consider implementing full regularisation path according to 
+    %%% Hastie et al
     
     train_idx = find(CV.training(ff));
     test_idx = find(CV.test(ff));
@@ -28,8 +28,9 @@ for ff=1:cfg.K
     % Training data
     Xtrain = X(train_idx,:);
     Xtest= X(test_idx,:);
+    trainlabel = clabel(train_idx);
     
-    % Kernel submatrix
+    % Kernel submatrix for training data
     Qtrain = Q_cl(train_idx,train_idx);
     ONEtrain = ones(CV.TrainSize(ff),1);
     
@@ -40,19 +41,15 @@ for ff=1:cfg.K
         [alpha,iter] = DualCoordinateDescent(Qtrain, cfg.C(ll), ONEtrain, cfg.tolerance, cfg.shrinkage_multiplier);
         
         support_vector_indices = find(alpha>0);
-        support_vectors  = Xtrain(support_vector_indices,:);
         
-        % Class labels for the support vectors
-        y                = clabel(support_vector_indices);
-        
-        % For convenience we save the product alpha * y for the support vectors
-        alpha_y = alpha(support_vector_indices) .* y(:);
+        % For convenience we save the product [alpha * class label] for the support vectors
+        alpha_y = alpha(support_vector_indices) .* trainlabel(support_vector_indices);
         
         % Exploit the fact that we already pre-calculated the kernel matrix
         % for all samples. Simply extract the values corresponding to
         % the test samples and the support vectors in the training set.
         dval = Q(test_idx, train_idx(support_vector_indices)) * alpha_y;
-        
+
         % accuracy
         acc(ll) = acc(ll) + sum( clabel(CV.test(ff)) == double(sign(dval(:)))  );
     end
@@ -78,6 +75,5 @@ if cfg.plot
     hold all
     plot([cfg.C(best_idx), cfg.C(best_idx)],ylim,'r--'),plot(cfg.C(best_idx), acc(best_idx),'ro')
     xlabel('Lambda'),ylabel('Accuracy'),grid on
-    
-    
+
 end
