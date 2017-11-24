@@ -11,8 +11,6 @@ clear all
 ival_idx = find(dat.time >= 0.6 & dat.time <= 0.8);
 X = squeeze(mean(dat.trial(:,:,ival_idx),3));
 
-X= zscore(X);
-
 %% Cross-validation
 
 % Configuration struct for cross-validation. As classifier, we
@@ -27,7 +25,7 @@ cfg_LDA = [];
 cfg_LDA.classifier      = 'lda';
 cfg_LDA.param           = struct('lambda','auto');
 cfg_LDA.metric          = 'auc';
-cfg_LDA.CV              = 'kfold';
+cfg_LDA.CV              = 'kfold';  % 'kfold' 'leaveout' 'holdout'
 cfg_LDA.K               = 5;
 cfg_LDA.repeat          = 10;
 cfg_LDA.balance         = 'undersample';
