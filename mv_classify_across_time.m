@@ -230,6 +230,7 @@ if nargout>1
    result.metric    = cfg.metric;
    result.CV        = cfg.CV;
    result.K         = cfg.K;
+   result.N         = size(X,1);
    result.repeat    = cfg.repeat;
    result.classifier = cfg.classifier;
 end
