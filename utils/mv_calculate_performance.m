@@ -145,9 +145,6 @@ switch(metric)
         % https://en.wikipedia.org/wiki/Student%27s_t-test#Equal_or_unequal_sample_sizes.2C_equal_variance
         perf = cell(sz_cf_output);
         
-        
-        error('todo for mv_classify_timextime')
-        
          % Aggregate across samples, for each class separately
         if nExtra == 1
             % Get means
@@ -177,7 +174,7 @@ switch(metric)
                 % Pooled standard deviation
                 SP = cellfun( @(v1,v2,n1,n2) sqrt( ((n1-1)*v1 + (n2-1)*v2) / (n1+n2-2)  ), V1,V2,N1,N2, 'Un',0);
                 % T-value
-                perf(dimSkipToken{:},xx) = cellfun( @(m1,m2,n1,n2,sp) (m1-m2)/(sp*sqrt(1/n1 + 1/n2)) , M1,M2,N1,N2,SP,'Un',0);
+                perf(dimSkipToken{:},xx) = cellfun( @(m1,m2,n1,n2,sp) (m1-m2)./(sp.*sqrt(1/n1 + 1/n2)) , M1,M2,N1,N2,SP,'Un',0);
             end
         end
         
@@ -281,7 +278,7 @@ for nn=1:numel(dim)
         perf_std = mean(perf_std, dim(nn));
     end
     
-    % For averaging, use a weighted mean: Since some test sets may have
+    % For averaging, use a WEIGHTED mean: Since some test sets may have
     % more samples than others (since the number of data points is not
     % always integer divisible by K), folds with more test samples give
     % better estimates. They should be weighted higher proportionally to
