@@ -46,6 +46,12 @@ fprintf('Classification accuracy (Logreg): %2.2f%%\n', 100*acc_LR)
 % Produce plot of results
 h = mv_plot_result({result_LDA, result_LR});
 
+%% Use a binomial test to assess statistical significance of accuracies (ACC)
+cfg = [];
+cfg.test    = 'binomial';
+
+stat = mv_statistics(cfg, result_LDA);
+
 %% Comparing cross-validation to train-test on the same data
 cfg_LDA.metric = 'acc';
 
