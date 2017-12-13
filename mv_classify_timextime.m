@@ -187,7 +187,7 @@ if ~strcmp(cfg.CV,'none') && ~hasX2
             % training set separately to prevent overfitting (see
             % mv_balance_classes for an explanation)
             if strcmp(cfg.balance,'oversample')
-                [Xtrain,trainlabel] = mv_balance_classes(Xtrain,label_orig,cfg.balance,cfg.replace);
+                [Xtrain,trainlabel] = mv_balance_classes(Xtrain,trainlabel,cfg.balance,cfg.replace);
             end
 
             % ---- Test data ----
