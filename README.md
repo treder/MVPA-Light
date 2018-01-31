@@ -22,7 +22,7 @@ startup_MVPA_Light
 Alternatively, use [MATLAB's Path tool](https://uk.mathworks.com/help/matlab/matlab_env/add-remove-or-reorder-folders-on-the-search-path.html) to manually add the `MVPA-Light` folder and its subfolders to your MATLAB path. The Git repository contains two branches: the `master` branch (recommended) is the stable branch that should always work. `devel` is the development branch that contains new features that are either under construction or not tested. `MVPA-Light` has been tested with Matlab `R2012a` and newer. There may be issues with earlier Matlab versions.
 
 ## Overview <a name="overview"></a>
-`MVPA-Light` provides functions for the binary classification of neuroimaging data. It is meant to address the basic issues in MVPA (such as classification across time and generalisation) in a fast and robust way while retaining a slim and readable codebase. For Fieldtrip users, the use of the toolbox will be familiar: The first argument to the main functions is a configuration struct `cfg` that contains all the parameters. However, the toolbox does *not* require or use Fieldtrip.
+`MVPA-Light` provides functions for the classification of neuroimaging data. It is meant to address the basic issues in MVPA (such as classification across time and generalisation) in a fast and robust way while retaining a slim and readable codebase. For Fieldtrip users, the use of the toolbox will be familiar: The first argument to the main functions is a configuration struct `cfg` that contains all the parameters. However, the toolbox does *not* require or use Fieldtrip.
 
 Classifiers can be trained and tested by hand using the `train_*` and `test_*` functions. For data with a trial structure, such as ERP datasets, [`mv_classify_across_time`](mv_classify_across_time.m) can be used to obtain classification performance for each time point in a trial. [`mv_classify_timextime`](mv_classify_timextime.m) implements time generalisation, i.e., training on a specific time point, and testing the classifier on all other time points in a trial. Cross-validation, balancing unequal class proportions, and different performance metrics are automatically implemented in these functions.
 
@@ -32,7 +32,7 @@ Classifiers can be trained and tested by hand using the `train_*` and `test_*` f
 
 <!---In cognitive neuroscience, the term *decoding* refers to the prediction of experimental conditions or mental states (output) based on multivariate brain data (input). The term *classification* means the same. Note that classification is the standard term in machine learning and many other disciplines whereas decoding is specific to cognitive neuroscience. *Multivariate pattern analysis* (MVPA) is an umbrella term that covers many multivariate methods such classification and related approaches such as Representational Similarity Analysis (RSA). --->
 
-A *classifier* is the main workhorse of MVPA. The input brain data, e.g. channels or voxels, is referred to as *features*, whereas the output data is a *class label*. The classifier takes a feature vector as input and assigns it to a class. In `MVPA-Light`, class labels must be coded as `1` (for class 1) and `2` (for class 2).
+A *classifier* is the main workhorse of MVPA. The input brain data, e.g. channels or voxels, is referred to as *features*, whereas the output data is a *class label*. The classifier takes a feature vector as input and assigns it to a class. In `MVPA-Light`, class labels must be coded as `1` (for class 1), `2` (for class 2), `3` (for class 3), and so on.
 
 <!-- *Example*: Assume that in a ERP-based memory paradigm, the goal is to predict whether an item is remembered or forgotten based on 128-channels EEG data. The target is single-trial ERPs at t=700 ms. Then, the feature vector for each trial consists of a 128-elements vector representing the activity at 700 ms for each electrode. Class labels are "remembered" (coded as +1) and "forgotten" (coded as -1). Note that the exact coding does not affect the classification.
 -->
@@ -45,9 +45,9 @@ In order to learn which features in the data discriminate between the experiment
 
 Classifier performance is evaluated on a dataset called *test data*. To this end, the classifier is applied to samples from the test data. The class label predicted by the classifier can then be compared to the true class label in order to quantify classification performance. All test functions start with `test_` (e.g. [`test_lda`](classifier/test_lda.m)).
 
-#### Classifiers
+#### Classifiers for two classes
 
-* `lda`: Regularised Linear Discriminant Analysis (LDA). For two classes, LDA is equivalent to Fisher's discriminant analysis (FDA). Hence, LDA searches for a projection of the data into 1D such that the class means are separated as far as possible and the within-class variability is as small as possible. To prevent overfitting and assure invertibility of the covariance matrix, the regularisation parameter λ (lambda) can be varied between λ=0 (no regularisation) and λ=1 (maximum regularisation). It can also be set to 'auto'. In this case, λ is estimated automatically. For more details on regularised LDA see [[Bla2011]](#Bla2011). LDA has been shown to be formally equivalent to LCMV beamforming and it can be used for recovering time series of ERP sources [[Tre2011]](#Tre2011). See [`train_lda`](classifier/train_lda.m) for a full description of the parameters.
+* `lda`: Regularised Linear Discriminant Analysis (LDA). LDA searches for a projection of the data into 1D such that the class means are separated as far as possible and the within-class variability is as small as possible. To counteract overfitting, ridge regularisation and shrinkage regularisation are available. In shrinkage, the regularisation parameter λ (lambda) rankges from λ=0 (no regularisation) to λ=1 (maximum regularisation). It can also be set to 'auto' to have λ be estimated automatically. For more details on regularised LDA see [[Bla2011]](#Bla2011). LDA has been shown to be formally equivalent to LCMV beamforming and it can be used for recovering time series of ERP sources [[Tre2011]](#Tre2011). See [`train_lda`](classifier/train_lda.m) for a full description of the parameters.
 * `logreg`: Logistic regression (LR) with L2-regularisation. LR directly models class probabilities by fitting a logistic function to the data. Like LDA, LR is a linear classifier and hence its operation is expressed by a weight vector w and a bias b. To prevent overfitting the regularisation parameter λ (lambda) is used to control the penalisation of the classifier weights.  λ has to be positive but its value is unbounded. It can also be set to 'auto'. In this case, different λ's are tried out using a searchgrid; the value of λ maximising cross-validation performance is then used for training on the full dataset. See [`train_logreg`](classifier/train_logreg.m) for a full description of the parameters.
 * `svm`: Support Vector Machine (SVM). The parameter C is the cost parameter that controls the amount of regularisation. It is inversely related to the lambda defined above. By default, a linear SVM is used. By setting the `.kernel` parameter (e.g. to 'polynomial' or 'rbf'), non-linear SVMs can be trained as well. See [`train_svm`](classifier/train_svm.m) for a full description of the parameters.
 * `ensemble`: Uses an ensemble of classifiers trained on random subsets of the features and random subsets of the samples. Can use any classifier with train/test functions as a learner. See [`train_ensemble`](classifier/train_ensemble.m) for a full description of the parameters.
@@ -56,6 +56,10 @@ Classifier performance is evaluated on a dataset called *test data*. To this end
 * `train_svm`, `test_svm`: Support vector machines (SVM). Uses the [LIBSVM package](https://github.com/arnaudsj/libsvm) that needs to be installed.
 * `train_logist`, `test_logist`: Logistic regression classifier using Lucas Parra's implementation. See `external/logist.m` for an explanation of the hyperparameters.
 -->
+
+#### Multi-class classifiers
+
+* [`multiclass_lda`](classifier/train_multiclass_lda.m) : Regularised Multi-class Linear Discriminant Analysis (LDA). The data is first projected onto a (C-1)-dimensional discriminative subspace, where C is the number of classes. A new sample is assigned to the class with the closest centroid in this subspace. See [`train_multiclass_lda`](classifier/train_multiclass_lda.m) for a full description of the parameters.
 
 #### Cross-validation
 
@@ -89,6 +93,7 @@ Classifier output comes in form of decision values (=distances to the hyperplane
 * `auc`: Area under the ROC curve. An alternative to classification accuracy that is more robust to imbalanced classes and independent of changes to the classifier threshold.
 * `dval`: Average decision value for each class.
 * `tval`: t-test statistic, calculated by comparing the sets of decision values for two classes. Can be useful for a subsequent second-level analysis across subjects.
+* `confusion`: [confusion matrix](https://en.wikipedia.org/wiki/Confusion_matrix). The rows corresponds to classifier predictions, columns correspond to the true classes. The (i,j)-th element gives the proportion of samples of class j that have been classified as class i.
 
 There is usually no need to call [`mv_calculate_performance`](utils/mv_calculate_performance.m) directly. By setting the `cfg.metric` field, the performance metric is calculated automatically in [`mv_crossvalidate`](mv_crossvalidate.m), [`mv_classify_across_time`](mv_classify_across_time.m),  [`mv_classify_timextime`](mv_classify_timextime.m) and [`mv_searchlight`](mv_searchlight.m).
 
