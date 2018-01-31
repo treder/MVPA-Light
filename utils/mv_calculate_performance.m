@@ -20,6 +20,8 @@ function [perf, perf_std] = mv_calculate_performance(metric, cf_output, clabel, 
 %                     unequal sample sizes. It is calculated across the 
 %                     distribution of dvals for two classes
 %                     'auc': area under the ROC curve
+%                     'confusion': confusion matrix (needs class labels) as
+%                     classifier output
 % cf_output         - vector of classifier outputs (labels or dvals). If
 %                     multiple test sets have been validated using
 %                     cross-validation, a (possibly mult-dimensional)
@@ -73,15 +75,15 @@ if ~iscell(clabel), clabel={clabel}; end
 % Check the size of the cf_output and clabel. nExtra keeps the number of
 % elements in the extra dimensions if ndims(cf_output) > ndims(clabel). For
 % instance, if we classify across time, cf_output is [repeats x folds x time]
-% and clabel is [repeats x time] so we have 1 extra dimension (time).
+% and clabel is [repeats x folds] so we have 1 extra dimension (time).
 sz_cf_output = size(cf_output);
 nExtra = prod(sz_cf_output(ndims(clabel)+1:end));
 % dimSkipToken helps us looping across the extra dimensions
 dimSkipToken = repmat({':'},[1, ndims(clabel)]);
 
 % Check whether the classifier output is given as predicted labels or
-% dvals. In the former case, it should consist of 1's and 2's only.
-isClassLabel = all(ismember( unique(cf_output{1}), [1 2] ));
+% dvals. In the former case, it should consist of integer numbers only.
+isClassLabel = all(all(all(mod(cf_output{1},1) == 0)));
 
 % For some metrics dvals are required
 if isClassLabel && any(strcmp(metric,{'dval' 'roc' 'auc'}))
@@ -241,21 +243,78 @@ switch(metric)
             perf(dimSkipToken{:},xx) = cellfun(@(c,n1,n2) arrsum(c,n1)/(n1*n2), cf_so, N1,N2, 'Un',0);
         end
         
+    case 'confusion'
+        %%% ---------- confusion: confusion matrix ---------
+        
+        if ~isClassLabel
+            error('confusion matrix requires class labels as classifier output')
+        end
+        
+        nclasses = max(max(max([clabel{:}])));
+        
+        % Must compare each class with each other class, therefore create
+        % all combinations of pairs of class labels
+        comb = combvec(1:nclasses,1:nclasses);
+        
+        % The confusion matrix is a nclasses x nclasses matrix where each
+        % row corresponds to the label predicted by the classifier and each 
+        % column corresponds to the true label. The (i,j)-th element of the
+        % matrix specifies how often class j has been classified as class i
+        % by the classifier. The diagonal of the matrix contains the 
+        % correctly classified cases, all off-diagonal elements are
+        % misclassifications.
+        % Arrayfun is used to go through all combinations of class labels.
+        % The resulting array is reshaped into a cell matrix and then
+        % transformed into an ordinary matrix. Finally it needs to be
+        % normalize by the number of samples in each class
+        confusion_fun = @(cfo,lab) cell2mat(reshape( arrayfun( @(ii,jj) sum(cfo==ii & lab==jj),comb(1,:),comb(2,:),'Un',0), nclasses, []));
+        % Compare predicted labels to the true labels. To this end, we
+        % create a function that compares the predicted labels to the
+        % true labels and takes the mean of the comparison. This gives
+        % us the classification performance for each test fold.
+        fun = @(cfo,lab) confusion_fun(cfo,lab);
+        
+        % Looping across the extra dimensions if cf_output is multi-dimensional
+        for xx=1:nExtra
+            % Use cellfun to apply the function defined above to each cell
+            tmp = cellfun(fun, cf_output(dimSkipToken{:},xx), clabel, 'Un', 0);
+            
+            % It is useful to normalise the confusion matrix such that the
+            % cells represent proportions instead of absolute counts. To 
+            % this end, each c-th column is divided by the number of
+            % samples in that column. As a result every column sums to 1.
+            nor = cellfun( @(lab) 1./repmat(sum(lab,1), [nclasses,1]), tmp, 'Un',0);
+            tmp = cellfun( @(lab,nor) lab .* nor, tmp, nor, 'Un', 0);
+            
+            % We get a pathological situation when one fold does not 
+            % contain any trials of a particular class (nor gets Inf). It's
+            % unclear how to deal with this situation because averaging
+            % the confusion matrix across folds does not make so much sense 
+            % any more. A perhaps reasonable fix is to set this column to
+            % 0. 
+            for c=1:numel(tmp)
+                tmp{c}(isinf(tmp{c})) = 0;
+            end
+            
+            perf(dimSkipToken{:},xx) = tmp;
+        end
+        
     otherwise, error('Unknown metric: %s',cfg.metric)
 end
 
 % Convert cell array to matrix. Since each cell can also contain a multi-
 % dimensional array instead of a scalar, we need to make sure that these
 % arrays are correctly appended as extra dimensions.
-nd = find(size(perf{1})>1,1,'last'); % Number of non-singleton dimensions
-if nd>1
+nd = sum(size(perf{1})>1); % Number of non-singleton dimensions
+% nd = find(size(perf{1})>1,1,'last'); % Number of non-singleton dimensions
+if nd>0
     % There is extra non-singleton dimensions within the cells. To cope with this, we
     % prepend the dimensions of the cell array as extra singleton
     % dimensions. Eg. for a [5 x 2] cell array, we do something like
     % perf{1}(1,1,:) = perf{1} so that the content of the cell is pushed to
     % dimensions 3 and higher
     dimSkip1 = repmat({1},[1, ndims(perf)]);
-    innerCellSkip = repmat({':'},[1, nd-1]);
+    innerCellSkip = repmat({':'},[1, nd]);
     for ii=1:numel(perf)
         tmp = [];
         tmp(dimSkip1{:},innerCellSkip{:}) = perf{ii};
