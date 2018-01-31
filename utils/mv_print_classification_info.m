@@ -26,11 +26,12 @@ if nargin <= 3
     end
     
     % Print data information
+    nclasses = max(clabel);
     if nargin>1
         if ndims(X)==2
-            fprintf('Data has %d samples and %d features.\n', size(X))
+            fprintf('Data has %d samples, %d features and %d classes.\n', [size(X), nclasses])
         elseif ndims(X)==3
-            fprintf('Data has %d samples, %d features, and %d time points.\n', size(X))
+            fprintf('Data has %d samples, %d features, %d time points, and %d classes.\n', [size(X), nclasses])
         end
     end
     
@@ -57,10 +58,11 @@ else
     fprintf('Training on dataset 1, testing on dataset 2 using a %s classifier.\n',upper(cfg.classifier));
 
     % Dataset 1
+    nclasses1 = max(clabel);
     if ndims(X)==2
-        fprintf('Dataset 1 has %d samples and %d features.\n', size(X))
+        fprintf('Dataset 1 has %d samples, %d features and %d classes.\n', [size(X), nclasses1])
     elseif ndims(X)==3
-        fprintf('Dataset 1 has %d samples, %d features, and %d time points.\n', size(X))
+        fprintf('Dataset 1 has %d samples, %d features, %d time points, and %d classes.\n', [size(X), nclasses1])
     end
     
     
@@ -73,12 +75,12 @@ else
     fprintf('.\n')
     
     % Dataset 2
+    nclasses2 = max(clabel2);
     if ndims(X2)==2
-        fprintf('Dataset 2 has %d samples and %d features.\n', size(X2))
+        fprintf('Dataset 1 has %d samples, %d features and %d classes.\n', [size(X2), nclasses2])
     elseif ndims(X2)==3
-        fprintf('Dataset 2 has %d samples, %d features, and %d time points.\n', size(X2))
+        fprintf('Dataset 1 has %d samples, %d features, %d time points, and %d classes.\n', [size(X2), nclasses2])
     end
-    
     
     u = unique(clabel2);
     fprintf('Class frequencies (dataset 2): ');
