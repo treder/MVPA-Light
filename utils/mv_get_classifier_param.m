@@ -22,6 +22,7 @@ end
 switch(classifier)
     
     case 'lda'
+        mv_set_default(param,'reg','shrink');
         mv_set_default(param,'lambda','auto');
         mv_set_default(param,'prob',0);
         mv_set_default(param,'scale',0);
@@ -187,6 +188,11 @@ switch(classifier)
         mv_set_default(param,'replace', 1);
         mv_set_default(param,'strategy', 'dval');
         mv_set_default(param,'simplify', false);
+        
+    case 'multiclass_lda'
+        mv_set_default(param,'reg','shrink');
+        mv_set_default(param,'lambda','auto');
+
         
     otherwise, error('Unknown classifier ''%s''',classifier)
 end
