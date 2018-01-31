@@ -83,14 +83,14 @@ Which features contribute most to classification performance? The answer to this
 
 #### Classifier performance metrics
 
-Classifier output comes in form of decision values (=distances to the hyperplane for linear methods) or directly in form of class labels. However,  one is often only interested in a performance metric that summarises how well the classifier discriminates between the classes. The following metrics can be calculated by the function [`mv_classifier_performance`](mv_classifier_performance.m):
+Classifier output comes in form of decision values (=distances to the hyperplane for linear methods) or directly in form of class labels. However,  one is often only interested in a performance metric that summarises how well the classifier discriminates between the classes. The following metrics can be calculated by the function [`mv_calculate_performance`](utils/mv_calculate_performance.m):
 
 * `acc`: Classification accuracy, representing the fraction correctly predicted class labels.
 * `auc`: Area under the ROC curve. An alternative to classification accuracy that is more robust to imbalanced classes and independent of changes to the classifier threshold.
 * `dval`: Average decision value for each class.
 * `tval`: t-test statistic, calculated by comparing the sets of decision values for two classes. Can be useful for a subsequent second-level analysis across subjects.
 
-There is usually no need to call [`mv_classifier_performance`](mv_classifier_performance.m) directly. By setting the `cfg.metric` field, the performance metric is calculated automatically in [`mv_crossvalidate`](mv_crossvalidate.m), [`mv_classify_across_time`](mv_classify_across_time.m),  [`mv_classify_timextime`](mv_classify_timextime.m) and [`mv_searchlight`](mv_searchlight.m).
+There is usually no need to call [`mv_calculate_performance`](utils/mv_calculate_performance.m) directly. By setting the `cfg.metric` field, the performance metric is calculated automatically in [`mv_crossvalidate`](mv_crossvalidate.m), [`mv_classify_across_time`](mv_classify_across_time.m),  [`mv_classify_timextime`](mv_classify_timextime.m) and [`mv_searchlight`](mv_searchlight.m).
 
 
 ## Examples<a name="examples"></a>
