@@ -1,4 +1,4 @@
-function CV = mv_get_crossvalidation_folds(cv_type, clabel, K, stratify, P)
+function CV = mv_get_crossvalidation_folds(cv_type, clabel, K, stratify, frac)
 % Defines a cross-validation scheme and returns a cvpartition object with
 % the definition of the folds.
 %
@@ -14,6 +14,8 @@ function CV = mv_get_crossvalidation_folds(cv_type, clabel, K, stratify, P)
 % K           - number of folds (the K in K-fold) (default 5)
 % stratify    - if 1, class proportions are roughly preserved in
 %               each fold (default 0)
+% frac        - if CV is 'holdout', frac is the fraction of test samples
+%                 (default 0.1)
 %
 %Output:
 % CV - struct with cross-validation folds
@@ -25,7 +27,7 @@ N = numel(clabel);
 
 if nargin < 3,      K = 5; end
 if nargin < 4,      stratify = 0; end
-if nargin < 4,      P = 0.1; end
+if nargin < 5,      frac = 0.1; end
 
 
 switch(cv_type)
@@ -41,9 +43,9 @@ switch(cv_type)
         
     case 'holdout'
         if stratify
-            CV= cvpartition(clabel,'holdout',P);
+            CV= cvpartition(clabel,'holdout',frac);
         else
-            CV= cvpartition(N,'holdout',P);
+            CV= cvpartition(N,'holdout',frac);
         end
         
     otherwise error('Unknown cross-validation type: %s',cv_type)
