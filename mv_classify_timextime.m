@@ -110,7 +110,7 @@ mv_set_default(cfg,'replace',1);
 % Set non-specified classifier parameters to default
 cfg.param = mv_get_classifier_param(cfg.classifier, cfg.param);
 
-[~,~,clabel] = mv_check_labels(clabel);
+mv_check_clabel(clabel);
 
 nTime1 = numel(cfg.time1);
 nTime2 = numel(cfg.time2);
