@@ -1,4 +1,4 @@
-function [cf,C,lambda,mu1,mu2] = train_lda(cfg,X,clabel)
+function [cf,Sw,lambda,mu1,mu2] = train_lda(cfg,X,clabel)
 % Trains a linear discriminant analysis with (optional) shrinkage
 % regularisation of the covariance matrix.
 %
@@ -11,11 +11,23 @@ function [cf,C,lambda,mu1,mu2] = train_lda(cfg,X,clabel)
 %                  1's (class 1) and 2's (class 2)
 %
 % cfg          - struct with hyperparameters:
-% .lambda        - regularisation parameter between 0 and 1 (where 0 means
-%                   no regularisation and 1 means full max regularisation).
-%                   If 'auto' then the regularisation parameter is
-%                   calculated automatically using the Ledoit-Wolf formula(
-%                   function cov1para.m)
+% .reg          - type of regularisation
+%                 'shrink': shrinkage regularisation using (1-lambda)*C +
+%                          lambda*nu*I, where nu = trace(C)/P and P =
+%                          number of features. nu assures that the trace of
+%                          C is equal to the trace of the regularisation
+%                          term. 
+%                 'ridge': ridge-type regularisation of C + lambda*I,
+%                          where C is the covariance matrix and I is the
+%                          identity matrix
+%                  (default 'shrink')
+% .lambda        - if reg='shrink', the regularisation parameter ranges 
+%                  from 0 to 1 (where 0=no regularisation and 1=maximum
+%                  regularisation). If 'auto' then the shrinkage 
+%                  regularisation parameter is calculated automatically 
+%                  using the Ledoit-Wolf formula(function cov1para.m). 
+%                  If reg='ridge', lambda ranges from 0 (no regularisation)
+%                  to infinity.
 % .prob          - if 1, probabilities are returned as decision values. If
 %                  0, the decision values are simply the distance to the
 %                  hyperplane. Calculating probabilities takes more time
@@ -45,9 +57,10 @@ N1 = sum(idx1);
 N2 = sum(idx2);
 N= N1 + N2;
 
-% Calculate common covariance matrix
-% Should be weighted by the relative class proportions
-C= N1/N * cov(X(idx1,:)) + N2/N * cov(X(idx2,:));
+% Calculate common covariance matrix (actually its unscaled version aka
+% within-class scatter matrix).
+% It should be weighted by the relative class proportions
+Sw= N1 * cov(X(idx1,:)) + N2 * cov(X(idx2,:));
 
 % Get class means
 mu1= mean(X(idx1,:))';
@@ -55,28 +68,35 @@ mu2= mean(X(idx2,:))';
 
 lambda = cfg.lambda;
     
-% Regularise covariance matrix using shrinkage
-if (ischar(lambda)&&strcmp(lambda,'auto'))
-    % Here we use the Ledoit-Wolf method to estimate the regularisation
-    % parameter analytically.
-    % Get samples from each class separately and correct by the class
-    % means mu1 and mu2 using bsxfun.
-    [C, lambda]= cov1para([bsxfun(@minus,X(idx1,:),mu1');bsxfun(@minus,X(idx2,:),mu2')]);
-    
-elseif numel(lambda)==1
-    % Shrinkage parameter is given directly as a number.
-    % We write the regularised covariance matrix as a convex combination of
-    % the empirical covariance C and an identity matrix scaled to have
-    % the same trace as C
-    C = (1-lambda)* C + lambda * eye(size(C,1)) * trace(C)/size(X,2);
-    
-elseif ~ischar(lambda) && numel(lambda)>1
-    % Multipe lambdas given: perform tuning using a grid search
-    tune_hyperparameter_lda;
+%% Regularisation
+if strcmp(cfg.reg,'shrink')
+    % SHRINKAGE REGULARISATION
+    if (ischar(lambda)&&strcmp(lambda,'auto'))
+        % Here we use the Ledoit-Wolf method to estimate the regularisation
+        % parameter analytically.
+        % Get samples from each class separately and correct by the class
+        % means mu1 and mu2 using bsxfun.
+        [Sw, lambda]= cov1para([bsxfun(@minus,X(idx1,:),mu1');bsxfun(@minus,X(idx2,:),mu2')]);
+        
+    elseif numel(lambda)==1
+        % Shrinkage parameter is given directly as a number.  
+        % We write the regularised scatter matrix as a convex combination of
+        % the empirical scatter Sw and an identity matrix scaled to have
+        % the same trace as Sw
+        Sw = (1-lambda)* Sw + lambda * eye(size(Sw,1)) * trace(Sw)/size(X,2);
+        
+    elseif ~ischar(lambda) && numel(lambda)>1
+        % Multipe lambdas given: perform tuning using a grid search
+        tune_hyperparameter_lda;
+    end
+else
+    % RIDGE REGULARISATION
+    % The ridge lambda must be provided directly as a number
+    Sw = Sw + lambda * eye(size(Sw,1));
 end
 
 % Classifier weight vector (= normal to the separating hyperplane)
-w = C\(mu1-mu2);
+w = Sw\(mu1-mu2);
 
 % Scale w such that the class means are projected onto +1 and -1
 if cfg.scale
@@ -102,7 +122,7 @@ if cfg.prob == 1
     cf.prior1 = N1/N;
     cf.prior2 = N2/N;
 
-    cf.C = C;
+    cf.C = Sw;
     cf.mu1 = mu1;
     cf.mu2 = mu2;
     
