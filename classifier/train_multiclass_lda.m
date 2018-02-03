@@ -106,12 +106,13 @@ end
 [~, so] = sort(D,'descend');
 W = W(:,so(1:nclasses-1));
 
-% W needs to be scaled correctly such that it diagonalises Sw
-W  = W * (W'*Sw*W)^-0.5;
+% Columns of W need to be scaled correctly such that it turns Sw into identity
+W  = W * diag(1./sqrt(diag(W'*Sw*W)));
 
 %% Prepare output
 cf= struct('classifier','multiclass_lda','W',W,'lambda',lambda,'nclasses',nclasses);
 
-% We must also map the class centroids onto the discriminative subspace
+% Map the class centroids onto the discriminative subspace for later
+% prototype classification
 cf.centroid = centroid * cf.W;
 
