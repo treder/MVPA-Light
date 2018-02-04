@@ -46,10 +46,9 @@ function [perf, perf_std] = mv_calculate_performance(metric, cf_output, clabel, 
 % - mv_classify_timextime: 3D [repeat x K x time points] cell array
 %
 % In all three cases, however, the corresponding clabel array is just
-% [repeats x K] since
-% class labels are repeated for all time points. If cf_output has more
-% dimensions than clabel, the clabel array is assumed to be identical across
-% the extra dimensions.
+% [repeats x K] since class labels are repeated for all time points. If 
+% cf_output has more dimensions than clabel, the clabel array is assumed 
+% to be identical across the extra dimensions.
 %
 % Each cell should contain a [testlabel x 1] vector of classifier outputs
 % (ie labels or dvals) for the according test set. Alternatively, it can
@@ -244,14 +243,15 @@ switch(metric)
         end
         
     case 'confusion'
-        %%% ---------- confusion: confusion matrix ---------
+        %%% ---------- confusion matrix ---------
         
         if ~isClassLabel
             error('confusion matrix requires class labels as classifier output')
         end
         
-        nclasses = max(max(max([clabel{:}])));
-        
+        nclasses = max(max(max( vertcat(clabel{:}) )));
+%         perf = cell([sz_cf_output,nclasses,nclasses]);
+
         % Must compare each class with each other class, therefore create
         % all combinations of pairs of class labels
         comb = combvec(1:nclasses,1:nclasses);
@@ -263,22 +263,38 @@ switch(metric)
         % by the classifier. The diagonal of the matrix contains the 
         % correctly classified cases, all off-diagonal elements are
         % misclassifications.
-        % Arrayfun is used to go through all combinations of class labels.
-        % The resulting array is reshaped into a cell matrix and then
-        % transformed into an ordinary matrix. Finally it needs to be
-        % normalize by the number of samples in each class
-        confusion_fun = @(cfo,lab) cell2mat(reshape( arrayfun( @(ii,jj) sum(cfo==ii & lab==jj),comb(1,:),comb(2,:),'Un',0), nclasses, []));
-        % Compare predicted labels to the true labels. To this end, we
-        % create a function that compares the predicted labels to the
-        % true labels and takes the mean of the comparison. This gives
-        % us the classification performance for each test fold.
-        fun = @(cfo,lab) confusion_fun(cfo,lab);
+        
+        % confusion_fun calculates the confusion matrix but it is a bit
+        % complicated so let's unpack it step-by-step, starting from the
+        % inner brackets and working our way towards the outer brackets:
+        % - To get the (ii,jj) element of the matrix, we compare how often
+        %   the predicted label (cfo) is equal to ii while at the same time 
+        %   the true label (lab) is equal to jj. This is then summed. The 
+        %   code in the sum(...) function accomplishes this
+        % - arrayfun(...) executes the sum function for every combination 
+        %   of classes 
+        % - reshape(...) turns the vector returned by arrayfun into a 
+        %   [nclasses x nclasses] cell matrix
+        confusion_fun = @(cfo,lab) reshape( arrayfun( @(ii,jj) sum(cfo==ii & lab==jj),comb(1,:),comb(2,:),'Un',0), nclasses, nclasses, []);
         
         % Looping across the extra dimensions if cf_output is multi-dimensional
         for xx=1:nExtra
             % Use cellfun to apply the function defined above to each cell
-            tmp = cellfun(fun, cf_output(dimSkipToken{:},xx), clabel, 'Un', 0);
+            tmp = cellfun(confusion_fun, cf_output(dimSkipToken{:},xx), clabel, 'Un', 0);
             
+            % We're almost done. We just need to transform the cell
+            % matrices contained in each cell of tmp into ordinary
+            % matrices. However, with multi-dimensional outputs (such as 
+            % in mv_classify_timextime) we need to make sure that the 
+            % resulting matrix has the correct dimensions, i.e.
+            % [nclasses x nclasses x ...]
+            tmp = cellfun( @(c) cellfun( @(x) reshape(x,1,1,[]), c,'Un',0), tmp, 'Un',0);
+            
+            % Now we're ready to transform each cell of tmp into a matrix 
+            tmp = cellfun( @cell2mat, tmp, 'Un',0);
+            
+            % confusion_fun gives us the absolute counts 
+            % for each combination of classes. 
             % It is useful to normalise the confusion matrix such that the
             % cells represent proportions instead of absolute counts. To 
             % this end, each c-th column is divided by the number of
