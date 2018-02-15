@@ -34,15 +34,32 @@ function pattern = mv_stat_activation_pattern(cf, X, clabel)
 
 % (c) Matthias Treder 2018
 
-idx1= (clabel==1);  % logical indices for samples in class 1
-idx2= (clabel==2);  % logical indices for samples in class 2
+if ~ismatrix(X)
+    error('Data X needs to be 2-dimensional')
+end
 
-N1 = sum(idx1);
-N2 = sum(idx2);
-N= N1 + N2;
+[N,P] = size(X);
 
-% Covariance matrix
-C = (N1 * cov(X(idx1,:)) + N2 * cov(X(idx2,:)))/N;
+mv_check_clabel(clabel);
+nclasses = max(clabel);
+
+idx = cell(nclasses,1);
+N_per_class = zeros(nclasses,1);
+
+% Find:
+% - indices for samples of each class  [idx]
+% - number of samples per class [N_per_class]
+for cc=1:nclasses
+    idx{cc}= (clabel==cc);  % logical indices for samples in class cc
+    N_per_class(cc) = sum(idx{cc});
+end
+
+% Pool weighted covariance matrix from each class
+C = zeros(P);
+for cc=1:nclasses
+    C = C + cov(X(idx{cc},:),1) * N_per_class(cc);
+end
+C = C / N;
 
 % Activation pattern
 pattern = C * cf.w;
