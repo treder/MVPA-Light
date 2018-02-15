@@ -4,5 +4,5 @@ function mv_check_clabel(clabel)
 clabel = clabel(:);
 
 if ~all(ismember(clabel,1:max(clabel)))
-    error('The vector of labels must consist of integers 1 (class 1), 2 (class 2), 3 (class 3) and so on')
+    error('Class labels must consist of integers 1 (class 1), 2 (class 2), 3 (class 3) and so on')
 end
