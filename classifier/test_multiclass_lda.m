@@ -17,7 +17,7 @@ function clabel = test_multiclass_lda(cf,X)
 y = X * cf.W;
 
 % Calculate Euclidean distance of each sample to each class centroid
-dist = arrayfun( @(c) sum( (y - cf.centroid(c,:)).^2, 2), 1:cf.nclasses, 'Un',0);
+dist = arrayfun( @(c) sum( bsxfun(@minus, y, cf.centroid(c,:)).^2, 2), 1:cf.nclasses, 'Un',0);
 dist = cat(2, dist{:});
 
 % For each sample, find the closest centroid and assign it to the
