@@ -32,7 +32,9 @@ function h = mv_plot_topography(cfg, topo, pos)
 %                     colorbar is plotted, otherwise there is a separate
 %                     colorbar for each topography plotted
 % .cbtitle          - title for colorbar
-% .title            - title. can be cell array
+% .title            - string with title. Can be cell array of strings with
+%                     if there is multiple topographies eg {'title1'
+%                     'title2' 'title3'}
 % .mark_chans       - [C x 1] vector with 0's and 1's, where a 1 specifes
 %                     that the according channel should be marked.
 %                     Alternatively, if multiple topographies are given, 
@@ -51,7 +53,7 @@ if isvector(topo)
     topo = topo(:); % make sure topo is a column vector
 end
 
-[~, P] = size(topo);
+[~, M] = size(topo);
 
 mv_set_default(cfg,'outline',{});
 mv_set_default(cfg,'clim',[]);
@@ -62,15 +64,15 @@ mv_set_default(cfg,'cbtitle','');
 mv_set_default(cfg,'title','');
 mv_set_default(cfg,'mark_chans',[]);
 mv_set_default(cfg,'res', 100);
-mv_set_default(cfg,'ncol',ceil(sqrt(P)));
-mv_set_default(cfg,'nrow',ceil(P/cfg.ncol));
+mv_set_default(cfg,'ncol',ceil(sqrt(M)));
+mv_set_default(cfg,'nrow',ceil(M/cfg.ncol));
 
 if ~iscell(cfg.outline), cfg.outline = {cfg.outline}; end
 if ~iscell(cfg.title), cfg.title = {cfg.title}; end
 
 if ~isempty(cfg.mark_chans)
     if isvector(cfg.mark_chans)
-        cfg.mark_chans = repmeat(cfg.mark_chans(:),[1 P]);
+        cfg.mark_chans = repmeat(cfg.mark_chans(:),[1 M]);
     end
 end
 
@@ -109,7 +111,7 @@ end
 
 %% Plot
 clf
-for mm=1:P
+for mm=1:M
     h.ax(mm) = subplot(cfg.nrow,cfg.ncol,mm);
     cla
     
@@ -135,7 +137,7 @@ for mm=1:P
             set(gca,'CLim',[-1,1] * max(abs(cl-cfg.climzero) ) + cfg.climzero )
         end
     elseif ~isempty(cfg.clim)
-        set(gca,'cfg.clim',cfg.clim);
+        set(gca,'Clim',cfg.clim);
     end
     
     % Plot channels
@@ -168,7 +170,7 @@ for mm=1:P
     end
     
     % title
-    title(cfg.title{mod(mm-1,numel(cfg.title))+1},'Interpreter','none')
+    h.title(mm) = title(cfg.title{mod(mm-1,numel(cfg.title))+1},'Interpreter','none');
     
     axis off
 end
@@ -187,10 +189,10 @@ if cfg.globalclim
     end
     
     if cfg.colorbar
-        if ceil(sqrt(P)) ~= floor(sqrt(P)) 
+        if ceil(sqrt(M)) ~= floor(sqrt(M)) 
             % if the subplot grid is not completely filled up, we use the
             % next subplot to produce a colorbar
-            h.ax(P+1) = subplot(cfg.nrow,cfg.ncol,P+1);
+            h.ax(M+1) = subplot(cfg.nrow,cfg.ncol,M+1);
             h.colorbar = colorbar('Location','WestOutside');
         else
             h.colorbar = colorbar('Location','EastOutside');
