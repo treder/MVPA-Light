@@ -102,8 +102,7 @@ mv_check_clabel(clabel);
 nLabel = numel(clabel);
 
 % Number of samples in the classes
-N1 = sum(clabel == 1);
-N2 = sum(clabel == 2);
+N = arrayfun( @(c) sum(clabel==c) , 1:max(clabel));
 
 %% Get train and test functions
 train_fun = eval(['@train_' cfg.classifier]);
@@ -136,9 +135,9 @@ if ~strcmp(cfg.CV,'none')
         if strcmp(cfg.balance,'undersample')
             [X,clabel] = mv_balance_classes(X_orig,label_orig,cfg.balance,cfg.replace);
         elseif isnumeric(cfg.balance)
-            if ~all( cfg.balance <= [N1,N2])
-                error(['cfg.balance is larger [%d] than the samples in one of the classes [%d, %d]. ' ...
-                    'Concurrent over- and undersampling is currently not supported.'],cfg.balance,N1,N2)
+            if numel(unique(sign(N - cfg.balance)))==2
+                error(['cfg.balance [%d] is in between the sample sizes in the classes %s. ' ...
+                    'Concurrent over- and undersampling is currently not supported.'],cfg.balance,mat2str(N))
             end
             % Sometimes we want to undersample to a specific
             % number (e.g. to match the number of samples across

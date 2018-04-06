@@ -49,40 +49,56 @@ if nargin<4 || isempty(replace)
     replace = 1;
 end
 
-N = [sum(clabel==1), sum(clabel==2)];
+nclasses = max(clabel);
 
-%% Determine which class is the minority class
-if N(1) < N(2)
-    minorityClass = 1;
-    majorityClass = 2;
-else
-    minorityClass = 2;
-    majorityClass = 1;
-end
+% Sample count for each class
+N = arrayfun( @(c) sum(clabel==c) , 1:nclasses);
+
+%% Determine which class is the minority/majority class
+[~, minorityClass] = min(N);
+[~, majorityClass] = max(N);
+
+nmax = max(N);
+
+% if N(1) < N(2)
+%     minorityClass = 1;
+%     majorityClass = 2;
+% else
+%     minorityClass = 2;
+%     majorityClass = 1;
+% end
 
 %% Oversample/undersample
-addRmSamples = abs(N(1)-N(2));  % number of samples to be added/removed for over/undersampling
+
 labelidx = 1:sum(N);
 
 if ischar(method) && strcmp(method,'oversample')
-    % oversample the minority class
-    idxMinority = find(clabel == minorityClass);
-    if replace
-        idxAdd = randi( min(N(1),N(2)), addRmSamples, 1);
-    else
-        idxAdd = randperm( min(N(1),N(2)), addRmSamples);
+    % oversample all but the majority classes
+    addRmSamples = abs(N - max(N));
+    for cc=1:nclasses
+        if addRmSamples(cc)>0
+            idxMinority = find(clabel == cc);
+            if replace
+                idxAdd = randi( numel(idxMinority), addRmSamples(cc), 1);
+            else
+                idxAdd = randperm( numel(idxMinority), addRmSamples(cc));
+            end
+            X= cat(1,X, X(idxMinority(idxAdd),:,:));
+            clabel(end+1:end+addRmSamples(cc))= clabel(idxMinority(idxAdd));
+        end
     end
-    X= cat(1,X, X(idxMinority(idxAdd),:,:));
-    clabel(end+1:end+addRmSamples)= clabel(idxMinority(idxAdd));
-    
 elseif ischar(method) && strcmp(method,'undersample')
     % undersample the majority class
-    idxMajority = find(clabel == majorityClass);
-    idxRm = randperm( max(N(1),N(2)), addRmSamples);
-    X(idxMajority(idxRm),:,:)= [];
-    clabel(idxMajority(idxRm))= [];
-    labelidx(idxMajority(idxRm))= [];
-    
+    addRmSamples = abs(N - min(N));
+    for cc=1:nclasses
+        if addRmSamples(cc)>0
+            idxMajority = find(clabel == cc);
+            idxRm = randperm( numel(idxMajority), addRmSamples(cc));
+            X(idxMajority(idxRm),:,:)= [];
+            clabel(idxMajority(idxRm))= [];
+            labelidx(idxMajority(idxRm))= [];
+        end
+    end
 elseif isnumeric(method)
     % The target number of samples is directly provided as a number. Each
     % class will be either over- or undersampled to provide the target
@@ -92,20 +108,17 @@ elseif isnumeric(method)
     % samples) and the second class will be undersampled (removing 5
     % samples). If num=30, both classes will be oversampled.
     num = method;
-    
-    % First check whether we need to over- or undersample each class
-    do_undersample = [N(1) N(2)] > num;
-
-    for cc=1:2
+   
+    for cc=1:nclasses
         idxClass= find(clabel == cc); % class indices for class cc
         
-        if do_undersample(cc)
+        if N(cc) > num
             % We need to undersample this class
             idxRm = randperm( N(cc), N(cc)-num );
             X(idxClass(idxRm),:,:)= [];
             clabel(idxClass(idxRm))= [];
             labelidx(idxClass(idxRm))= [];
-        else
+        elseif  N(cc) < num
             % We need to oversample this class
             if num-N(cc)>0
                 if replace
