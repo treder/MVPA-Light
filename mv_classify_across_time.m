@@ -97,12 +97,12 @@ mv_set_default(cfg,'replace',1);
 % Set non-specified classifier parameters to default
 cfg.param = mv_get_classifier_param(cfg.classifier, cfg.param);
 
-mv_check_clabel(clabel);
+[clabel, nclasses] = mv_check_clabel(clabel);
 
 nTime = numel(cfg.time);
 
 % Number of samples in the classes
-N = arrayfun( @(c) sum(clabel==c) , 1:max(clabel));
+N = arrayfun( @(c) sum(clabel==c) , 1:nclasses);
 
 %% Get train and test functions
 train_fun = eval(['@train_' cfg.classifier]);
@@ -231,5 +231,6 @@ if nargout>1
    result.K         = cfg.K;
    result.N         = size(X,1);
    result.repeat    = cfg.repeat;
+   result.nclasses  = nclasses;
    result.classifier = cfg.classifier;
 end
