@@ -101,6 +101,8 @@ end
 
 [N, nFeat, ~] = size(X);
 
+[clabel, nclasses] = mv_check_clabel(clabel);
+
 perf = cell(nFeat,1);
 perf_std = cell(nFeat,1);
 
@@ -187,5 +189,6 @@ if nargout>1
    result.K         = cfg.K;
    result.N         = size(X,1);
    result.repeat    = cfg.repeat;
+   result.nclasses  = nclasses;
    result.classifier = cfg.classifier;
 end
