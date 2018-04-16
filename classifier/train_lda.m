@@ -104,7 +104,7 @@ if cfg.scale
 end
 
 % Bias term determining the classification threshold
-b= w'*(mu1+mu2)/2;
+b= -w'*(mu1+mu2)/2;
 
 %% Prepare output
 cf= struct('w',w,'b',b,'prob',cfg.prob,'lambda',lambda);

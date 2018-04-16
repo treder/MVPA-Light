@@ -17,7 +17,7 @@ function [clabel,dval] = test_lda(cf,X)
 % dval          - decision values, i.e. distances to the hyperplane or
 %                 class probabilities
 
-dval = X*cf.w - cf.b;
+dval = X*cf.w + cf.b;
 clabel= double(dval >= 0) + 2*double(dval < 0);
 
 if cf.prob==1
