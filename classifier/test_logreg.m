@@ -16,7 +16,7 @@ function [clabel,dval,prob] = test_logreg(cf,X)
 % clabel        - predicted class labels (1's and 2's)
 % dval          - decision values, i.e. distances to the hyperplane
 
-dval = X*cf.w + cf.b; % unlike LDA, b needs to be added here
+dval = X*cf.w + cf.b;
 clabel= double(dval >= 0) + 2*double(dval < 0);
 
 if nargout>2    
