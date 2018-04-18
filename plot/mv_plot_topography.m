@@ -72,7 +72,7 @@ if ~iscell(cfg.title), cfg.title = {cfg.title}; end
 
 if ~isempty(cfg.mark_chans)
     if isvector(cfg.mark_chans)
-        cfg.mark_chans = repmeat(cfg.mark_chans(:),[1 M]);
+        cfg.mark_chans = repmat(cfg.mark_chans(:),[1 M]);
     end
 end
 
