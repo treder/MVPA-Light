@@ -1,9 +1,12 @@
-function h = mv_plot_1D(cfg, time, dat, err)
+function h = mv_plot_1D(varargin)
 %Plots 1D results, e.g. classification across time. If a 2D matrix is given 
 %several plots are created.
 %
-%Usage:
+%Usage: Two possible usages, either giving additional parameters in a cfg
+%       struct (with cfg.key1 = value1) or directly giving the key-value 
+%       pairs as parameters:
 % ax = mv_plot_1D(cfg, time, dat, err)
+% ax = mv_plot_1D(time, dat, err, key1, value1, key2, value2, ...)
 %
 %Parameters:
 % time              - [N x 1] vector of times representing the x-axis
@@ -11,9 +14,15 @@ function h = mv_plot_1D(cfg, time, dat, err)
 %                     length M
 % err               - [N x M] data matrix specifying errorbars (optional) 
 %                     The external boundedline function is used to plot the
-%                     error as a shaded area
+%                     error as a shaded area. Can be set to [] if no 
+%                     errorbars is given but key-value pairs are to be
+%                     provided
 %
-% cfg          - struct with hyperparameters (use [] to keep all parameters at default):
+% cfg          - struct with additional parameters (use [] to keep all parameters at default)
+%                Alternatively, the parameters can be presented as
+%                key-value pairs.
+%
+% The additional parameters are given here:
 % xlabel,ylabel     - label for x and y axes (defaults 'Time' and 'Accuracy')
 % title             - axis title (default '')
 % grid              - options for the grid function (default {'on'})
@@ -31,11 +40,31 @@ function h = mv_plot_1D(cfg, time, dat, err)
 % Returns:
 % h        - struct with handles to the graphical elements 
 
-% (c) Matthias Treder 2017
+% (c) Matthias Treder 2017-2018
+
+has_errorbar = 0;
+
+if isstruct(varargin{1}) || isempty(varargin{1})
+    % Additional parameters are specified in struct cfg
+    cfg = varargin{1};
+    time = varargin{2};
+    dat = varargin{3};
+    if nargin < 3, 	err = []; 
+    else,           err = varargin{4}; has_errorbar = 1; end
+else
+    % Additional parameters are given as key-value pairs
+    time = varargin{1};
+    dat = varargin{2};
+    if nargin < 3, 	err = []; 
+    else,           err = varargin{3}; has_errorbar = 1; end
+    if nargin>3
+        cfg = mv_parse_key_value_pairs(varargin{4:end});
+    else
+        cfg = [];
+    end
+end
 
 [nX,nY] = size(dat);
-
-if nargin<3, err=[]; end
 
 mv_set_default(cfg,'xlabel','Time');
 mv_set_default(cfg,'ylabel','Accuracy');
@@ -52,7 +81,7 @@ h.ax = gca;
 cla
 
 %% Plot data 
-if nargin==4
+if has_errorbar
     % We use boundedline to plot the error as well
     tmp = zeros( size(err,1), 1, size(err,2));
     tmp(:,1,:) = err;
@@ -88,7 +117,7 @@ end
 %% Add labels and title
 xlabel(cfg.xlabel);
 ylabel(cfg.ylabel);
-title(cfg.title);
+title(cfg.title,'Interpreter','none');
 
 %% Add grid
 grid(h.ax, cfg.grid{:})

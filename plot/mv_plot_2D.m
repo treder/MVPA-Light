@@ -2,15 +2,22 @@ function h = mv_plot_2D(cfg, dat)
 %Plots 2D results, e.g. a time x time generalisation. Plots the results as
 %a color matrix. If a 3D matrix is given several subplots are created.
 %
-%Usage:
+%%Usage: Two possible usages, either giving additional parameters in a cfg
+%       struct (with cfg.key1 = value1) or directly giving the key-value 
+%       pairs as parameters:
 % ax = mv_plot_2D(cfg,M)
+% ax = mv_plot_2D(M, key1, value1, key2, value2, ...)
 %
 %Parameters:
 % DAT               - [N x M] data matrix with results or [N x M x P] 3D
 %                     matrix with P different images. For multiple images,
 %                     all images need to have the same x and y axis 
 %
-% cfg          - struct with hyperparameters:
+% cfg          - struct with additional parameters (use [] to keep all parameters at default)
+%                Alternatively, the parameters can be presented as
+%                key-value pairs.
+% 
+% The additional parameters are given here:
 % xlabel,ylabel     - label for x and y axes (default 'Training time' and
 %                     'Testing time')
 % title             - axis title (default '')
@@ -58,7 +65,28 @@ function h = mv_plot_2D(cfg, dat)
 % Returns:
 % h        - struct with handles to the graphical elements 
 
-% (c) Matthias Treder 2017
+% (c) Matthias Treder 2017-2018
+
+if isstruct(varargin{1}) || isempty(varargin{1})
+    % Additional parameters are specified in struct cfg
+    cfg = varargin{1};
+    time = varargin{2};
+    dat = varargin{3};
+    if nargin < 3, 	err = []; 
+    else,           err = varargin{4}; end
+else
+    % Additional parameters are given as key-value pairs
+    time = varargin{1};
+    dat = varargin{2};
+    err = varargin{3};
+    if nargin < 3, 	err = []; 
+    else,           err = varargin{3}; end
+    if nargin>3
+        cfg = mv_parse_key_value_pairs(varargin{4:end});
+    else
+        cfg = struct();
+    end
+end
 
 [nX,nY,P] = size(dat);
 
