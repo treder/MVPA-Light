@@ -15,8 +15,13 @@ function h = mv_plot_result(result, varargin)
 %                     subjects); in this case, all results need to be 
 %                     created with the same function using the same metric.
 %                     
-%Additional arguments can be provided depending on which classification
-%function was used to create the results:
+% Additional arguments can be provided as key-value parameters, e.g.
+% mv_plot_result(result,'title','This is my title'). See ADDITIONAL 
+% KEY-VALUE ARGUMENTS below.
+% 
+% Furthermore, additional arguments can be provided depending on which 
+% classification function was used to create the results, as described
+% next:
 %
 % MV_CROSSVALIDATE:
 % Usage: h = mv_plot_result(result)
@@ -49,10 +54,21 @@ function h = mv_plot_result(result, varargin)
 % positions) the performance is plotted as a topography.
 % In any other case, the features are plotted as bars in a bar graph.
 %
-% Returns:
+% ADDITIONAL KEY-VALUE ARGUMENTS:
+% title          - string that serves as axis title
+% label          - if result argument is a cell array, a cell array of strings can
+%                  be provided to label the different results (serves as
+%                  legend labels for mv_classify_across_time plots and as
+%                  xlabels for mv_crossvalidate plots)
+% plot_mean      - if 1 and multiple results are provided, also plots the 
+%                  mean across the results (default 1)
+% new_figure     - if 1, results are plotted in a new figure. If 0, results
+%                  are plotted in the current axes instead (default 1)
+%
+% RETURNS:
 % h        - struct with handles to the graphical elements 
 
-% (c) Matthias Treder 2017
+% (c) Matthias Treder 2017-2018
 
 if ~iscell(result), result = {result}; end
 
@@ -68,6 +84,12 @@ if numel(unique(cellfun( @(res) res.metric, result,'Un',0))) > 1
 end
 
 fprintf('Plotting the results of %s.\n', fun);
+
+%% Parse any key-value pairs
+opt = mv_parse_key_value_pairs(varargin{:});
+
+if ~isfield(opt,'plot_mean'), opt.plot_mean = 1; end
+if ~isfield(opt,'new_figure'), opt.new_figure = 0; end
 
 %% Extract all performance measures into a matrix
 perf = cellfun( @(res) res.perf, result, 'Un', 0);
@@ -90,11 +112,14 @@ end
 perf = cat(cat_dim, perf{:});
 perf_std = cat(cat_dim, perf_std{:});
 
-%% Get axis or legend labels
-lab = arrayfun( @(x) [num2str(x) ' (' result{x}.classifier ')'], 1:nResults,'Un',0);
+%% Create axis or legend labels (unless they have already been specified)
+if ~isfield(opt,'label')
+    opt.label = arrayfun( @(x) [num2str(x) ' (' result{x}.classifier ')'], 1:nResults,'Un',0);
+end
 
 %% If multiple results are given, calculate mean
-if nResults > 1
+opt.plot_mean = (opt.plot_mean && nResults > 1);
+if opt.plot_mean
     perf_mean = mean(perf,ndims(perf));
     perf_std_mean = mean(perf_std,ndims(perf_std));
     mean_lab = 'MEAN';
@@ -105,6 +130,12 @@ h =struct();
 h.ax = [];
 h.title = [];
 
+%% Prepare title
+titleopt = {'Interpreter','none'};
+if ~isfield(opt,'title')
+    opt.title = fun;
+end
+
 %% Plot
 switch(fun)
     
@@ -112,13 +143,13 @@ switch(fun)
     %% --------------- MV_CROSSVALIDATE ---------------
     case 'mv_crossvalidate'
 
-        figure
+        if opt.new_figure, figure; end
         h.ax = gca;
         if nResults == 1
             h.bar = bar(perf');
         else
             h.bar = bar(1:nResults+1, [perf, perf_mean]');
-            set(gca,'XTick',1:nResults+1, 'XTickLabel',[lab mean_lab])
+            set(gca,'XTick',1:nResults+1, 'XTickLabel',[opt.label mean_lab])
         end
         
         % Indicate SEM if the bars are not grouped
@@ -130,7 +161,7 @@ switch(fun)
         % X and Y labels
         h.ylabel = ylabel(metric);
         h.fig = gcf;
-        h.title = title(fun,'Interpreter','none');
+        h.title = title(opt.title,titleopt{:});
         
         % Set Y label
         for ii=1:numel(h.ax)
@@ -144,10 +175,10 @@ switch(fun)
         else,           x = 1:length(result{1}.perf);
         end
         
-        figure
+        if opt.new_figure, figure; end
         cfg = [];
         if any(strcmp(metric,{'auc', 'acc'}))
-            cfg.hor = 0.5;
+            cfg.hor = 1 / result{1}.nclasses;
         elseif any(strcmp(metric,{'dval', 'tval'}))
             cfg.hor = 0;
         end
@@ -161,31 +192,31 @@ switch(fun)
             for ii=1:N
                 subplot(nr,nc,ii)
                 tmp = mv_plot_2D(cfg,x, squeeze(perf(:,:,ii)), squeeze(perf_std(:,:,ii)) );
-                legend(lab(ii))
+                legend(opt.label(ii))
                 h.ax = [h.ax; tmp.ax];
                 h.plt = [h.plt; tmp.plt];
                 h.fig = gcf;
-                h.title = [h.title; title(fun,'Interpreter','none')];
+                h.title = [h.title; title(opt.title,titleopt{:})];
             end
         else
             tmp = mv_plot_1D(cfg,x, perf, perf_std);
-            legend(lab)
+            legend(opt.label)
             h.ax = tmp.ax;
             h.plt = tmp.plt;
             h.fig = gcf;
-            h.title = title(fun,'Interpreter','none');
+            h.title = title(opt.title,titleopt{:});
         end
         
         % Plot mean
-        if nResults > 1
+        if opt.plot_mean
             figure
-            tmp = mv_plot_1D(cfg,x, perf_mean, perf_std_mean );
+            tmp = mv_plot_1D(cfg,x, perf_mean, perf_std_mean);
             set(tmp.plt, 'LineWidth',2);
             h.ax = [h.ax; tmp.ax];
             h.plt = [h.plt; tmp.plt];
             legend({'MEAN'})
             h.fig(2) = gcf;
-            h.title = [h.title; title([fun ' (MEAN)'],'Interpreter','none')];
+            h.title = [h.title; title([opt.title ' (MEAN)'],titleopt{:})];
         end
 
         % Set Y label
@@ -208,7 +239,7 @@ switch(fun)
         cfg.x   = x;
         cfg.y   = y;
         if any(strcmp(metric,{'auc', 'acc'}))
-            cfg.climzero = 0.5;
+            cfg.climzero = 1 / result{1}.nclasses;
         elseif any(strcmp(metric,{'dval', 'tval'}))
             cfg.climzero = 0;
         end
@@ -218,25 +249,25 @@ switch(fun)
             hs = cell(1,2);
             for cl=1:2
                 figure
-                cfg.title = strcat(fun, ' - ' ,lab, ' (class ', num2str(cl),')');
+                cfg.title = strcat(opt.title, ' - ' ,opt.label, ' (class ', num2str(cl),')');
                 hs{cl} = mv_plot_2D(cfg, squeeze(perf(:,cl,:,:)) );
             end
             h = [hs{:}];
             
             % Plot mean
-            if nResults > 1
+            if opt.plot_mean
                 figure
-                cfg.title = strcat(fun, '-' ,mean_lab);
+                cfg.title = strcat(opt.title, '-' ,mean_lab);
                 h(numel(h)+1) = mv_plot_2D(cfg, cat(3,squeeze(perf_mean(:,1,:)), squeeze(perf_mean(:,2,:))) );
             end
         else
-            cfg.title = strcat(fun, '-' ,lab);
+            cfg.title = strcat(opt.title, '-' ,opt.label);
             h = mv_plot_2D(cfg, perf);
             
             % Plot mean
-            if nResults > 1
+            if opt.plot_mean
                 figure
-                cfg.title = strcat(fun, '-' ,mean_lab);
+                cfg.title = strcat(opt.title, '-' ,mean_lab);
                 h(numel(h)+1) = mv_plot_2D(cfg, perf_mean );
             end
         end
@@ -272,7 +303,7 @@ switch(fun)
                 hs = cell(1,2);
                 for cl=1:2
                     figure
-                    cfg.title = strcat(fun, ' - ' ,lab, ' (class ', num2str(cl),')');
+                    cfg.title = strcat(opt.title, ' - ' ,opt.label, ' (class ', num2str(cl),')');
                     hs{cl} = mv_plot_topography(cfg, squeeze(perf(:,cl,:)), chans.pos);
                     axis on
                     axis off
@@ -280,14 +311,14 @@ switch(fun)
                 h = [hs{:}];
             else
                 % no dval: all plots in one figure
-                cfg.title = strcat(fun, ' - ' ,lab);
+                cfg.title = strcat(opt.title, ' - ' ,opt.label);
                 h = mv_plot_topography(cfg, perf, chans.pos);
             end
             
             % Plot mean
-            if nResults > 1
+            if opt.plot_mean
                 figure
-                cfg.title = strcat(fun, '-' ,mean_lab);
+                cfg.title = strcat(opt.title, '-' ,mean_lab);
                 h(numel(h)+1) = mv_plot_topography(cfg, perf_mean, chans.pos);
             end
 
@@ -301,32 +332,34 @@ switch(fun)
                 for cl=1:2
                     figure
                     hs{cl}.bar = bar(squeeze(perf(:,cl,:))');
-                    hs{cl}.title= title(sprintf('%s - class %d',fun,cl),'Interpreter','none');
+                    hs{cl}.title= title(sprintf('%s - class %d',opt.title,cl),titleopt{:});
                     hs{cl}.xlabel = xlabel('features');
                     hs{cl}.ylabel = ylabel(metric);
-                    set(gca,'XTick',1:nResults,'XTickLabel',lab)
+                    set(gca,'XTick',1:nResults,'XTickLabel',opt.label)
                 end
                 h = [hs{:}];
             else
-                figure
+                if opt.new_figure, figure; end
                 h.bar = bar(perf');
                 h.xlabel = xlabel('features');
                 h.ylabel = ylabel(metric);
-                set(gca,'XTick',1:nResults,'XTickLabel',lab)
-                h.title= title(fun,'Interpreter','none');
+                set(gca,'XTick',1:nResults,'XTickLabel',opt.label)
+                h.title= title(opt.title,titleopt{:});
             end
             grid on
             
             % Plot mean
-            if nResults > 1
+            if opt.plot_mean
                 figure
                 h(2).bar = bar(perf_mean');
                 h(2).xlabel = xlabel('features');
                 h(2).ylabel = ylabel(metric);
-                h(2).title= title(strcat(fun, '-' ,mean_lab),'Interpreter','none');
+                h(2).title= title(strcat(opt.title, '-' ,mean_lab),titleopt{:});
             end
         end
         
 end
 
 grid on
+
+end
