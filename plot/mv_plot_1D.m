@@ -49,7 +49,7 @@ if isstruct(varargin{1}) || isempty(varargin{1})
     cfg = varargin{1};
     time = varargin{2};
     dat = varargin{3};
-    if nargin < 3, 	err = []; 
+    if nargin < 4, 	err = []; 
     else,           err = varargin{4}; has_errorbar = 1; end
 else
     % Additional parameters are given as key-value pairs
@@ -57,7 +57,7 @@ else
     dat = varargin{2};
     if nargin < 3, 	err = []; 
     else,           err = varargin{3}; has_errorbar = 1; end
-    if nargin>3
+    if nargin > 3
         cfg = mv_parse_key_value_pairs(varargin{4:end});
     else
         cfg = [];

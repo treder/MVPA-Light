@@ -1,12 +1,12 @@
-function h = mv_plot_2D(cfg, dat)
+function h = mv_plot_2D(varargin)
 %Plots 2D results, e.g. a time x time generalisation. Plots the results as
 %a color matrix. If a 3D matrix is given several subplots are created.
 %
 %%Usage: Two possible usages, either giving additional parameters in a cfg
 %       struct (with cfg.key1 = value1) or directly giving the key-value 
 %       pairs as parameters:
-% ax = mv_plot_2D(cfg,M)
-% ax = mv_plot_2D(M, key1, value1, key2, value2, ...)
+% ax = mv_plot_2D(cfg, dat)
+% ax = mv_plot_2D(dat, key1, value1, key2, value2, ...)
 %
 %Parameters:
 % DAT               - [N x M] data matrix with results or [N x M x P] 3D
@@ -70,19 +70,12 @@ function h = mv_plot_2D(cfg, dat)
 if isstruct(varargin{1}) || isempty(varargin{1})
     % Additional parameters are specified in struct cfg
     cfg = varargin{1};
-    time = varargin{2};
-    dat = varargin{3};
-    if nargin < 3, 	err = []; 
-    else,           err = varargin{4}; end
+    dat = varargin{2};
 else
     % Additional parameters are given as key-value pairs
-    time = varargin{1};
-    dat = varargin{2};
-    err = varargin{3};
-    if nargin < 3, 	err = []; 
-    else,           err = varargin{3}; end
-    if nargin>3
-        cfg = mv_parse_key_value_pairs(varargin{4:end});
+    dat = varargin{1};
+    if nargin > 1
+        cfg = mv_parse_key_value_pairs(varargin{2:end});
     else
         cfg = struct();
     end
