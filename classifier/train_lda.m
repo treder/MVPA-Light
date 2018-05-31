@@ -33,7 +33,8 @@ function [cf,Sw,lambda,mu1,mu2] = train_lda(cfg,X,clabel)
 % .prob          - if 1, probabilities are returned as decision values. If
 %                  0, the decision values are simply the distance to the
 %                  hyperplane. Calculating probabilities takes more time
-%                  and memory so don't use this unless needed (default 0)
+%                  and memory so don't use this unless needed. Probabilities 
+%                  can be unreliable in high dimensions (default 0)
 % .scale         - if 1, the projection vector w is scaled such that the
 %                  mean of class 1 (on the training data) projects onto +1
 %                  and the mean of class 2 (on the training data) projects
@@ -41,14 +42,13 @@ function [cf,Sw,lambda,mu1,mu2] = train_lda(cfg,X,clabel)
 %
 %Output:
 % cf - struct specifying the classifier with the following fields:
-% classifier   - 'lda', type of the classifier
 % w            - projection vector (normal to the hyperplane)
 % b            - bias term, setting the threshold
 %
 % The following fields can be returned optionally:
-% C            - covariance matrix (possibly regularised)
+% Sw           - covariance matrix (possibly regularised)
 % mu1,mu2      - class means
-%
+% N            - total number of samples
 
 % (c) Matthias Treder 2017
 
@@ -62,7 +62,7 @@ N= N1 + N2;
 % Calculate common covariance matrix (actually its unscaled version aka
 % within-class scatter matrix).
 % It should be weighted by the relative class proportions
-Sw= N1 * cov(X(idx1,:)) + N2 * cov(X(idx2,:));
+Sw= N1 * cov(X(idx1,:),1) + N2 * cov(X(idx2,:),1);
 
 % Get class means
 mu1= mean(X(idx1,:))';
@@ -78,19 +78,20 @@ if strcmp(cfg.reg,'shrink')
         % parameter analytically.
         % Get samples from each class separately and correct by the class
         % means mu1 and mu2 using bsxfun.
-        [Sw, lambda]= cov1para([bsxfun(@minus,X(idx1,:),mu1');bsxfun(@minus,X(idx2,:),mu2')]);
+        [~, lambda]= cov1para([bsxfun(@minus,X(idx1,:),mu1');bsxfun(@minus,X(idx2,:),mu2')]);
         
     elseif numel(lambda)==1
-        % Shrinkage parameter is given directly as a number.
-        % We write the regularised scatter matrix as a convex combination of
-        % the empirical scatter Sw and an identity matrix scaled to have
-        % the same trace as Sw
-        Sw = (1-lambda)* Sw + lambda * eye(size(Sw,1)) * trace(Sw)/size(X,2);
+        % Shrinkage parameter is given directly as a number. Don't need to
+        % do anything here
         
     elseif ~ischar(lambda) && numel(lambda)>1
         tune_hyperparameter_lda;
-        Sw = (1-lambda)* Sw + lambda * eye(size(Sw,1)) * trace(Sw)/size(X,2);
     end
+    
+    % We write the regularised scatter matrix as a convex combination of
+    % the empirical scatter Sw and an identity matrix scaled to have
+    % the same trace as Sw
+    Sw = (1-lambda)* Sw + lambda * eye(size(Sw,1)) * trace(Sw)/size(X,2);
 else
     % RIDGE REGULARISATION
     % The ridge lambda must be provided directly as a number
@@ -124,8 +125,9 @@ if cfg.prob == 1
     cf.prior1 = N1/N;
     cf.prior2 = N2/N;
 
-    cf.C = Sw;
-    cf.mu1 = mu1;
-    cf.mu2 = mu2;
+    cf.Sw   = Sw;
+    cf.mu1  = mu1;
+    cf.mu2  = mu2;
+    cf.N    = N;
     
 end
