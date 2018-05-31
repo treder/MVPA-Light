@@ -28,6 +28,8 @@ function [cf,Sw,lambda,mu1,mu2] = train_lda(cfg,X,clabel)
 %                  using the Ledoit-Wolf formula(function cov1para.m). 
 %                  If reg='ridge', lambda ranges from 0 (no regularisation)
 %                  to infinity.
+%                  If multiple values are given, a grid search is performed
+%                  for the best lambda (only for reg='shrink')
 % .prob          - if 1, probabilities are returned as decision values. If
 %                  0, the decision values are simply the distance to the
 %                  hyperplane. Calculating probabilities takes more time
@@ -71,7 +73,7 @@ lambda = cfg.lambda;
 %% Regularisation
 if strcmp(cfg.reg,'shrink')
     % SHRINKAGE REGULARISATION
-    if (ischar(lambda)&&strcmp(lambda,'auto'))
+    if ischar(lambda) && strcmp(lambda,'auto')
         % Here we use the Ledoit-Wolf method to estimate the regularisation
         % parameter analytically.
         % Get samples from each class separately and correct by the class
@@ -79,15 +81,15 @@ if strcmp(cfg.reg,'shrink')
         [Sw, lambda]= cov1para([bsxfun(@minus,X(idx1,:),mu1');bsxfun(@minus,X(idx2,:),mu2')]);
         
     elseif numel(lambda)==1
-        % Shrinkage parameter is given directly as a number.  
+        % Shrinkage parameter is given directly as a number.
         % We write the regularised scatter matrix as a convex combination of
         % the empirical scatter Sw and an identity matrix scaled to have
         % the same trace as Sw
         Sw = (1-lambda)* Sw + lambda * eye(size(Sw,1)) * trace(Sw)/size(X,2);
         
     elseif ~ischar(lambda) && numel(lambda)>1
-        % Multipe lambdas given: perform tuning using a grid search
         tune_hyperparameter_lda;
+        Sw = (1-lambda)* Sw + lambda * eye(size(Sw,1)) * trace(Sw)/size(X,2);
     end
 else
     % RIDGE REGULARISATION
@@ -126,10 +128,4 @@ if cfg.prob == 1
     cf.mu1 = mu1;
     cf.mu2 = mu2;
     
-    % Projected standard deviation
-%     cf.sigma = sqrt(w' * C * w);
-%
-%     % Projected class means
-%     cf.m1 = w' * mu1;
-%     cf.m2 = w' * mu2;
 end
