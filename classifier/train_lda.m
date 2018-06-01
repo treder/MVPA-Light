@@ -1,5 +1,5 @@
 function [cf,Sw,lambda,mu1,mu2] = train_lda(cfg,X,clabel)
-% Trains a linear discriminant analysis with (optional) shrinkage
+% Trains a linear discriminant analysis with (optional) 
 % regularisation of the covariance matrix.
 %
 % Usage:
