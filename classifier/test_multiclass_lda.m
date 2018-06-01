@@ -24,11 +24,10 @@ dist = cat(2, dist{:});
 % respective class
 clabel = zeros(size(X,1),1);
 for ii=1:size(X,1)
-    [~, idx] = min(dist(ii,:));
-    clabel(ii) = idx;
+    [~, clabel(ii)] = min(dist(ii,:));
 end
 
-% DEBUG - plot data on first two discriminant coordinates
+% % DEBUG - plot data on first two discriminant coordinates
 % close all
 % for c=1:cf.nclasses 
 %     plot(cf.centroid(c,1),cf.centroid(c,2),'+','MarkerSize',18)
