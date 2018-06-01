@@ -50,19 +50,20 @@ if isstruct(varargin{1}) || isempty(varargin{1})
     time = varargin{2};
     dat = varargin{3};
     if nargin < 4, 	err = []; 
-    else,           err = varargin{4}; has_errorbar = 1; end
+    else,           err = varargin{4}; end
 else
     % Additional parameters are given as key-value pairs
     time = varargin{1};
     dat = varargin{2};
     if nargin < 3, 	err = []; 
-    else,           err = varargin{3}; has_errorbar = 1; end
+    else,           err = varargin{3}; end
     if nargin > 3
         cfg = mv_parse_key_value_pairs(varargin{4:end});
     else
         cfg = [];
     end
 end
+if ~isempty(err), has_errorbar = 1; end
 
 [nX,nY] = size(dat);
 
@@ -87,9 +88,10 @@ if has_errorbar
     tmp(:,1,:) = err;
     [h.plt, h.patch] = boundedline(time, dat, tmp, cfg.bounded{:});
 else
-    % Ordinary plot without error
+    % Ordinary plot without errorbars
     h.plt = plot(time, dat);
 end
+
 %% Set line styles
 for ii=1:nY
     set(h.plt(ii),'LineStyle',cfg.lineorder{ mod(ii-1,numel(cfg.lineorder)) + 1 })

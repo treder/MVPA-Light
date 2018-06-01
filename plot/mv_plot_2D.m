@@ -83,8 +83,8 @@ end
 
 [nX,nY,P] = size(dat);
 
-mv_set_default(cfg,'x',1:nX);
-mv_set_default(cfg,'y',1:nY);
+mv_set_default(cfg,'x',1:nY);
+mv_set_default(cfg,'y',1:nX);
 mv_set_default(cfg,'xlim',[min(cfg.x), max(cfg.x)]);
 mv_set_default(cfg,'ylim',[min(cfg.y), max(cfg.y)]);
 mv_set_default(cfg,'xlabel','Testing time');
