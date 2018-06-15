@@ -129,7 +129,11 @@ axnum=1;
 for rr=1:cfg.nrow
     for cc=1:cfg.ncol
         if axnum<=P
-            h.ax(axnum) = subplot(cfg.nrow,cfg.ncol,axnum);
+            if P > 1
+                h.ax(axnum) = subplot(cfg.nrow,cfg.ncol,axnum);
+            else
+                h.ax = gca;
+            end
             set(gcf,'CurrentAxes',h.ax(axnum));
             
             % Plot the classification performance image here. The y-axis
