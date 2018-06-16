@@ -42,10 +42,6 @@ function cf = train_multiclass_lda(cfg,X,clabel)
 % W            - projection matrix with C-1 discriminant directions, where
 %                C is the number of classes
 %
-% The following fields can be returned optionally:
-% C            - covariance matrix (possibly regularised)
-% mu1,mu2      - class means
-%
 
 % (c) Matthias Treder 2018
 
@@ -73,7 +69,6 @@ Sw = zeros(nfeatures);
 for c=1:nclasses
     Sw = Sw + (nc(c)-1) * cov(X(clabel==c,:));
 end
-
 
 %% Regularisation
 lambda = cfg.lambda;

@@ -202,6 +202,17 @@ switch(classifier)
         mv_set_default(param,'shrinkage_multiplier',1);
         mv_set_default(param,'Q',[]);
 
+    case 'kernel_fda'
+        mv_set_default(param,'kernel','linear'); % 'poly' 'rbf'
+        mv_set_default(param,'plot',0);
+        mv_set_default(param,'K',5);
+        mv_set_default(param,'lambda',10e-8);
+        mv_set_default(param,'Q',[]);
         
+        % parameters for specific kernels
+        mv_set_default(param,'gamma','auto'); % RBF and polynomial kernel regularisation parameter
+        mv_set_default(param,'coef0',1);    % polynomial kernel
+        mv_set_default(param,'degree',2);   % degree of polynomial kernel
+     
     otherwise, error('Unknown classifier ''%s''',classifier)
 end

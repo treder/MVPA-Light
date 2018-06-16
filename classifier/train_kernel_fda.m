@@ -38,12 +38,6 @@ function cf = train_kernel_fda(cfg,X,clabel)
 % degree        - (kernel: polynomial) degree of the polynomial term. A too
 %                 high degree makes overfitting likely (default 2)
 %
-%Output:
-% cf - struct specifying the classifier with the following fields:
-% alpha        - dual vector specifying the weighting of training samples
-%                for evaluating the classifier. 
-%
-% IMPLEMENTATION DETAILS:
 % The formulation of the Wikipedia page is followed here:
 % https://en.wikipedia.org/wiki/Kernel_Fisher_discriminant_analysis#Kernel_trick_with_LDA
 %
@@ -54,12 +48,15 @@ function cf = train_kernel_fda(cfg,X,clabel)
 
 % (c) Matthias Treder 2018
 
-[N, nFeat] = size(X);
 nclasses = max(clabel);
+[nsamples, nfeatures] = size(X);
+
+% Number of samples per class
+nc = arrayfun(@(c) sum(clabel == c), 1:nclasses);
 
 %% Set kernel hyperparameter defaults
 if ischar(cfg.gamma) && strcmp(cfg.gamma,'auto')
-    cfg.gamma = 1/ nFeat;
+    cfg.gamma = 1/ nfeatures;
 end
 
 %% Precompute and regularise kernel
@@ -76,11 +73,44 @@ if isempty(cfg.Q)
     if cfg.kernel_regularisation > 0
         Q = Q + cfg.kernel_regularisation * eye(size(X,1));
     end
-    
-    
+
 else
     Q = cfg.Q;
 end
+
+%% N: "Dual" of within-class scatter matrix
+
+% Notation in https://en.wikipedia.org/wiki/Kernel_Fisher_discriminant_analysis#Kernel_trick_with_LDA
+% is used
+
+N = zeros(nsamples);
+for c=1:nclasses
+    N = N + Q(:,clabel==c) * (eye(nc(c)) - 1/nc(c)) * Q(:,clabel==c)';
+end
+
+%% hier weiter
+
+%% Regularisation of N
+
+lambda = cfg.lambda;
+
+if strcmp(cfg.reg,'shrink')
+    % SHRINKAGE REGULARISATION
+    % We write the regularised scatter matrix as a convex combination of
+    % the N and an identity matrix scaled to have the same trace as N
+    N = (1-lambda)* N + lambda * eye(size(N,1)) * trace(N)/size(X,2);
+
+else
+    % RIDGE REGULARISATION
+    % The ridge lambda must be provided directly as a number
+    N = N + lambda * eye(size(N,1));
+end
+
+
+%% "Dual" of between-classes scatter matrix
+
+
+%% Rest TODO ...
 
 %% Optimise hyperparameters using nested cross-validation
 if numel(cfg.C)>1
