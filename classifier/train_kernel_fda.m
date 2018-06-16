@@ -12,6 +12,7 @@ function cf = train_kernel_fda(cfg,X,clabel)
 %
 % cfg          - struct with hyperparameters:
 % kernel         - kernel function:
+%                  'linear'     - linear kernel ker(x,y) = x' y
 %                  'rbf'        - radial basis function or Gaussian kernel
 %                                 ker(x,y) = exp(-gamma * |x-y|^2);
 %                  'polynomial' - polynomial kernel
@@ -20,7 +21,7 @@ function cf = train_kernel_fda(cfg,X,clabel)
 %                  is a function called *_kernel is in the MATLAB path, 
 %                  where "*" is the name of the kernel (e.g. rbf_kernel).
 % kernel_regularisation     - regularisation parameter for the kernel matrix. The
-%                  kernel matrix Q is replaced by Q + kernel_reg*I where I
+%                  kernel matrix Q is replaced by Q + kernel_regularisation*I where I
 %                  is the identity matrix (default 10e-10)
 % Q              - optional kernel matrix. If Q is provided, the .kernel 
 %                  parameter is ignored. (Default [])
@@ -37,29 +38,19 @@ function cf = train_kernel_fda(cfg,X,clabel)
 % degree        - (kernel: polynomial) degree of the polynomial term. A too
 %                 high degree makes overfitting likely (default 2)
 %
-
-% TODO: check the rest of the documentation:
-
-% Further parameters (that usually do not need to be changed):
-
-%
 %Output:
 % cf - struct specifying the classifier with the following fields:
-% w            - normal to the hyperplane (for linear SVM)
-% b            - bias term, setting the threshold  (for linear SVM with bias)
 % alpha        - dual vector specifying the weighting of training samples
-%                for evaluating the classifier. For alpha > 0 a particular
-%                sample is a support vector (for kernel SVM)
+%                for evaluating the classifier. 
 %
 % IMPLEMENTATION DETAILS:
-% A Dual Coordinate Descent algorithm is used to find the optimal alpha
-% (weights on the samples), implemented in DualCoordinateDescent.
+% The formulation of the Wikipedia page is followed here:
+% https://en.wikipedia.org/wiki/Kernel_Fisher_discriminant_analysis#Kernel_trick_with_LDA
 %
-% REFERENCES:
-% V Kecman (2001). Learning and Soft Computing: Support Vector Machines, 
-% Neural Networks, and Fuzzy Logic Models. MIT Press
-
-%
+% REFERENCE:
+% Mika, S; Rätsch, G.; Weston, J.; Schölkopf, B.; Müller, KR (1999). 
+% Fisher discriminant analysis with kernels. Neural Networks for Signal
+% Processing. IX: 41–48.
 
 % (c) Matthias Treder 2018
 
@@ -70,8 +61,6 @@ nclasses = max(clabel);
 if ischar(cfg.gamma) && strcmp(cfg.gamma,'auto')
     cfg.gamma = 1/ nFeat;
 end
-
-%% Use formulation in https://en.wikipedia.org/wiki/Kernel_Fisher_discriminant_analysis#Kernel_trick_with_LDA
 
 %% Precompute and regularise kernel
 
@@ -84,9 +73,10 @@ if isempty(cfg.Q)
     Q = kernelfun(cfg, X);
     
     % Regularise
-    if cfg.regularise_kernel > 0
-        Q = Q + cfg.regularise_kernel * eye(size(X,1));
+    if cfg.kernel_regularisation > 0
+        Q = Q + cfg.kernel_regularisation * eye(size(X,1));
     end
+    
     
 else
     Q = cfg.Q;
