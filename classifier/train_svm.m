@@ -32,7 +32,7 @@ function cf = train_svm(cfg,X,clabel)
 %                  Alternatively, a custom kernel can be provided if there
 %                  is a function called *_kernel is in the MATLAB path, 
 %                  where "*" is the name of the kernel (e.g. rbf_kernel).
-% Q              - optional kernel matrix. If Q is provided, the .kernel 
+% kernel_matrix  - optional kernel matrix. If provided, the .kernel 
 %                  parameter is ignored. (Default [])
 %
 % Note: C is implemented analogous to the classical SVM implementations,
@@ -58,7 +58,7 @@ function cf = train_svm(cfg,X,clabel)
 %                 bias is 1 for linear kernel and 0 for non-linear
 %                 kernel (default 'auto'). This is because for non-linear
 %                 kernels, a bias is usally not needed (Kecman 2001, p.182)
-% K             - the number of folds in the K-fold cross-validation for
+% k             - the number of folds in the k-fold cross-validation for
 %                 the lambda search (default 5)
 % plot          - if a lambda search is performed, produces diagnostic
 %                 plots including the regularisation path and
@@ -129,26 +129,26 @@ end
 
 %% Precompute and regularise kernel
 
-if isempty(cfg.Q)
+if isempty(cfg.kernel_matrix)
     
     % Kernel function
     kernelfun = eval(['@' cfg.kernel '_kernel']);
     
     % Compute kernel matrix
-    Q = kernelfun(cfg, X);
+    kernel_matrix = kernelfun(cfg, X);
     
     % Regularise
     if cfg.regularise_kernel > 0
-        Q = Q + cfg.regularise_kernel * eye(size(X,1));
+        kernel_matrix = kernel_matrix + cfg.regularise_kernel * eye(size(X,1));
     end
     
 else
-    Q = cfg.Q;
+    kernel_matrix = cfg.kernel_matrix;
 end
 
-% Create a copy of Q wherein class labels 1 and -1 are absorbed in the
+% Create a copy of kernel_matrix wherein class labels 1 and -1 are absorbed in the
 % kernel matrix. This is useful for optimisation.
-Q_cl = Q .* (clabel * clabel');
+Q_cl = kernel_matrix .* (clabel * clabel');
 
 % %% Automatically set the search grid for C
 if ischar(cfg.C) && strcmp(cfg.C,'auto')

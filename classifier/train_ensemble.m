@@ -12,14 +12,14 @@ function cf = train_ensemble(cfg,X,clabel)
 %                  1's (class 1) and 2's (class 2)
 %
 % cfg: struct with parameters:
-% .nSamples         - number of randomly subselected samples for each
+% .nsamples         - number of randomly subselected samples for each
 %                     learner. Can be an integer number or a
 %                     fraction, e.g. 0.1 means that 10% of the training 
 %                     data is used for each learner. (Default 0.5)
-% .nFeatures        - number of randomly subselected features. Can be an 
+% .nfeatures        - number of randomly subselected features. Can be an 
 %                     integer number or a fraction, e.g. 0.1 means that 
 %                     10% of the features are used for each learner. (Default 0.1)
-% .nLearners        - number of learners (default 500)
+% .nlearners        - number of learners (default 500)
 % .strategy         - strategy for making decisions. If 'vote', the class
 %                     label from each learner is obtained, then the class
 %                     associated with the majority vote it taken (randomly
@@ -57,21 +57,21 @@ function cf = train_ensemble(cfg,X,clabel)
 % default settings
 mv_set_default(cfg,'learner','lda');
 mv_set_default(cfg,'learner_param',[]);
-mv_set_default(cfg,'nSamples', 0.5);
-mv_set_default(cfg,'nFeatures', 0.2);
-mv_set_default(cfg,'nLearners', 500);
+mv_set_default(cfg,'nsamples', 0.5);
+mv_set_default(cfg,'nfeatures', 0.2);
+mv_set_default(cfg,'nlearners', 500);
 mv_set_default(cfg,'stratify', false);
 mv_set_default(cfg,'replace', 1);
 mv_set_default(cfg,'strategy', 'dval');
 mv_set_default(cfg,'simplify', false);
 
-% if fractions are given for nFeatures and nLearners, turn them into
+% if fractions are given for nfeatures and nlearners, turn them into
 % absolute numbers
-if cfg.nSamples < 1
-    cfg.nSamples= round(cfg.nSamples*N);
+if cfg.nsamples < 1
+    cfg.nsamples= round(cfg.nsamples*N);
 end
-if cfg.nFeatures < 1
-    cfg.nFeatures= round(cfg.nFeatures*F);
+if cfg.nfeatures < 1
+    cfg.nfeatures= round(cfg.nfeatures*F);
 end
 
 % if we want stratification, we need to calculate how many samples of each
@@ -91,53 +91,53 @@ if cfg.stratify > 0
         p1= N1/N;
     end
     % number of subselected samples from class 1 and 2
-    Nsub1= round(cfg.nSamples * p1);
-    Nsub2= cfg.nSamples - Nsub1;
+    Nsub1= round(cfg.nsamples * p1);
+    Nsub2= cfg.nsamples - Nsub1;
 end
 
 %% Get learner hyperparameters
 param = mv_get_classifier_param(cfg.learner, cfg.learner_param);
 
 %% Select random features for the learners
-randomFeatures = sparse(false(F,cfg.nLearners));
-for ll=1:cfg.nLearners
-    randomFeatures(randperm(F,cfg.nFeatures),ll)=true;
+random_features = sparse(false(F,cfg.nlearners));
+for ll=1:cfg.nlearners
+    random_features(randperm(F,cfg.nfeatures),ll)=true;
 end
 
 %% Select random samples for the learners
 % We have to consider different cases 
-randomSamples = zeros(cfg.nSamples,cfg.nLearners);
+random_samples = zeros(cfg.nsamples,cfg.nlearners);
 if cfg.stratify
      if cfg.replace
-        for ll=1:cfg.nLearners
-            randomSamples(1:Nsub1,ll)=idx1(randi(N1,1,Nsub1));
+        for ll=1:cfg.nlearners
+            random_samples(1:Nsub1,ll)=idx1(randi(N1,1,Nsub1));
         end
-        for ll=1:cfg.nLearners
-            randomSamples(Nsub1+1:end,ll)=idx2(randi(N2,1,Nsub2));
+        for ll=1:cfg.nlearners
+            random_samples(Nsub1+1:end,ll)=idx2(randi(N2,1,Nsub2));
         end
     else % draw without replacement
-        for ll=1:cfg.nLearners
-            randomSamples(:,ll)=randperm(N,cfg.nSamples);
+        for ll=1:cfg.nlearners
+            random_samples(:,ll)=randperm(N,cfg.nsamples);
         end
     end
 % no stratification, draw samples without caring for class labels
 else 
     if cfg.replace
-        for ll=1:cfg.nLearners
-            randomSamples(:,ll)=randi(N,1,cfg.nSamples);
+        for ll=1:cfg.nlearners
+            random_samples(:,ll)=randi(N,1,cfg.nsamples);
         end
     else % draw without replacement
-        for ll=1:cfg.nLearners
-            randomSamples(:,ll)=randperm(N,cfg.nSamples);
+        for ll=1:cfg.nlearners
+            random_samples(:,ll)=randperm(N,cfg.nsamples);
         end
     end
 end
 
-randomSamples = sort(randomSamples);
+random_samples = sort(random_samples);
 
 %% Train learner ensemble
-cf = struct('randomFeatures',randomFeatures,'strategy',cfg.strategy,...
-    'nLearners',cfg.nLearners,'simplify',cfg.simplify);
+cf = struct('randomFeatures',random_features,'strategy',cfg.strategy,...
+    'nlearners',cfg.nlearners,'simplify',cfg.simplify);
 cf.train= eval(['@train_' cfg.learner ]);
 cf.test= eval(['@test_' cfg.learner ]);
 
@@ -149,20 +149,20 @@ if cfg.simplify
     % features) and then add up the w's.
     cf.w = zeros(F,1);
     cf.b = 0;
-    for ll=1:cfg.nLearners
-        tmp = cf.train(X(randomSamples(:,ll),randomFeatures(:,ll)),clabel(randomSamples(:,ll)),cfg.learner_param);
-        cf.w(randomFeatures(:,ll)) = cf.w(randomFeatures(:,ll)) + tmp.w;
+    for ll=1:cfg.nlearners
+        tmp = cf.train(X(random_samples(:,ll),random_features(:,ll)),clabel(random_samples(:,ll)),cfg.learner_param);
+        cf.w(random_features(:,ll)) = cf.w(random_features(:,ll)) + tmp.w;
         cf.b = cf.b + tmp.b;
     end
-    cf.w = cf.w / cfg.nLearners;
-    cf.b = cf.b / cfg.nLearners;
+    cf.w = cf.w / cfg.nlearners;
+    cf.b = cf.b / cfg.nlearners;
 else
     % Initialise struct array of learners
-    cf.classifier(cfg.nLearners) = cf.train(param, X(randomSamples(:,cfg.nLearners),randomFeatures(:,cfg.nLearners)),clabel(randomSamples(:,cfg.nLearners)));
+    cf.classifier(cfg.nlearners) = cf.train(param, X(random_samples(:,cfg.nlearners),random_features(:,cfg.nlearners)),clabel(random_samples(:,cfg.nlearners)));
     
     % Train all the other learners
-    for ll=1:cfg.nLearners-1
-        cf.classifier(ll) = cf.train(param, X(randomSamples(:,ll),randomFeatures(:,ll)),clabel(randomSamples(:,ll)));
+    for ll=1:cfg.nlearners-1
+        cf.classifier(ll) = cf.train(param, X(random_samples(:,ll),random_features(:,ll)),clabel(random_samples(:,ll)));
     end
 end
 

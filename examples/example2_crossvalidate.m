@@ -19,14 +19,14 @@ X = squeeze(mean(dat.trial(:,:,ival_idx),3));
 % ('auc').
 %
 % To get a realistic estimate of classification performance, we perform 
-% 5-fold (cfg.K = 5) cross-validation with 10 repetitions (cfg.repeat = 10).
+% 5-fold (cfg.k = 5) cross-validation with 10 repetitions (cfg.repeat = 10).
 
 cfg_LDA = [];
 cfg_LDA.classifier      = 'lda';
 cfg_LDA.param           = struct('lambda','auto');
 cfg_LDA.metric          = 'auc';
-cfg_LDA.CV              = 'kfold';  % 'kfold' 'leaveout' 'holdout'
-cfg_LDA.K               = 5;
+cfg_LDA.cv              = 'kfold';  % 'kfold' 'leaveout' 'holdout'
+cfg_LDA.k               = 5;
 cfg_LDA.repeat          = 10;
 cfg_LDA.balance         = 'undersample';
 
@@ -61,11 +61,11 @@ label_reduced = clabel(1:nReduced);
 X_reduced = X(1:nReduced,:);
 
 % Cross-validation (proper way)
-cfg_LDA.CV = 'kfold';
+cfg_LDA.cv = 'kfold';
 acc_LDA = mv_crossvalidate(cfg_LDA, X_reduced, label_reduced);
 
 % No cross-validation (test on training data)
-cfg_LDA.CV     = 'none';
+cfg_LDA.cv     = 'none';
 acc_reduced = mv_crossvalidate(cfg_LDA, X_reduced, label_reduced);
 
 fprintf('Using %d samples with cross-validation (proper way): %2.2f%%\n', nReduced, 100*acc_LDA)

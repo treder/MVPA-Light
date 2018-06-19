@@ -59,8 +59,8 @@ function [perf,result] = mv_searchlight(cfg, X, clabel)
 % CROSS-VALIDATION parameters:
 % .CV           - perform cross-validation, can be set to 'kfold',
 %                 'leaveout', 'holdout', or 'none' (default 'kfold')
-% .K            - number of folds in k-fold cross-validation (default 5)
-% .P            - if CV is 'holdout', P is the fraction of test samples
+% .k            - number of folds in k-fold cross-validation (default 5)
+% .p            - if cv is 'holdout', p is the fraction of test samples
 %                 (default 0.1)
 % .stratify     - if 1, the class proportions are approximately preserved
 %                 in each fold (default 1)
@@ -84,15 +84,15 @@ mv_set_default(cfg,'param',[]);
 mv_set_default(cfg,'metric','acc');
 
 % Cross-validation settings
-mv_set_default(cfg,'CV','kfold');
+mv_set_default(cfg,'cv','kfold');
 mv_set_default(cfg,'repeat',5);
-mv_set_default(cfg,'K',5);
-mv_set_default(cfg,'P',0.1);
+mv_set_default(cfg,'k',5);
+mv_set_default(cfg,'p',0.1);
 mv_set_default(cfg,'stratify',1);
 
-switch(cfg.CV)
-    case 'leaveout', cfg.K = size(X,1);
-    case 'holdout', cfg.K = 1;
+switch(cfg.cv)
+    case 'leaveout', cfg.k = size(X,1);
+    case 'holdout', cfg.k = 1;
 end
 
 if cfg.average && ~ismatrix(X)
@@ -102,6 +102,7 @@ end
 [N, nFeat, ~] = size(X);
 
 [clabel, nclasses] = mv_check_clabel(clabel);
+mv_check_cfg(cfg);
 
 perf = cell(nFeat,1);
 perf_std = cell(nFeat,1);
@@ -185,9 +186,9 @@ if nargout>1
    result.perf      = perf;
    result.perf_std  = perf_std;
    result.metric    = cfg.metric;
-   result.CV        = cfg.CV;
-   result.K         = cfg.K;
-   result.N         = size(X,1);
+   result.cv        = cfg.cv;
+   result.k         = cfg.k;
+   result.n         = size(X,1);
    result.repeat    = cfg.repeat;
    result.nclasses  = nclasses;
    result.classifier = cfg.classifier;

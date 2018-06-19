@@ -26,7 +26,7 @@ switch(classifier)
         mv_set_default(param,'lambda','auto');
         mv_set_default(param,'prob',0);
         mv_set_default(param,'scale',0);
-        mv_set_default(param,'K',5);
+        mv_set_default(param,'k',5);
         mv_set_default(param,'plot',0);
         mv_set_default(param,'evtol',10^8);
     
@@ -35,7 +35,7 @@ switch(classifier)
         mv_set_default(param,'lambda',1);
         mv_set_default(param,'max_iter',400);
         mv_set_default(param,'tolerance',1e-6);
-        mv_set_default(param,'K',5);
+        mv_set_default(param,'k',5);
         mv_set_default(param,'plot',0);
         mv_set_default(param,'predict_regularisation_path',1);
         mv_set_default(param,'polyorder',3);
@@ -45,11 +45,11 @@ switch(classifier)
         mv_set_default(param,'C','auto');
         mv_set_default(param,'kernel','linear'); % 'poly' 'rbf'
         mv_set_default(param,'plot',0);
-        mv_set_default(param,'K',5);
+        mv_set_default(param,'k',5);
         mv_set_default(param,'kernel_regularisation',10e-10);
         mv_set_default(param,'tolerance',0.1);
         mv_set_default(param,'shrinkage_multiplier',1);
-        mv_set_default(param,'Q',[]);
+        mv_set_default(param,'q',[]);
         
         % parameters for specific kernels
         mv_set_default(param,'gamma','auto'); % RBF and polynomial kernel regularisation parameter
@@ -63,7 +63,7 @@ switch(classifier)
         mv_set_default(param,'kernel','linear');
         mv_set_default(param,'n_epochs','auto');
         mv_set_default(param,'plot',0);
-        mv_set_default(param,'K',5);
+        mv_set_default(param,'k',5);
         
         % parameters for specific kernels
         mv_set_default(param,'gamma',1); % RBF regularisation parameter
@@ -74,7 +74,7 @@ switch(classifier)
         mv_set_default(param,'lambda',1);
         mv_set_default(param,'max_iter',400);
         mv_set_default(param,'tolerance',1e-8);
-        mv_set_default(param,'K',5);
+        mv_set_default(param,'k',5);
         mv_set_default(param,'plot',0);
         mv_set_default(param,'predict_regularisation_path',1);
         mv_set_default(param,'polyorder',2);
@@ -169,21 +169,21 @@ switch(classifier)
         mv_set_default(param,'bias',-1);
         mv_set_default(param,'weight',[]);
         mv_set_default(param,'cv',[]);
-        mv_set_default(param,'C',[]);
+        mv_set_default(param,'c',[]);
         mv_set_default(param,'quiet',1);
         
     case 'logreg_matlab'
         mv_set_default(param,'alpha',0.01);
         mv_set_default(param,'numLambda',100);
-        mv_set_default(param,'K',5);
+        mv_set_default(param,'k',5);
         mv_set_default(param,'nameval',{});
 
     case 'ensemble'
         mv_set_default(param,'learner','lda');
         mv_set_default(param,'learner_param',[]);
-        mv_set_default(param,'nSamples', 0.5);
-        mv_set_default(param,'nFeatures', 0.2);
-        mv_set_default(param,'nLearners', 500);
+        mv_set_default(param,'nsamples', 0.5);
+        mv_set_default(param,'nfeatures', 0.2);
+        mv_set_default(param,'nlearners', 500);
         mv_set_default(param,'stratify', false);
         mv_set_default(param,'replace', 1);
         mv_set_default(param,'strategy', 'dval');
@@ -194,20 +194,11 @@ switch(classifier)
         mv_set_default(param,'lambda','auto');
         
     case 'kernel_fda'
+        mv_set_default(param,'reg','shrink');
+        mv_set_default(param,'lambda',10e-5);
         mv_set_default(param,'kernel','linear');
-        mv_set_default(param,'kernel_reg',10e-10);
-        mv_set_default(param,'lambda','auto');
-                mv_set_default(param,'kernel_regularisation',10e-10);
-        mv_set_default(param,'tolerance',0.1);
-        mv_set_default(param,'shrinkage_multiplier',1);
-        mv_set_default(param,'Q',[]);
-
-    case 'kernel_fda'
-        mv_set_default(param,'kernel','linear'); % 'poly' 'rbf'
-        mv_set_default(param,'plot',0);
-        mv_set_default(param,'K',5);
-        mv_set_default(param,'lambda',10e-8);
-        mv_set_default(param,'Q',[]);
+%         mv_set_default(param,'kernel_regularisation',10e-10);
+        mv_set_default(param,'kernel_matrix',[]);
         
         % parameters for specific kernels
         mv_set_default(param,'gamma','auto'); % RBF and polynomial kernel regularisation parameter
