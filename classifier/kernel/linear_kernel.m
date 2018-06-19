@@ -1,13 +1,14 @@
-function out = linear_kernel(~, x,y)
+function out = linear_kernel(~,x,y)
 % Linear kernel given by the standard scalar product, ie ker(x,y) = x' * y.  
 % 
 % Usage:
-% ker = linear_kernel(param, X)
-% val = linear_kernel(param, x,y)
+% out = linear_kernel(param, X)
+% out = linear_kernel(param, x, y)
 % 
 %Parameters:
-% param          - struct with kernel hyperparameter (none for linear
-%                   kernel)
+% param          - struct with kernel hyperparameter (there's none for
+%                  linear kernels but this way the function interface 
+%                  is consistent with the other kernel functions)
 % X              - [samples x features] data matrix 
 %             - OR -
 % x,y            - two feature vectors or matrices of feature vectors
