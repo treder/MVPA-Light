@@ -3,11 +3,12 @@ function out = polynomial_kernel(param, x, y)
 % the input vectors and c and d are hyperparameters.
 % 
 % Usage:
-% ker = polynomial_kernel(param, X)
-% val = polynomial_kernel(param, x,y)
+% out = polynomial_kernel(param, X)
+% out = polynomial_kernel(param, x,y)
 % 
 %Parameters:
-% param          - struct with kernel hyperparameters
+% param          - struct with kernel hyperparameters (gamma, coef0,
+%                  degree)
 % X              - [samples x features] data matrix 
 %             - OR -
 % x,y            - two feature vectors or matrices of feature vectors
