@@ -65,10 +65,10 @@ Classifier performance is evaluated on a dataset called *test data*. To this end
 
 To obtain a realistic estimate of classifier performance and control for overfitting, a classifier should be tested on an independent dataset that has not been used for training. In most neuroimaging experiments, there is only one dataset with a restricted number of trials. *K-fold cross-validation* makes efficient use of this data by splitting it into k different folds. In each iteration, one of the k folds is held out and used as test set, whereas all other folds are used for training. This is repeated until every fold has been used as test set once. See [[Lemm2011]](#Lemm2011) for a discussion of cross-validation and potential pitfalls. Cross-validation is implemented in [`mv_crossvalidate`](mv_crossvalidate.m). Note that the more specialised functions [`mv_classify_across_time`](mv_classify_across_time.m), [`mv_classify_timextime`](mv_classify_timextime.m) and [`mv_searchlight`](mv_searchlight.m) implement cross-validation too. Cross-validation is always controlled by the following parameters:
 
-* `cfg.CV`: cross-validation type, either 'kfold', 'leaveout' or 'holdout' (default 'kfold')
-* `cfg.K`: number of folds in k-fold cross-validation (default 5)
+* `cfg.cv`: cross-validation type, either 'kfold', 'leaveout' or 'holdout' (default 'kfold')
+* `cfg.k`: number of folds in k-fold cross-validation (default 5)
 * `cfg.repeat`: number of times the cross-validation is repeated with new randomly assigned folds (default 5)
-* `cfg.P`: if CV is 'holdout', P is the fraction of test samples (default 0.1)
+* `cfg.p`: if CV is 'holdout', p is the fraction of test samples (default 0.1)
 * `cfg.stratify`: if 1, the class proportions are approximately preserved in each test fold (default 1)
 
 
@@ -134,8 +134,8 @@ See [`examples/example1_train_and_test.m`](examples/example1_train_and_test.m) f
 cfg = [];
 cfg.classifier      = 'lda';
 cfg.metric          = 'acc';
-cfg.CV              = 'kfold';
-cfg.K               = 5;
+cfg.cv              = 'kfold';
+cfg.k               = 5;
 cfg.repeat          = 2;
 
 % Perform 5-fold cross-validation with 2 repetitions.
