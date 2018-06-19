@@ -5,17 +5,17 @@
 % leading to the best overall performance is then selected.
 
 % Init variables
-CV = cvpartition(N,'KFold',cfg.K);
-acc = zeros(numel(cfg.C),1);
+CV = cvpartition(N,'KFold',cfg.k);
+acc = zeros(numel(cfg.c),1);
 
 if cfg.plot
-    C = zeros(numel(cfg.C));
+    c = zeros(numel(cfg.c));
 end
 
 LABEL = (clabel * clabel');
 
 % --- Start cross-validation loop ---
-for ff=1:cfg.K
+for ff=1:cfg.k
     
     %%% TODO: consider adding tuning loop for other hyperparameters like gamma
     
@@ -34,11 +34,11 @@ for ff=1:cfg.K
     Qtrain = Q_cl(train_idx,train_idx);
     ONEtrain = ones(CV.TrainSize(ff),1);
     
-    % --- Loop through C's ---
-    for ll=1:numel(cfg.C)
+    % --- Loop through c's ---
+    for ll=1:numel(cfg.c)
         
         % Solve the dual problem and obtain alpha
-        [alpha,iter] = DualCoordinateDescent(Qtrain, cfg.C(ll), ONEtrain, cfg.tolerance, cfg.shrinkage_multiplier);
+        [alpha,iter] = DualCoordinateDescent(Qtrain, cfg.c(ll), ONEtrain, cfg.tolerance, cfg.shrinkage_multiplier);
         
         support_vector_indices = find(alpha>0);
         
@@ -55,7 +55,7 @@ for ff=1:cfg.K
     end
     
     if cfg.plot
-        C = C + corr(alpha);
+        c = c + corr(alpha);
     end
 end
 
@@ -70,10 +70,10 @@ if cfg.plot
     
     % Plot cross-validated classification performance
     figure
-    semilogx(cfg.C,acc)
-    title([num2str(cfg.K) '-fold cross-validation performance'])
+    semilogx(cfg.c, acc)
+    title([num2str(cfg.k) '-fold cross-validation performance'])
     hold all
-    plot([cfg.C(best_idx), cfg.C(best_idx)],ylim,'r--'),plot(cfg.C(best_idx), acc(best_idx),'ro')
+    plot([cfg.c(best_idx), cfg.c(best_idx)],ylim,'r--'),plot(cfg.c(best_idx), acc(best_idx),'ro')
     xlabel('Lambda'),ylabel('Accuracy'),grid on
 
 end

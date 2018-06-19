@@ -3,7 +3,7 @@ function [clabel,dval] = test_ensemble(cf,Xtest)
 % and decision values.
 % 
 % Usage:
-% [labels,...] = test_ensemble(cf,Xtest)
+% [clabel,dval] = test_ensemble(cf,Xtest)
 % 
 %Parameters:
 % cf             - struct describing the classifier obtained from training 
@@ -12,12 +12,12 @@ function [clabel,dval] = test_ensemble(cf,Xtest)
 %                  test samples
 %
 %Output:
-% clabel        - predicted class labels (1's and 2's)
+% clabel        - predicted class labels
 % dval          - decision values, i.e. distances to the hyperplane
 
 N= size(Xtest,1);
-label_en= zeros(N,cf.nLearners);
-dval_en= zeros(N,cf.nLearners);
+label_en= zeros(N,cf.nlearners);
+dval_en= zeros(N,cf.nlearners);
 
 if cf.simplify
     % If the ensemble consists of linear classifier, we can simply apply
@@ -27,11 +27,11 @@ if cf.simplify
 else
     
     % Collect the predictions from the learners
-    for ll=1:cf.nLearners
+    for ll=1:cf.nlearners
         if strcmp(cf.strategy,'vote')
-            label_en(:,ll)= cf.test(cf.classifier(ll), Xtest(:,cf.randomFeatures(:,ll)));
+            label_en(:,ll)= cf.test(cf.classifier(ll), Xtest(:,cf.random_features(:,ll)));
         elseif strcmp(cf.strategy,'dval')
-            [label_en(:,ll),dval_en(:,ll)]= cf.test(cf.classifier(ll), Xtest(:,cf.randomFeatures(:,ll)));
+            [label_en(:,ll),dval_en(:,ll)]= cf.test(cf.classifier(ll), Xtest(:,cf.random_features(:,ll)));
         end
     end
     

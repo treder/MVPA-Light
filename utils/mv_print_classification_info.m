@@ -8,7 +8,7 @@ function mv_print_classification_info(cfg, X, clabel, X2, clabel2)
 % mv_print_classification_info(cfg, <X, clabel, X2, clabel2>)
 %
 %Parameters:
-% cfg       - configuration struct with parameters .classifier, .K, .CV,
+% cfg       - configuration struct with parameters .classifier, .k, .cv,
 %             and .repeat
 % X         - [samples x features] struct with data (optional)
 % clabel    - [samples x 1] class labels  (optional)
@@ -17,10 +17,10 @@ function mv_print_classification_info(cfg, X, clabel, X2, clabel2)
 
 if nargin <= 3
     % Print type of classification
-    if ~strcmp(cfg.CV,'none')
-        if strcmp(cfg.CV,'kfold'), K=sprintf(' (K=%d)', cfg.K); else K=''; end
+    if ~strcmp(cfg.cv,'none')
+        if strcmp(cfg.cv,'kfold'), k=sprintf(' (k=%d)', cfg.k); else k=''; end
         fprintf('Performing %s cross-validation%s with %d repetitions using a %s classifier.\n', ...
-            cfg.CV, K, cfg.repeat, upper(cfg.classifier))
+            cfg.cv, k, cfg.repeat, upper(cfg.classifier))
     else
         fprintf('Training and testing on the same data using a %s classifier.\n',upper(cfg.classifier))
     end

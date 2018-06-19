@@ -50,10 +50,10 @@ function [perf, result] = mv_classify_timextime(cfg, X, clabel, X2, clabel2)
 % .feedback     - print feedback on the console (default 1)
 %
 % CROSS-VALIDATION parameters:
-% .CV           - perform cross-validation, can be set to 'kfold',
+% .cv           - perform cross-validation, can be set to 'kfold',
 %                 'leaveout', 'holdout', or 'none' (default 'kfold')
-% .K            - number of folds in k-fold cross-validation (default 5)
-% .P            - if CV is 'holdout', P is the fraction of test samples
+% .k            - number of folds in k-fold cross-validation (default 5)
+% .p            - if cv is 'holdout', p is the fraction of test samples
 %                 (default 0.1)
 % .stratify     - if 1, the class proportions are approximately preserved
 %                 in each fold (default 1)
@@ -81,15 +81,15 @@ mv_set_default(cfg,'normalise','zscore');
 mv_set_default(cfg,'feedback',1);
 
 % Cross-validation settings
-mv_set_default(cfg,'CV','kfold');
+mv_set_default(cfg,'cv','kfold');
 mv_set_default(cfg,'repeat',5);
-mv_set_default(cfg,'K',5);
-mv_set_default(cfg,'P',0.1);
+mv_set_default(cfg,'k',5);
+mv_set_default(cfg,'p',0.1);
 mv_set_default(cfg,'stratify',1);
 
-switch(cfg.CV)
-    case 'leaveout', cfg.K = size(X,1);
-    case 'holdout', cfg.K = 1;
+switch(cfg.cv)
+    case 'leaveout', cfg.k = size(X,1);
+    case 'holdout', cfg.k = 1;
 end
 
 hasX2 = (nargin==5);
@@ -132,7 +132,7 @@ train_fun = eval(['@train_' cfg.classifier]);
 test_fun = eval(['@test_' cfg.classifier]);
 
 %% Time x time generalisation
-if ~strcmp(cfg.CV,'none') && ~hasX2
+if ~strcmp(cfg.cv,'none') && ~hasX2
     % -------------------------------------------------------
     % One dataset X has been provided as input. X is hence used for both
     % training and testing. To avoid overfitting, cross-validation is
@@ -144,8 +144,8 @@ if ~strcmp(cfg.CV,'none') && ~hasX2
     label_orig = clabel;
     
     % Initialise classifier outputs
-    cf_output = cell(cfg.repeat, cfg.K, nTime1);
-    testlabel = cell(cfg.repeat, cfg.K);
+    cf_output = cell(cfg.repeat, cfg.k, nTime1);
+    testlabel = cell(cfg.repeat, cfg.k);
     
     for rr=1:cfg.repeat                 % ---- CV repetitions ----
         if cfg.feedback, fprintf('Repetition #%d. Fold ',rr), end
@@ -168,7 +168,7 @@ if ~strcmp(cfg.CV,'none') && ~hasX2
         end
         
         % Define cross-validation
-        CV = mv_get_crossvalidation_folds(cfg.CV, clabel, cfg.K, cfg.stratify, cfg.P);
+        CV = mv_get_crossvalidation_folds(cfg.cv, clabel, cfg.k, cfg.stratify, cfg.p);
         
         for kk=1:CV.NumTestSets                      % ---- CV folds ----
             if cfg.feedback, fprintf('%d ',kk), end
@@ -226,7 +226,7 @@ elseif hasX2
     % on X and tested on X2. No cross-validation is performed.
     if cfg.feedback
         fprintf('Training on X and testing on X2.\n')
-        if ~strcmp(cfg.CV,'none'), fprintf('No cross-validation is performed, the cross-validation settings are ignored.\n'), end
+        if ~strcmp(cfg.cv,'none'), fprintf('No cross-validation is performed, the cross-validation settings are ignored.\n'), end
     end
 
     % Initialise classifier outputs
@@ -253,7 +253,7 @@ elseif hasX2
     testlabel = clabel2;
     avdim = [];
 
-elseif strcmp(cfg.CV,'none')
+elseif strcmp(cfg.cv,'none')
     % -------------------------------------------------------
     % One dataset X has been provided as input. X is hence used for both
     % training and testing. However, cross-validation is not performed.
@@ -307,8 +307,8 @@ if nargout>1
    result.perf      = perf;
    result.perf_std  = perf_std;
    result.metric    = cfg.metric;
-   result.CV        = cfg.CV;
-   result.K         = cfg.K;
+   result.cv        = cfg.cv;
+   result.k         = cfg.k;
    if hasX2
        result.N         = size(X2,1);
    else
