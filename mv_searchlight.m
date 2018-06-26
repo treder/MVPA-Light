@@ -70,7 +70,7 @@ function [perf,result] = mv_searchlight(cfg, X, clabel)
 % Returns:
 % perf          - [features x 1] vector of classifier performances
 
-% (c) Matthias Treder 2017
+% (c) Matthias Treder
 
 X = double(X);
 
@@ -167,8 +167,8 @@ for ff=1:nFeat
     Xfeat = reshape(X(:,neighbours,:), N, []);
 
     % We always set the random number generator back to the same state:
-    % this assures that the cross-validation folds are created in the same
-    % way for each channel, increasing comparability
+    % this assures that the same cross-validation folds are used for each 
+    % channel, increasing comparability
     rng(rng_state);
     
     % Perform cross-validation for specific feature(s)
