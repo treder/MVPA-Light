@@ -2,9 +2,40 @@
 %
 % Classifier: kernel_fda
 
-rng(42)   %% do not change - might affect 
+rng(42)   %% do not change - might affect the results
 tol = 10e-10;
 mf = mfilename;
+
+%% check classifier on multi-class spiral data: linear classifier should near chance, RBF kernel should be near 100%
+
+% Create spiral data
+N = 1000;
+nrevolutions = 2;       % how often each class spins around the zero point
+nclasses = 4;
+prop = 'equal';
+scale = 0;
+[X,clabel] = simulate_spiral_data(N, nrevolutions, nclasses, prop, scale, 0);
+
+%%% LINEAR kernel: cross-validation
+cfg             = [];
+cfg.classifier  = 'kernel_fda';
+cfg.feedback    = 0;
+
+acc_linear = mv_crossvalidate(cfg,X,clabel);
+
+%%% RBF kernel: cross-validation
+cfg.param.kernel    = 'rbf';
+cfg.param.gamma     = 10e1;
+acc_rbf = mv_crossvalidate(cfg,X,clabel);
+
+% Since CV is a bit chance-dependent: tolerance of 2%
+tol = 0.02;
+
+% For linear kernel: close to chance?
+unittest_print_result('classif spiral data (linear kernel)',1/nclasses, acc_linear, tol);
+
+% For RBF kernel: close to 1
+unittest_print_result('classif spiral data (RBF kernel)',1, acc_rbf, tol);
 
 %% providing kernel matrix directly VS calculating it from scratch should give same result
 gamma = 10e1;
@@ -33,39 +64,11 @@ d = all(C(1:nclasses-1) - 1 < 10e-4);
 % Are all returned values between 0 and 1?
 unittest_print_result('providing kernel matrix vs calculating it from scratch should be equal',1, d, tol);
 
-%% check classifier on multi-class spiral data: linear classifier should near chance, RBF kernel should be near 100%
 
-% Create spiral data
-N = 1000;
-nrevolutions = 2;       % how often each class spins around the zero point
-nclasses = 4;
-prop = 'equal';
-scale = 0;
-[X,clabel] = simulate_spiral_data(N, nrevolutions, nclasses, prop, scale, 1);
 
-%%% LINEAR kernel: cross-validation
-cfg             = [];
-cfg.classifier  = 'kernel_fda';
-cfg.feedback    = 0;
-
-acc_linear = mv_crossvalidate(cfg,X,clabel);
-
-%%% RBF kernel: cross-validation
-cfg.param.kernel    = 'rbf';
-cfg.param.gamma     = 10e1;
-acc_rbf = mv_crossvalidate(cfg,X,clabel);
-
-% Since CV is a bit chance-dependent: tolerance of 2%
-tol = 0.02;
-
-% For linear kernel: close to chance?
-unittest_print_result('classif spiral data (linear kernel)',1/nclasses, acc_linear, tol);
-
-% For RBF kernel: close to 1
-unittest_print_result('classif spiral data (RBF kernel)',1, acc_rbf, tol);
+%% todo  -- rest not finished
 
 %% check "lambda" parameter: if lambda = 1, w should be collinear with the difference between the class means
-
 % Get classifier params
 param = mv_get_classifier_param('lda');
 param.reg       = 'shrink';
