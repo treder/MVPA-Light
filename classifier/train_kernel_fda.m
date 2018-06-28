@@ -85,11 +85,6 @@ if isempty(cfg.kernel_matrix)
     
     % Compute kernel matrix
     kernel_matrix = kernelfun(cfg, X);
-    
-    % Regularise
-%     if cfg.kernel_regularisation > 0
-%         kernel_matrix = kernel_matrix + cfg.kernel_regularisation * eye(size(X,1));
-%     end
 
 else
     has_kernel_matrix = 1;
