@@ -42,11 +42,12 @@ switch(classifier)
         
     case 'svm'
         mv_set_default(param,'bias','auto');
-        mv_set_default(param,'C','auto');
+        mv_set_default(param,'c','auto');
         mv_set_default(param,'kernel','linear'); % 'poly' 'rbf'
+        mv_set_default(param,'kernel_matrix',[]); % 'poly' 'rbf'
+        mv_set_default(param,'regularise_kernel',10e-10);
         mv_set_default(param,'plot',0);
         mv_set_default(param,'k',5);
-        mv_set_default(param,'kernel_regularisation',10e-10);
         mv_set_default(param,'tolerance',0.1);
         mv_set_default(param,'shrinkage_multiplier',1);
         mv_set_default(param,'q',[]);
