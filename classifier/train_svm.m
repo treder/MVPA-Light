@@ -14,7 +14,7 @@ function cf = train_svm(cfg,X,clabel)
 %                  1's (class 1) and 2's (class 2)
 %
 % cfg          - struct with hyperparameters:
-% C            - regularisation hyperparameter controlling the magnitude
+% c            - regularisation hyperparameter controlling the magnitude
 %                  of regularisation. If a single value is given, it is
 %                  used for regularisation. If a vector of values is given,
 %                  5-fold cross-validation is used to test all the values
@@ -35,9 +35,9 @@ function cf = train_svm(cfg,X,clabel)
 % kernel_matrix  - optional kernel matrix. If provided, the .kernel 
 %                  parameter is ignored. (Default [])
 %
-% Note: C is implemented analogous to the classical SVM implementations,
+% Note: c is implemented analogous to the classical SVM implementations,
 % see libsvm and liblinear. It is roughly reciprocally related to the
-% lambda parameter used in LDA/logistic regression, ie C = 1/lambda.
+% lambda parameter used in LDA/logistic regression, ie c = 1/lambda.
 %
 % Hyperparameters for specific kernels:
 %
@@ -150,13 +150,13 @@ end
 % kernel matrix. This is useful for optimisation.
 Q_cl = kernel_matrix .* (clabel * clabel');
 
-% %% Automatically set the search grid for C
-if ischar(cfg.C) && strcmp(cfg.C,'auto')
-    cfg.C = logspace(-4,4,10);
+% %% Automatically set the search grid for c
+if ischar(cfg.c) && strcmp(cfg.c,'auto')
+    cfg.c = logspace(-4,4,10);
 end
 
 %% Optimise hyperparameters using nested cross-validation
-if numel(cfg.C)>1
+if numel(cfg.c)>1
     
    tune_hyperparameter_svm
    
@@ -166,10 +166,10 @@ else
 end
 
 %% Train classifier on the full training data (using the best lambda)
-C = cfg.C(best_idx);
+c = cfg.c(best_idx);
 
 % Solve the dual problem and obtain alpha
-alpha = DualCoordinateDescent(Q_cl, C, ONE, cfg.tolerance, cfg.shrinkage_multiplier);
+alpha = DualCoordinateDescent(Q_cl, c, ONE, cfg.tolerance, cfg.shrinkage_multiplier);
 
 %% Set up classifier struct
 cf= [];
