@@ -46,7 +46,7 @@ function cf = train_multiclass_lda(cfg,X,clabel)
 % (c) Matthias Treder 2018
 
 nclasses = max(clabel);
-nfeatures = size(X,2);
+[nsamples, nfeatures] = size(X);
 
 % Number of samples per class
 nc = arrayfun(@(c) sum(clabel == c), 1:nclasses);
@@ -88,12 +88,12 @@ if strcmp(cfg.reg,'shrink')
     % We write the regularised scatter matrix as a convex combination of
     % the empirical scatter Sw and an identity matrix scaled to have
     % the same trace as Sw
-    Sw = (1-lambda)* Sw + lambda * eye(size(Sw,1)) * trace(Sw)/size(X,2);
+    Sw = (1-lambda)* Sw + lambda * eye(nfeatures) * trace(Sw)/nfeatures;
 
 else
     % RIDGE REGULARISATION
     % The ridge lambda must be provided directly as a number
-    Sw = Sw + lambda * eye(size(Sw,1));
+    Sw = Sw + lambda * eye(nfeatures);
 end
 
 %% Solve generalised eigenvalue problem to obtain discriminative subspace
@@ -104,7 +104,7 @@ W = W(:,so(1:nclasses-1));
 % Columns of W need to be scaled correctly such that it turns Sw into identity
 W  = W * diag(1./sqrt(diag(W'*Sw*W)));
 
-%% Prepare output
+%% Set up classifier struct
 cf= struct('classifier','multiclass_lda','W',W,'lambda',lambda,'nclasses',nclasses);
 
 % Map the class centroids onto the discriminative subspace for later

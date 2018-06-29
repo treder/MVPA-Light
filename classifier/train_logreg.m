@@ -240,7 +240,7 @@ X = X0;
 
 w = TrustRegionDoglegGN(logfun, w0, cfg.tolerance, cfg.max_iter, 1);
 
-%% Set up classifier
+%% Set up classifier struct
 if cfg.bias > 0
     cf.w = w(1:end-1);
     cf.b = w(end);

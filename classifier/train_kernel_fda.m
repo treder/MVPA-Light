@@ -112,7 +112,6 @@ else
     N = N + lambda * eye(nsamples);
 end
 
-
 %% "Dual" of between-classes scatter matrix
 
 % Get indices of samples for each class
