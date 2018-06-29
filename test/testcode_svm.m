@@ -24,10 +24,9 @@ acc = mv_calculate_performance('acc', dval, clabel)
 
 %% -- SVM
 param = mv_get_classifier_param('svm');
-% param.C = 110.1; % 'auto'; % 0.01; % 'auto';
-param.C = logspace(-5,2,10);
+param.c = logspace(-5,2,10);
 param.plot = 0;
-% param.K = 5;
+% param.k = 5;
 param.bias = 0;
 
 % param.gamma = 1;
@@ -55,10 +54,10 @@ cfg.param           = [];
 cfg.param.kernel    = 'rbf';
 % cfg.param.kernel    = 'polynomial';
 % cfg.param.kernel    = 'linear';
-cfg.param.C = 1;
+cfg.param.c = 11;
 
 tic
-acc = mv_crossvalidate(cfg, X, clabel);
+acc = mv_crossvalidate(cfg, X, clabel)
 toc
 
 %% LIBSVM
