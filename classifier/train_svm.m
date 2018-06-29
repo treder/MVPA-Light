@@ -212,8 +212,10 @@ else
         cf.b = 0;
     end
     
-    % Save kernel function
-    cf.kernelfun = kernelfun;
+    cf.has_kernel_matrix = has_kernel_matrix;
+    if ~has_kernel_matrix
+        cf.kernelfun = kernelfun;
+    end
     
     % Save hyperparameters
     cf.gamma    = cfg.gamma;
