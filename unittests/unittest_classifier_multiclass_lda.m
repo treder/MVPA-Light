@@ -27,7 +27,7 @@ cf = train_multiclass_lda(param, X, clabel);
 p = corr(cf_binary.w, cf.W);
 
 % Are the weight vectors the same (up to scaling?)
-unittest_print_result('correlate weight vectors for multiclass and binary lda',1, abs(p), tol);
+print_unittest_result('correlate weight vectors for multiclass and binary lda',1, abs(p), tol);
 
 %% Cross-validation: performance for well-separated classes should be 100%
 nsamples = 120;
@@ -51,4 +51,4 @@ cfg.param.lambda    = 'auto';
 
 actual = mv_crossvalidate(cfg, X, clabel);
 
-unittest_print_result('CV for well-separated data',expect, actual, tol);
+print_unittest_result('CV for well-separated data',expect, actual, tol);

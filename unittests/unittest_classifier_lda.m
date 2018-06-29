@@ -21,10 +21,10 @@ cf = train_lda(param, X, clabel);
 [~,dval] = test_lda(cf,X);
 
 % Does class 1 project to +1 ?
-unittest_print_result('check scale parameter for class 1',1, mean(dval(clabel==1)), tol);
+print_unittest_result('check scale parameter for class 1',1, mean(dval(clabel==1)), tol);
 
 % Does class 2 project to -1 ?
-unittest_print_result('check scale parameter for class 2',-1, mean(dval(clabel==2)), tol);
+print_unittest_result('check scale parameter for class 2',-1, mean(dval(clabel==2)), tol);
 
 %% check "prob" parameter: if prob = 1, probabilities should be returned 
 
@@ -37,7 +37,7 @@ cf = train_lda(param, X, clabel);
 [~,dval] = test_lda(cf,X);
 
 % Are all returned values between 0 and 1?
-unittest_print_result('check prob parameter',1, all(abs(dval)<=1),  tol);
+print_unittest_result('check prob parameter',1, all(abs(dval)<=1),  tol);
 
 %% check "lambda" parameter: if lambda = 1, w should be collinear with the difference between the class means
 
@@ -55,7 +55,7 @@ m = mean(X(clabel==1,:)) - mean(X(clabel==2,:));
 p = corr(m', cf.w);
 
 % Are all returned values between 0 and 1?
-unittest_print_result('check w parameter for lambda=1 (equal to diff of class means?)',1, p,  tol);
+print_unittest_result('check w parameter for lambda=1 (equal to diff of class means?)',1, p,  tol);
 
 %% Cross-validation: performance for well-separated classes should be 100%
 nsamples = 100;
@@ -84,7 +84,7 @@ cfg.param.lambda    = 'auto';
 
 actual = mv_crossvalidate(cfg, X, clabel);
 
-unittest_print_result('CV for well-separated data',expect, actual, tol);
+print_unittest_result('CV for well-separated data',expect, actual, tol);
 
 %% Equivalence between ridge and shrinkage regularisation
 
@@ -109,4 +109,4 @@ cf_ridge = train_lda(param_ridge, X, clabel);
 
 p = corr(cf_ridge.w, cf_shrink.w);
 
-unittest_print_result('Corr between ridge and shrinkage classifier weights',1, p, tol);
+print_unittest_result('Corr between ridge and shrinkage classifier weights',1, p, tol);
