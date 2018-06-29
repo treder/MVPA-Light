@@ -15,14 +15,13 @@ global FAIL_COUNT
 d = abs(expect-actual);
 
 % Result string
-% result = sprintf('[%s] %s\n\tExpect = %d; Actual = %d; Diff = %d', caller, msg, expect, actual, d);
 result = sprintf('%s: Expect = %d; Actual = %d; Diff = %d', msg, expect, actual, d);
 
-if d < tol
+if d < tol      % --- PASS ---
     fprintf('%s < %d', result, tol)
     fprintf('\tPASS\n')
     pass = 1;
-else
+else            % --- FAIL ---
     fprintf('%s > %d', result, tol)
     fprintf('\t[\b---- FAIL ----]\b\n')
     pass = 0;
