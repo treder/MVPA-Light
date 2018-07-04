@@ -10,7 +10,7 @@ clear all
 %% Setup configuration struct for LDA and Logistic Regression
 
 % Configuration struct for time classification with cross-validation. We
-% perform 5-fold cross-validation with 10 repetitions. As classifier, we
+% perform 5-fold cross-validation with 2 repetitions. As classifier, we
 % use LDA. The value of the regularisation parameter lambda is determined 
 % automatically.
 cfg_LDA =  [];
