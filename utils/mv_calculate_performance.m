@@ -348,7 +348,15 @@ for nn=1:numel(dim)
 
     % Calculate standard error [use unweighted averages here]
     if nn==1
-        perf_std = nanstd(perf, [], dim(nn));
+        if size(perf, dim(nn)) == 1 && numel(dim)>1
+            % dimension dim(nn) has size = 1, so there is no std here. We
+            % must then take the std over the other dimension
+            % second dimension. This can happen when there is only 1
+            % repetition.
+            perf_std = nanstd(perf, [], dim(nn+1));
+        else
+            perf_std = nanstd(perf, [], dim(nn));
+        end
     else
         perf_std = mean(perf_std, dim(nn));
     end
