@@ -2,11 +2,11 @@ function [X,clabel,Y] = simulate_spiral_data(nsamples, nrevolutions, nclasses, p
 % Creates spiral-shaped data in two dimensions.
 % Useful for testing non-linear classifiers eg SVM with RBF kernel.
 %
-% Usage:  [X,clabel,Y,M] = simulate_spiral_data(nSamples, nFeatures, nClasses, prop, scale, do_plot)
+% Usage:  [X,clabel,Y,M] = simulate_spiral_data(nsamples, nrevolutions, nclasses, prop, scale, do_plot)
 %
 % Parameters:
 % nsamples          - total number of samples (across all classes)
-% nfeatures         - number of 360 deg revolutions each spiral arm takes
+% nrevolutions      - number of 360 deg revolutions each spiral arm takes
 %                     (default 1/4)
 % nclasses          - number of classes (default 2)
 % prop              - class proportions (default 'equal'). Otherwise give

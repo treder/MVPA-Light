@@ -161,6 +161,7 @@ switch(classifier)
         mv_set_default(param,'weight',1);
         mv_set_default(param,'cv',[]);
         mv_set_default(param,'quiet',1);
+        mv_set_default(param,'kernel_matrix',[]);
         
     case 'liblinear'
         mv_set_default(param,'type',1);
@@ -204,7 +205,7 @@ switch(classifier)
         % parameters for specific kernels
         mv_set_default(param,'gamma','auto'); % RBF and polynomial kernel regularisation parameter
         mv_set_default(param,'coef0',1);    % polynomial kernel
-        mv_set_default(param,'degree',2);   % degree of polynomial kernel
+        mv_set_default(param,'degree',3);   % degree of polynomial kernel
      
     otherwise, error('Unknown classifier ''%s''',classifier)
 end
