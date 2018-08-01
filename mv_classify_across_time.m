@@ -188,6 +188,10 @@ else
     % training/testing time. This gives the classification performance for
     % the training set, but it may lead to overfitting and thus to an
     % artifically inflated performance.
+    
+    if cfg.feedback
+        fprintf('Training and testing on the same dataset (note: this can lead to overfitting).\n')
+    end
 
     % Initialise classifier outputs
     cf_output = nan(numel(clabel), nTime);

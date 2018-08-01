@@ -226,7 +226,7 @@ elseif hasX2
     % An additional dataset X2 has been provided. The classifier is trained
     % on X and tested on X2. No cross-validation is performed.
     if cfg.feedback
-        fprintf('Training on X and testing on X2.\n')
+        fprintf('Training on first dataset (X) and testing on second dataset (X2).\n')
         if ~strcmp(cfg.cv,'none'), fprintf('No cross-validation is performed, the cross-validation settings are ignored.\n'), end
     end
 
@@ -261,7 +261,7 @@ elseif strcmp(cfg.cv,'none')
     % Note that this can lead to overfitting.
 
     if cfg.feedback
-        fprintf('Training and testing on X (can lead to overfitting).\n')
+        fprintf('Training and testing on the same dataset (note: this can lead to overfitting).\n')
     end
 
     % Initialise classifier outputs
