@@ -34,8 +34,6 @@ function h = mv_plot_result(result, varargin)
 %
 % Plots the classification result as a line plot. Plots multiple lines and 
 % a mean, if multiple result are provided. 
-% Optionally, a second input x can be provided that specifies the values 
-% for the x axis (e.g. the times in sec).
 %
 % MV_CLASSIFY_TIMExTIME:
 % h = mv_plot_result(result,x,y)
@@ -227,17 +225,17 @@ switch(fun)
     %% --------------- MV_CLASSIFY_TIMEXTIME ---------------
     case 'mv_classify_timextime'
 
-        if nargin > 1,  x = varargin{1};
-        else,           x = 1:size(result{1}.perf,1);
-        end
-        if nargin > 2,  y = varargin{2};
-        else,           y = 1:size(result{1}.perf,2);
-        end
+%         if nargin > 1,  x = varargin{1};
+%         else,           x = 1:size(result{1}.perf,1);
+%         end
+%         if nargin > 2,  y = varargin{2};
+%         else,           y = 1:size(result{1}.perf,2);
+%         end
         
         % settings for 2d plot
         cfg= [];
-        cfg.x   = x;
-        cfg.y   = y;
+        if isfield(opt,'x'), cfg.x = opt.x; end
+        if isfield(opt,'y'), cfg.y = opt.y; end
         if any(strcmp(metric,{'auc', 'acc'}))
             cfg.climzero = 1 / result{1}.nclasses;
         elseif any(strcmp(metric,{'dval', 'tval'}))
