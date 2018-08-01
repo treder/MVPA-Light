@@ -98,6 +98,7 @@ mv_set_default(cfg,'replace',1);
 cfg.param = mv_get_classifier_param(cfg.classifier, cfg.param);
 
 [clabel, nclasses] = mv_check_clabel(clabel);
+mv_check_cfg(cfg);
 
 nTime = numel(cfg.time);
 
