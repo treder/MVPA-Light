@@ -14,19 +14,21 @@ clear all
 % use LDA. The value of the regularisation parameter lambda is determined 
 % automatically.
 cfg_LDA =  [];
-cfg_LDA.CV         = 'kfold';
-cfg_LDA.K          = 5;
-cfg_LDA.repeat     = 2;
-cfg_LDA.classifier = 'lda';
-cfg_LDA.param      = struct('lambda','auto');
-cfg_LDA.metric     = 'acc';
+cfg_LDA.cv              = 'kfold';
+cfg_LDA.k               = 5;
+cfg_LDA.repeat          = 2;
+cfg_LDA.classifier      = 'lda';
+cfg_LDA.param           = [];       % sub-struct with hyperparameters for classifier
+cfg_LDA.param.lambda    = 'auto';
+cfg_LDA.metric          = 'acc';
 
 % We are interested in comparing LDA and Logistic Regression (LR). To this 
 % end, we setup a configuration struct for logreg as well. Again, the
 % lambda parameter is optimised automatically.
 cfg_LR =  cfg_LDA;
-cfg_LR.classifier = 'logreg';
-cfg_LR.param      = struct('lambda','auto' );
+cfg_LR.classifier       = 'logreg';
+cfg_LR.param            = [];       % sub-struct with hyperparameters for classifier
+cfg_LR.param.lambda     = 'auto';
 
 %% Run classification across time
 [auc_LDA, result_LDA] = mv_classify_across_time(cfg_LDA, dat.trial, clabel);

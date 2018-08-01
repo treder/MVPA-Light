@@ -38,7 +38,7 @@ colormap jet
 title('AUC')
 
 %% Compare with and without cross-validation
-cfg.CV      = 'none';
+cfg.cv      = 'none';
 cfg.metric     = 'acc';
 [acc_noCV, result_acc_noCV] = mv_classify_timextime(cfg, dat.trial, clabel);
 
