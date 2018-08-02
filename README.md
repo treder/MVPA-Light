@@ -47,10 +47,10 @@ Classifier performance is evaluated on a dataset called *test data*. To this end
 
 #### Classifiers for two classes
 
-* `lda`: Regularised Linear Discriminant Analysis (LDA). LDA searches for a projection of the data into 1D such that the class means are separated as far as possible and the within-class variability is as small as possible. To counteract overfitting, ridge regularisation and shrinkage regularisation are available. In shrinkage, the regularisation parameter λ (lambda) rankges from λ=0 (no regularisation) to λ=1 (maximum regularisation). It can also be set to 'auto' to have λ be estimated automatically. For more details on regularised LDA see [[Bla2011]](#Bla2011). LDA has been shown to be formally equivalent to LCMV beamforming and it can be used for recovering time series of ERP sources [[Tre2011]](#Tre2011). See [`train_lda`](classifier/train_lda.m) for a full description of the parameters.
-* `logreg`: Logistic regression (LR) with L2-regularisation. LR directly models class probabilities by fitting a logistic function to the data. Like LDA, LR is a linear classifier and hence its operation is expressed by a weight vector w and a bias b. To prevent overfitting the regularisation parameter λ (lambda) is used to control the penalisation of the classifier weights.  λ has to be positive but its value is unbounded. It can also be set to 'auto'. In this case, different λ's are tried out using a searchgrid; the value of λ maximising cross-validation performance is then used for training on the full dataset. See [`train_logreg`](classifier/train_logreg.m) for a full description of the parameters.
-* `svm`: Support Vector Machine (SVM). The parameter C is the cost parameter that controls the amount of regularisation. It is inversely related to the lambda defined above. By default, a linear SVM is used. By setting the `.kernel` parameter (e.g. to 'polynomial' or 'rbf'), non-linear SVMs can be trained as well. See [`train_svm`](classifier/train_svm.m) for a full description of the parameters.
-* `ensemble`: Uses an ensemble of classifiers trained on random subsets of the features and random subsets of the samples. Can use any classifier with train/test functions as a learner. See [`train_ensemble`](classifier/train_ensemble.m) for a full description of the parameters.
+* [`lda`](classifier/train_lda.m): Regularised Linear Discriminant Analysis (LDA). LDA searches for a projection of the data into 1D such that the class means are separated as far as possible and the within-class variability is as small as possible. To counteract overfitting, ridge regularisation and shrinkage regularisation are available. In shrinkage, the regularisation parameter λ (lambda) rankges from λ=0 (no regularisation) to λ=1 (maximum regularisation). It can also be set to 'auto' to have λ be estimated automatically. For more details on regularised LDA see [[Bla2011]](#Bla2011). LDA has been shown to be formally equivalent to LCMV beamforming and it can be used for recovering time series of ERP sources [[Tre2011]](#Tre2011). See [`train_lda`](classifier/train_lda.m) for a full description of the parameters.
+* [`logreg`](classifier/train_logreg.m): Logistic regression (LR) with L2-regularisation. LR directly models class probabilities by fitting a logistic function to the data. Like LDA, LR is a linear classifier and hence its operation is expressed by a weight vector w and a bias b. To prevent overfitting the regularisation parameter λ (lambda) is used to control the penalisation of the classifier weights.  λ has to be positive but its value is unbounded. It can also be set to 'auto'. In this case, different λ's are tried out using a searchgrid; the value of λ maximising cross-validation performance is then used for training on the full dataset. See [`train_logreg`](classifier/train_logreg.m) for a full description of the parameters.
+* [`svm`](classifier/train_svm.m): Support Vector Machine (SVM). The parameter C is the cost parameter that controls the amount of regularisation. It is inversely related to the lambda defined above. By default, a linear SVM is used. By setting the `.kernel` parameter (e.g. to 'polynomial' or 'rbf'), non-linear SVMs can be trained as well. See [`train_svm`](classifier/train_svm.m) for a full description of the parameters.
+* [`ensemble`](classifier/train_ensemble.m): Uses an ensemble of classifiers trained on random subsets of the features and random subsets of the samples. Can use any classifier with train/test functions as a learner. See [`train_ensemble`](classifier/train_ensemble.m) for a full description of the parameters.
 
 <!--
 * `train_svm`, `test_svm`: Support vector machines (SVM). Uses the [LIBSVM package](https://github.com/arnaudsj/libsvm) that needs to be installed.
@@ -68,7 +68,7 @@ To obtain a realistic estimate of classifier performance and control for overfit
 * `cfg.cv`: cross-validation type, either 'kfold', 'leaveout' or 'holdout' (default 'kfold')
 * `cfg.k`: number of folds in k-fold cross-validation (default 5)
 * `cfg.repeat`: number of times the cross-validation is repeated with new randomly assigned folds (default 5)
-* `cfg.p`: if CV is 'holdout', p is the fraction of test samples (default 0.1)
+* `cfg.p`: if cfg.cv is 'holdout', p is the fraction of test samples (default 0.1)
 * `cfg.stratify`: if 1, the class proportions are approximately preserved in each test fold (default 1)
 
 
@@ -178,8 +178,7 @@ See [`examples/example4_classify_timextime.m`](examples/example4_classify_timext
 
 ```Matlab
 cfg =  [];
-
-auc = mv_searchlight(cfg, dat.trial, clabel);
+acc = mv_searchlight(cfg, dat.trial, clabel);
 
 ```
 
