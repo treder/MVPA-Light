@@ -84,6 +84,9 @@ Classification across time does not give insight into whether information is sha
 
 Which features contribute most to classification performance? The answer to this question can be used to better interpret the data or to perform feature selection. To this end, [`mv_searchlight`](mv_searchlight.m) performs cross-validated classification for each feature separately. If there is a spatial structure in the features (e.g. neighbouring eletrodes, neighbouring voxels), groups of features rather than single features can be considered. The result is a classification performance measure for each feature. If the features are e.g. channels, the result can be plotted as a topography.
 
+#### Hyperparameter
+
+The hyperparameter for each classifier can be controlled using the `cfg.param` field before calling any of the above functions. To this end, initialise the field using `cfg.param = []`. Then, add the desired parameters, e.g. `cfg.param.lambda = 1` for setting the regularisation parameter or `cfg.param.kernel = 'polynomial'` for defining the kernel in SVM. The hyperparameters for each classifier are specified in the documentation for each train_ function in the folder [`classifier`](classifier/).
 
 #### Classifier performance metrics
 
