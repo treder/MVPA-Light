@@ -224,11 +224,26 @@ if ~strcmp(cfg.cv,'none') && ~hasX2
 elseif hasX2
     % -------------------------------------------------------
     % An additional dataset X2 has been provided. The classifier is trained
-    % on X and tested on X2. No cross-validation is performed.
-    if cfg.feedback
-        fprintf('Training on first dataset (X) and testing on second dataset (X2).\n')
-        if ~strcmp(cfg.cv,'none'), fprintf('No cross-validation is performed, the cross-validation settings are ignored.\n'), end
+    % on X and tested on X2. Cross-validation does not make sense here and
+    % is not performed.
+    cfg.cv = 'none';
+    
+    % Undersample or oversample if requested
+    if strcmp(cfg.balance,'undersample') || strcmp(cfg.balance,'oversample')
+        [X,clabel] = mv_balance_classes(X, clabel,cfg.balance,cfg.replace);
+    elseif isnumeric(cfg.balance)
+        if numel(unique(sign(N - cfg.balance)))==2
+            error(['cfg.balance [%d] is in between the sample sizes in the classes %s. ' ...
+                'Concurrent over- and undersampling is currently not supported.'],cfg.balance,mat2str(N))
+        end
+        % Sometimes we want to undersample to a specific
+        % number (e.g. to match the number of samples across
+        % subconditions)
+        [X,clabel] = mv_balance_classes(X, clabel, cfg.balance, cfg.replace);
     end
+    
+    % Print info on datasets
+    if cfg.feedback, mv_print_classification_info(cfg, X, clabel, X2, clabel2); end
 
     % Initialise classifier outputs
     cf_output = nan(size(X2,1), nTime1, nTime2);
