@@ -77,9 +77,9 @@ else
     % Dataset 2
     nclasses2 = max(clabel2);
     if ndims(X2)==2
-        fprintf('Dataset 1 has %d samples, %d features and %d classes.\n', [size(X2), nclasses2])
+        fprintf('Dataset 2 has %d samples, %d features and %d classes.\n', [size(X2), nclasses2])
     elseif ndims(X2)==3
-        fprintf('Dataset 1 has %d samples, %d features, %d time points, and %d classes.\n', [size(X2), nclasses2])
+        fprintf('Dataset 2 has %d samples, %d features, %d time points, and %d classes.\n', [size(X2), nclasses2])
     end
     
     u = unique(clabel2);
@@ -93,7 +93,7 @@ else
     % Under- or oversampling
     if isfield(cfg,'balance')
         if any(strcmp(cfg.balance,{'oversample','undersample'}))
-            fprintf('Uses %sing to balance the data.\n', cfg.balance(1:end-1))
+            fprintf('Uses %sing to balance the training data.\n', cfg.balance(1:end-1))
         end
     end
 
