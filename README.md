@@ -49,7 +49,7 @@ Classifier performance is evaluated on a dataset called *test data*. To this end
 
 * [`lda`](classifier/train_lda.m): Regularised Linear Discriminant Analysis (LDA). LDA searches for a projection of the data into 1D such that the class means are separated as far as possible and the within-class variability is as small as possible. To counteract overfitting, ridge regularisation and shrinkage regularisation are available. In shrinkage, the regularisation parameter λ (lambda) rankges from λ=0 (no regularisation) to λ=1 (maximum regularisation). It can also be set to 'auto' to have λ be estimated automatically. For more details on regularised LDA see [[Bla2011]](#Bla2011). LDA has been shown to be formally equivalent to LCMV beamforming and it can be used for recovering time series of ERP sources [[Tre2011]](#Tre2011). See [`train_lda`](classifier/train_lda.m) for a full description of the parameters.
 * [`logreg`](classifier/train_logreg.m): Logistic regression (LR) with L2-regularisation. LR directly models class probabilities by fitting a logistic function to the data. Like LDA, LR is a linear classifier and hence its operation is expressed by a weight vector w and a bias b. To prevent overfitting the regularisation parameter λ (lambda) is used to control the penalisation of the classifier weights.  λ has to be positive but its value is unbounded. It can also be set to 'auto'. In this case, different λ's are tried out using a searchgrid; the value of λ maximising cross-validation performance is then used for training on the full dataset. See [`train_logreg`](classifier/train_logreg.m) for a full description of the parameters.
-* [`svm`](classifier/train_svm.m): Support Vector Machine (SVM). The parameter C is the cost parameter that controls the amount of regularisation. It is inversely related to the lambda defined above. By default, a linear SVM is used. By setting the `.kernel` parameter (e.g. to 'polynomial' or 'rbf'), non-linear SVMs can be trained as well. See [`train_svm`](classifier/train_svm.m) for a full description of the parameters.
+* [`svm`](classifier/train_svm.m): Support Vector Machine (SVM). The parameter C is the cost parameter that controls the amount of regularisation. It is inversely related to the λ defined above. By default, a linear SVM is used. By setting the `.kernel` parameter (e.g. to 'polynomial' or 'rbf'), non-linear SVMs can be trained as well. See [`train_svm`](classifier/train_svm.m) for a full description of the parameters.
 * [`ensemble`](classifier/train_ensemble.m): Uses an ensemble of classifiers trained on random subsets of the features and random subsets of the samples. Can use any classifier with train/test functions as a learner. See [`train_ensemble`](classifier/train_ensemble.m) for a full description of the parameters.
 
 <!--
@@ -57,7 +57,7 @@ Classifier performance is evaluated on a dataset called *test data*. To this end
 * `train_logist`, `test_logist`: Logistic regression classifier using Lucas Parra's implementation. See `external/logist.m` for an explanation of the hyperparameters.
 -->
 
-#### Multi-class classifiers
+#### Multi-class classifiers (two or more classes)
 
 * [`multiclass_lda`](classifier/train_multiclass_lda.m) : Regularised Multi-class Linear Discriminant Analysis (LDA). The data is first projected onto a (C-1)-dimensional discriminative subspace, where C is the number of classes. A new sample is assigned to the class with the closest centroid in this subspace. See [`train_multiclass_lda`](classifier/train_multiclass_lda.m) for a full description of the parameters.
 
@@ -86,13 +86,13 @@ Which features contribute most to classification performance? The answer to this
 
 #### Hyperparameter
 
-The hyperparameter for each classifier can be controlled using the `cfg.param` field before calling any of the above functions. To this end, initialise the field using `cfg.param = []`. Then, add the desired parameters, e.g. `cfg.param.lambda = 1` for setting the regularisation parameter or `cfg.param.kernel = 'polynomial'` for defining the kernel in SVM. The hyperparameters for each classifier are specified in the documentation for each train_ function in the folder [`classifier`](classifier/).
+The hyperparameter for each classifier can be controlled using the `cfg.param` field before calling any of the above functions. To this end, initialise the field using `cfg.param = []`. Then, add the desired parameters, e.g. `cfg.param.lambda = 0.5` for setting the regularisation parameter or `cfg.param.kernel = 'polynomial'` for defining the kernel in SVM. The hyperparameters for each classifier are specified in the documentation for each train_ function in the folder [`classifier`](classifier/).
 
 #### Classifier performance metrics
 
 Classifier output comes in form of decision values (=distances to the hyperplane for linear methods) or directly in form of class labels. However,  one is often only interested in a performance metric that summarises how well the classifier discriminates between the classes. The following metrics can be calculated by the function [`mv_calculate_performance`](utils/mv_calculate_performance.m):
 
-* `acc`: Classification accuracy, representing the fraction correctly predicted class labels.
+* `accuracy` (can be abbreviated as `acc`): Classification accuracy, representing the fraction correctly predicted class labels.
 * `auc`: Area under the ROC curve. An alternative to classification accuracy that is more robust to imbalanced classes and independent of changes to the classifier threshold.
 * `dval`: Average decision value for each class.
 * `tval`: t-test statistic, calculated by comparing the sets of decision values for two classes. Can be useful for a subsequent second-level analysis across subjects.
@@ -125,7 +125,7 @@ cf = train_lda(param, X, clabel);
 predlabel = test_lda(cf, X);
 
 % Calculate classification accuracy
-acc = mv_calculate_performance('acc',predlabel,clabel)
+acc = mv_calculate_performance('accuracy',predlabel,clabel)
 ```
 
 See [`examples/example1_train_and_test.m`](examples/example1_train_and_test.m) for more details.
@@ -136,7 +136,7 @@ See [`examples/example1_train_and_test.m`](examples/example1_train_and_test.m) f
 ```Matlab
 cfg = [];
 cfg.classifier      = 'lda';
-cfg.metric          = 'acc';
+cfg.metric          = 'accuracy';
 cfg.cv              = 'kfold';
 cfg.k               = 5;
 cfg.repeat          = 2;
