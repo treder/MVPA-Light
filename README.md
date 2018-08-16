@@ -128,7 +128,7 @@ predlabel = test_lda(cf, X);
 acc = mv_calculate_performance('accuracy',predlabel,clabel)
 ```
 
-See [`examples/example1_train_and_test.m`](examples/example1_train_and_test.m) for more details.
+See [`examples/example1_train_and_test.m`](examples/example1_train_and_test.m) for more details. In most cases, you would not perform training/testing by hand but rather call one of the high-level functions described below.
 
 #### Cross-validation
 
