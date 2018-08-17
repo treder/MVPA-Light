@@ -20,7 +20,7 @@ cfg_LDA.repeat          = 2;
 cfg_LDA.classifier      = 'lda';
 cfg_LDA.param           = [];       % sub-struct with hyperparameters for classifier
 cfg_LDA.param.lambda    = 'auto';
-cfg_LDA.metric          = 'acc';
+cfg_LDA.metric          = 'accuracy';
 
 % We are interested in comparing LDA and Logistic Regression (LR). To this 
 % end, we setup a configuration struct for logreg as well. Again, the

@@ -13,7 +13,7 @@ clear all
 cfg =  [];
 cfg.classifier = 'lda';
 cfg.normalise  = 'demean';  % 'demean' 'none'
-cfg.metric     = 'acc';
+cfg.metric     = 'accuracy';
 
 [acc, result_acc] = mv_classify_timextime(cfg, dat.trial, clabel);
 
@@ -39,14 +39,14 @@ title('AUC')
 
 %% Compare with and without cross-validation
 cfg.cv      = 'none';
-cfg.metric     = 'acc';
+cfg.metric     = 'accuracy';
 [acc_noCV, result_acc_noCV] = mv_classify_timextime(cfg, dat.trial, clabel);
 
 mv_plot_result({result_acc, result_acc_noCV}, dat.time, dat.time)
 
 %% Compare accuracy/AUC when no normalisation is performed
 cfg.normalise  = 'none';
-cfg.metric     = 'acc';
+cfg.metric     = 'accuracy';
 acc = mv_classify_timextime(cfg, dat.trial, clabel);
 
 cfg.metric     = 'auc';
