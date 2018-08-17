@@ -51,7 +51,7 @@ PGmin_old = -Inf;
 iter = 0;
 max_iter = 1000;
 
-tmp = 0;
+% tmp = 0;
 o = 1:N;
 
 %%% debug
