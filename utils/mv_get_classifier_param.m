@@ -186,9 +186,9 @@ switch(classifier)
         mv_set_default(param,'nsamples', 0.5);
         mv_set_default(param,'nfeatures', 0.2);
         mv_set_default(param,'nlearners', 500);
-        mv_set_default(param,'stratify', false);
-        mv_set_default(param,'replace', 1);
-        mv_set_default(param,'strategy', 'dval');
+        mv_set_default(param,'stratify', 1);
+        mv_set_default(param,'bootstrap', 1);
+        mv_set_default(param,'strategy', 'vote');
         mv_set_default(param,'simplify', false);
         
     case 'multiclass_lda'

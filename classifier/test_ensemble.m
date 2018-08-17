@@ -35,19 +35,24 @@ else
         end
     end
     
+    clabel = zeros(N,1);
+    
     % Pool the predictions to make a decision
     if strcmp(cf.strategy,'vote')
-        S= sum(label_en,2);
-        clabel= sign(S);
-        % In case of draws, we randomly choose a label
-        draws = find(S == 0);
-        clabel(draws) = sign(randn(numel(draws),1));
+                       
         dval= nan(N,1);  % we have no decision values
+
+        % cycle through test samples
+        for ii=1:N
+            % count how many times each class was chosen and choose the class
+            % with the maximum votes
+            [~, clabel(ii)] = max(arrayfun( @(c) sum(label_en(ii,:)==c), 1:cf.nclasses));
+        end
         
     elseif strcmp(cf.strategy,'dval')
-        dval= mean(dval_en,2);
-        clabel= sign(dval);
-        
+        dval= sum(dval_en,2);
+        clabel(dval>0)  = 1;
+        clabel(dval<=0) = 2;
     end
     
 end

@@ -27,18 +27,18 @@ function cf = train_ensemble(cfg,X,clabel)
 %                     also provided decision values; in this case, the
 %                     decision values can be averaged and the decision is
 %                     taken according to the mean decision value, use
-%                     'dval' in this case (default 'dval')
+%                     'dval' in this case. Note that 'dval' only works for
+%                     binary classifiers (default 'vote')
 % .stratify         - if 1, takes care that the class proportions are
-%                     preserved during the subselection of samples. Can
-%                     also be given as a fraction specifying the fraction
-%                     of class 1, e.g. 0.6 means that 60% of the samples
-%                     are coming from class 1
-% .replace          - if 1, samples are selected with replacement
+%                     preserved during the subselection of samples. If 0,
+%                     samples are randomly chosen which can lead to some
+%                     learners not 'seeing' a particular class (default 1)
+% .bootstrap        - if 1, samples are selected with replacement
 %                     (this is also called bootstrapping), otherwise they
 %                     are drawn without replacement (default 1)
 % .learner          - type of learning algorithm, e.g. 'lda','logreg' etc. 
 % .learner_param    - struct with further parameters passed on to the learning
-%                     algorithm (e.g. .cfg.gamma specifies the
+%                     algorithm (e.g. cfg.param.learner_param.lambda specifies the
 %                     regularisation hyperparameter for LDA)
 % .simplify         - for linear classifiers, the operation of the ensemble
 %                     is again equivalent to a single linear classifier.
@@ -50,20 +50,16 @@ function cf = train_ensemble(cfg,X,clabel)
 % cf - struct specifying the ensemble classifier
 %
 
-% (c) Matthias Treder 2017
+% (c) Matthias Treder 2017-2018
 
 [N,F] = size(X);
+nclasses = max(clabel);
 
-% default settings
-mv_set_default(cfg,'learner','lda');
-mv_set_default(cfg,'learner_param',[]);
-mv_set_default(cfg,'nsamples', 0.5);
-mv_set_default(cfg,'nfeatures', 0.2);
-mv_set_default(cfg,'nlearners', 500);
-mv_set_default(cfg,'stratify', false);
-mv_set_default(cfg,'replace', 1);
-mv_set_default(cfg,'strategy', 'dval');
-mv_set_default(cfg,'simplify', false);
+% dval only works for binary classification problems
+if strcmp(cfg.strategy, 'dval') && max(clabel)>2
+    error(['strategy=''dval'' only works for binary classification problems. ' ...
+        'For multi-class problems, set strategy=''vote'''])
+end
 
 % if fractions are given for nfeatures and nlearners, turn them into
 % absolute numbers
@@ -77,22 +73,26 @@ end
 % if we want stratification, we need to calculate how many samples of each
 % class we need in the subselected data
 if cfg.stratify > 0
-    % indices for class 1 and 2
-    idx1= find(clabel==1);
-    idx2= find(clabel==2);
-    % class proportions
-    N1= numel(idx1);
-    N2= numel(idx2);
-    if cfg.stratify < 1 
-        % fraction of desired samples from class 1 is provided
-        p1= cfg.stratify;
-    else
-        % calculate fraction of desired samples from class 1 from data
-        p1= N1/N;
+    
+    % Indices of the samples for each class
+    cidx = arrayfun( @(c) find(clabel==c), 1:nclasses, 'Un', 0);
+    
+    % total number of samples in each class
+    Ntotal = arrayfun( @(c) sum(clabel==c), 1:nclasses);
+    
+    % number of selected samples from each class
+    Nsub= floor(cfg.nsamples * Ntotal / N);
+    
+    % due to flooring above, Nsub might not add up to nsamples. If samples
+    % are missing, equally add samples to the classes until the discrepancy
+    % is gone
+    addN = cfg.nsamples - sum(Nsub);
+    cc = 1;
+    while addN > 0
+        Nsub(cc) = Nsub(cc) + 1;
+        cc = mod(cc, nclasses)+1;
+        addN = addN - 1;
     end
-    % number of subselected samples from class 1 and 2
-    Nsub1= round(cfg.nsamples * p1);
-    Nsub2= cfg.nsamples - Nsub1;
 end
 
 %% Get learner hyperparameters
@@ -108,21 +108,31 @@ end
 % We have to consider different cases 
 random_samples = zeros(cfg.nsamples,cfg.nlearners);
 if cfg.stratify
-     if cfg.replace
-        for ll=1:cfg.nlearners
-            random_samples(1:Nsub1,ll)=idx1(randi(N1,1,Nsub1));
+    
+    % We need to fill up the random_samples vector with samples belonging
+    % to each class. Here, it is identified which indices belong to which
+    % class
+    class_sample_idx = zeros(nclasses,2);
+    for cc=1:nclasses
+        if cc==1, class_sample_idx(cc,1) = 1;
+        else
+            class_sample_idx(cc,1) = class_sample_idx(cc-1,2)+1;
         end
+        class_sample_idx(cc,2) = sum(Nsub(1:cc));
+    end
+    
+    for cc=1:nclasses
         for ll=1:cfg.nlearners
-            random_samples(Nsub1+1:end,ll)=idx2(randi(N2,1,Nsub2));
-        end
-    else % draw without replacement
-        for ll=1:cfg.nlearners
-            random_samples(:,ll)=randperm(N,cfg.nsamples);
+            if cfg.bootstrap % draw with replacement
+                random_samples(class_sample_idx(cc,1):class_sample_idx(cc,2),ll) = cidx{cc}(randi(Ntotal(cc),1,Nsub(cc)));
+            else % draw without replacement
+                random_samples(class_sample_idx(cc,1):class_sample_idx(cc,2),ll) = cidx{cc}(randperm(Ntotal(cc),Nsub(cc)));
+            end
         end
     end
-% no stratification, draw samples without caring for class labels
 else 
-    if cfg.replace
+    % no stratification, draw samples without caring for class labels
+    if cfg.bootstrap
         for ll=1:cfg.nlearners
             random_samples(:,ll)=randi(N,1,cfg.nsamples);
         end
@@ -136,8 +146,8 @@ end
 random_samples = sort(random_samples);
 
 %% Train learner ensemble
-cf = struct('randomFeatures',random_features,'strategy',cfg.strategy,...
-    'nlearners',cfg.nlearners,'simplify',cfg.simplify);
+cf = struct('random_features',random_features,'strategy',cfg.strategy,...
+    'nlearners',cfg.nlearners,'simplify',cfg.simplify, 'nclasses', nclasses);
 cf.train= eval(['@train_' cfg.learner ]);
 cf.test= eval(['@test_' cfg.learner ]);
 
@@ -145,7 +155,7 @@ if cfg.simplify
     % In linear classifiers, the operation of the ensemble is equivalent to
     % the operation of a single classifier with appropriate weight w and
     % threshold b.
-    % To obtain a single w, we pad all w's with zeros (for the discarded
+    % To obtain a single w, one can pad all w's with zeros (for the discarded
     % features) and then add up the w's.
     cf.w = zeros(F,1);
     cf.b = 0;
