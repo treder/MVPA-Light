@@ -17,7 +17,7 @@ function [perf,result] = mv_searchlight(cfg, X, clabel)
 %                  1's (class 1) and 2's (class 2)
 %
 % cfg          - struct with parameters:
-% .metric       - classifier performance metric, default 'acc'. See
+% .metric       - classifier performance metric, default 'accuracy'. See
 %                 mv_classifier_performance. If set to [] or 'none', the 
 %                 raw classifier output (labels or dvals depending on 
 %                 cfg.cf_output) for each sample is returned. 
@@ -74,14 +74,14 @@ function [perf,result] = mv_searchlight(cfg, X, clabel)
 
 X = double(X);
 
+mv_set_default(cfg,'classifier','lda');
+mv_set_default(cfg,'param',[]);
+mv_set_default(cfg,'metric','accuracy');
 mv_set_default(cfg,'nb',[]);
 mv_set_default(cfg,'size',1);
 mv_set_default(cfg,'metric','auc');
 mv_set_default(cfg,'average',0);
 mv_set_default(cfg,'feedback',1);
-mv_set_default(cfg,'classifier','lda');
-mv_set_default(cfg,'param',[]);
-mv_set_default(cfg,'metric','acc');
 
 % Cross-validation settings
 mv_set_default(cfg,'cv','kfold');
@@ -99,7 +99,7 @@ if cfg.average && ~ismatrix(X)
     X = mean(X,3);
 end
 
-[N, nFeat, ~] = size(X);
+[n, nFeat, ~] = size(X);
 
 [clabel, nclasses] = mv_check_clabel(clabel);
 mv_check_cfg(cfg);
@@ -164,7 +164,7 @@ for ff=1:nFeat
     end
     
     % Extract desired features and reshape into [samples x features]
-    Xfeat = reshape(X(:,neighbours,:), N, []);
+    Xfeat = reshape(X(:,neighbours,:), n, []);
 
     % We always set the random number generator back to the same state:
     % this assures that the same cross-validation folds are used for each 
