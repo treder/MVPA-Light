@@ -1,4 +1,4 @@
-function [X,clabel,Y,M] = simulate_gaussian_data(nsamples, nfeatures, nclasses, prop, scale, do_plot)
+function [X,clabel,Y,M] = simulate_gaussian_data(nsamples, nfeatures, nclasses, prop, scale, do_plot, M)
 % Creates data randomly drawn from a multivariate Gaussian distribution.
 % The class centroids are randomly place on the unit hypersphere in feature
 % space.
@@ -23,6 +23,8 @@ function [X,clabel,Y,M] = simulate_gaussian_data(nsamples, nfeatures, nclasses, 
 %                     feature is scaled separately according to the entry
 % do_plot           - if 1, plots the data using an LDA subspace projection
 %                     to 2 dimensions
+% M                 - class centroids. If not provided, they are randomly
+%                     created
 %
 % Returns:
 % X         - [nsamples x nfeatures] matrix of data
@@ -38,6 +40,7 @@ if nargin<3 || isempty(nclasses), nclasses = 2; end
 if nargin<4 || isempty(prop), prop = 'equal'; end
 if nargin<5 || isempty(scale), scale = 2; end
 if nargin<6 || isempty(do_plot), do_plot = 1; end
+if nargin<7 || isempty(M), M = []; end
 
 % Check input arguments
 if nclasses > nfeatures, error('nclasses cannot be smaller than nfeatures'), end
@@ -77,11 +80,13 @@ Y = zeros(nsamples,nclasses);
 % clear m
 
 %% Generate class centroids [randomy place on the surface of a n-dimensinal hypersphere]
-M = rand(nfeatures, nclasses);
-
-for cc=1:nclasses
-    % Normalise the norm to put them on the surface of the hypersphere
-    M(:,cc) = M(:,cc) / norm(M(:,cc));
+if isempty(M)
+    M = rand(nfeatures, nclasses);
+    
+    for cc=1:nclasses
+        % Normalise the norm to put them on the surface of the hypersphere
+        M(:,cc) = M(:,cc) / norm(M(:,cc));
+    end
 end
 
 %% Generate random covariance matrix using the Wishart distribution
