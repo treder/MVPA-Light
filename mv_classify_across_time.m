@@ -16,7 +16,7 @@ function [perf, result] = mv_classify_across_time(cfg, X, clabel)
 %                 functions (default 'lda')
 % .param        - struct with parameters passed on to the classifier train
 %                 function (default [])
-% .metric       - classifier performance metric, default 'acc'. See
+% .metric       - classifier performance metric, default 'accuracy'. See
 %                 mv_classifier_performance. If set to [] or 'none', the 
 %                 raw classifier output (labels or dvals depending on 
 %                 cfg.cf_output) for each sample is returned. 
@@ -67,7 +67,7 @@ X = double(X);
 
 mv_set_default(cfg,'classifier','lda');
 mv_set_default(cfg,'param',[]);
-mv_set_default(cfg,'metric','acc');
+mv_set_default(cfg,'metric','accuracy');
 mv_set_default(cfg,'normalise','zscore');
 mv_set_default(cfg,'time',1:size(X,3));
 mv_set_default(cfg,'feedback',1);
@@ -103,7 +103,7 @@ mv_check_cfg(cfg);
 nTime = numel(cfg.time);
 
 % Number of samples in the classes
-N = arrayfun( @(c) sum(clabel==c) , 1:nclasses);
+n = arrayfun( @(c) sum(clabel==c) , 1:nclasses);
 
 %% Get train and test functions
 train_fun = eval(['@train_' cfg.classifier]);
@@ -135,9 +135,9 @@ if ~strcmp(cfg.cv,'none')
         if strcmp(cfg.balance,'undersample')
             [X,clabel] = mv_balance_classes(X_orig,label_orig,cfg.balance,cfg.replace);
         elseif isnumeric(cfg.balance)
-            if numel(unique(sign(N - cfg.balance)))==2
+            if numel(unique(sign(n - cfg.balance)))==2
                 error(['cfg.balance [%d] is in between the sample sizes in the classes %s. ' ...
-                    'Concurrent over- and undersampling is currently not supported.'],cfg.balance,mat2str(N))
+                    'Concurrent over- and undersampling is currently not supported.'],cfg.balance,mat2str(n))
             end
             % Sometimes we want to undersample to a specific
             % number (e.g. to match the number of samples across
@@ -234,7 +234,7 @@ if nargout>1
    result.metric    = cfg.metric;
    result.cv        = cfg.cv;
    result.k         = cfg.k;
-   result.N         = size(X,1);
+   result.n         = size(X,1);
    result.repeat    = cfg.repeat;
    result.nclasses  = nclasses;
    result.classifier = cfg.classifier;

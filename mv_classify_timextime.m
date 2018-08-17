@@ -21,7 +21,7 @@ function [perf, result] = mv_classify_timextime(cfg, X, clabel, X2, clabel2)
 %                 functions (default 'lda')
 % .param        - struct with parameters passed on to the classifier train
 %                 function (default [])
-% .metric       - classifier performance metric, default 'acc'. See
+% .metric       - classifier performance metric, default 'accuracy'. See
 %                 mv_classifier_performance. If set to [] or 'none', the 
 %                 raw classifier output (labels or dvals depending on 
 %                 cfg.cf_output) for each sample is returned. 
@@ -75,7 +75,7 @@ end
 
 mv_set_default(cfg,'classifier','lda');
 mv_set_default(cfg,'param',[]);
-mv_set_default(cfg,'metric','acc');
+mv_set_default(cfg,'metric','accuracy');
 mv_set_default(cfg,'time1',1:size(X,3));
 mv_set_default(cfg,'normalise','zscore');
 mv_set_default(cfg,'feedback',1);
@@ -117,7 +117,7 @@ nTime1 = numel(cfg.time1);
 nTime2 = numel(cfg.time2);
 
 % Number of samples in the classes
-N = arrayfun( @(c) sum(clabel==c) , 1:nclasses);
+n = arrayfun( @(c) sum(clabel==c) , 1:nclasses);
 
 %% Reduce data to selected time points and normalise
 X = X(:,:,cfg.time1);
@@ -158,9 +158,9 @@ if ~strcmp(cfg.cv,'none') && ~hasX2
         if strcmp(cfg.balance,'undersample')
             [X,clabel] = mv_balance_classes(X_orig,label_orig,cfg.balance,cfg.replace);
         elseif isnumeric(cfg.balance)
-            if numel(unique(sign(N - cfg.balance)))==2
+            if numel(unique(sign(n - cfg.balance)))==2
                 error(['cfg.balance [%d] is in between the sample sizes in the classes %s. ' ...
-                    'Concurrent over- and undersampling is currently not supported.'],cfg.balance,mat2str(N))
+                    'Concurrent over- and undersampling is currently not supported.'],cfg.balance,mat2str(n))
             end
             % Sometimes we want to undersample to a specific
             % number (e.g. to match the number of samples across
@@ -232,9 +232,9 @@ elseif hasX2
     if strcmp(cfg.balance,'undersample') || strcmp(cfg.balance,'oversample')
         [X,clabel] = mv_balance_classes(X, clabel,cfg.balance,cfg.replace);
     elseif isnumeric(cfg.balance)
-        if numel(unique(sign(N - cfg.balance)))==2
+        if numel(unique(sign(n - cfg.balance)))==2
             error(['cfg.balance [%d] is in between the sample sizes in the classes %s. ' ...
-                'Concurrent over- and undersampling is currently not supported.'],cfg.balance,mat2str(N))
+                'Concurrent over- and undersampling is currently not supported.'],cfg.balance,mat2str(n))
         end
         % Sometimes we want to undersample to a specific
         % number (e.g. to match the number of samples across
@@ -326,9 +326,9 @@ if nargout>1
    result.cv        = cfg.cv;
    result.k         = cfg.k;
    if hasX2
-       result.N         = size(X2,1);
+       result.n         = size(X2,1);
    else
-       result.N         = size(X,1);
+       result.n         = size(X,1);
    end
    result.repeat    = cfg.repeat;
    result.nclasses  = nclasses;
