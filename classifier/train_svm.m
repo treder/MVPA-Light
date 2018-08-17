@@ -131,6 +131,8 @@ end
 
 if isempty(cfg.kernel_matrix)
     
+    has_kernel_matrix = 0;
+
     % Kernel function
     kernelfun = eval(['@' cfg.kernel '_kernel']);
     
@@ -143,6 +145,7 @@ if isempty(cfg.kernel_matrix)
     end
     
 else
+    has_kernel_matrix = 1;
     kernel_matrix = cfg.kernel_matrix;
 end
 
