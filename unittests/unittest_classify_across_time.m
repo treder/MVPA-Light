@@ -1,112 +1,91 @@
-function unittest_classify_across_time()
+% mv_classify_across_time unit test
+%
 
-return 
+rng(42)
+tol = 10e-10;
+mf = mfilename;
 
-%% --- TODO ---
+%% Create a dataset where classes can be perfectly discriminated for only some time points [two-class]
 
-% Unit testing of the mv_classify_across_time function.
-% Re-run as a sanity check if the code is significantly changed.
-clear all
+nsamples = 100;
+ntime = 300;
+nfeatures = 10;
+nclasses = 2;
+prop = [];
+scale = 0.0001;
+do_plot = 0;
 
-classifier = 'lda';
-% classifier = 'ensemble';
+can_discriminate = 50:100;
 
-% Reset random number generator
-rng(1);
+% Generate data
+X = zeros(nsamples, nfeatures, ntime);
+[~,clabel] = simulate_gaussian_data(nsamples, nfeatures, nclasses, prop, scale, do_plot);
 
-% Set parameters
-nChan = 64;
-nEpochsPerClass = 100;
-labels = [ones(nEpochsPerClass,1); -1*ones(nEpochsPerClass,1)];
-nNoiseSources = 100;
-
-% SNR is the multiplier for the signal amplitude
-SNR = 2;
-
-% Time axis
-nTime = 512;
-time = linspace(-0.5, 1.5, nTime);
-
-% Signal
-% We model the signal as a cosine window in the  [0.5, 1] interval and
-% 0 else in class 1. In class 2, it is always zero
-forward_sig = zscore(randn(nChan, 1)); 
-sig_timeseries = zeros(nTime,1);
-idx_sig = find(time >= 0.5  & time <= 1);
-sig_timeseries(idx_sig) = cos( linspace(-pi,pi,numel(idx_sig))) + 1;
-
-% Create forward models for the signal and noise sources
-forward_noise = zscore(randn(nChan, nNoiseSources));
-noise_timeseries = randn(nNoiseSources, nTime*nEpochsPerClass*2);
-
-%% Project signal and noise into sensor space
-
-% Project signal for each class
-X_class1 = permute(repmat(forward_sig * sig_timeseries',[1 1 nEpochsPerClass ]), [3 1 2]);
-X_class2 = zeros(size(X_class1));
-
-% Project noise
-X_noise = forward_noise * noise_timeseries;
-X_noise = reshape(X_noise, nChan, nTime, []);
-X_noise = permute(X_noise, [3 1 2]);
-
-% Add signal and noise together
-X = SNR * cat(1,X_class1, X_class2) + X_noise;
-
-%% Calculate ERP
-ERP = squeeze(mean(X,1));
-
-%% Test mv_classify_across_time
-
-lambda = 'auto';
-
-% Configuration for time classification with cross-validation
-ccfg =  [];
-ccfg.CV         = 'kfold';
-ccfg.K          = 5;
-ccfg.repeat     = 5;
-ccfg.verbose    = 1;
-ccfg.balance    = 'undersample'; % 'oversample' 'undersample'
-
-if strcmp(classifier,'lda')
-    ccfg.classifier = 'lda';
-    ccfg.param      = struct('lambda',lambda);
-    
-elseif strcmp(classifier,'ensemble')
-    ensemble_cfg= [];
-    ensemble_cfg.learner        = 'lda';
-    ensemble_cfg.nFeatures      = 0.3;
-    ensemble_cfg.nLearners      = 100;
-    ensemble_cfg.simplify       = 1;
-    ensemble_cfg.learner_param  = struct('lambda',lambda);
-    
-    ccfg.classifier = 'ensemble';
-    ccfg.param      = ensemble_cfg;
+for tt=1:ntime
+    if ismember(tt, can_discriminate)
+        scale = 0.0001;
+        X(:,:,tt) = simulate_gaussian_data(nsamples, nfeatures, nclasses, prop, scale, do_plot);
+    else
+        scale = 10e1;
+        X(:,:,tt) = simulate_gaussian_data(nsamples, nfeatures, nclasses, prop, scale, do_plot);
+    end
 end
 
-% Run classification
-acc = mv_classify_across_time(ccfg,X,labels);
+cfg = [];
+cfg.feedback = 0;
 
-%% Plot ERP and classification result - do they match in terms of time?
-figure
-nCol = 4;
+acc = mv_classify_across_time(cfg, X, clabel);
 
-% Plot also the simulated signal
-subplot(1,nCol,1)
-plot(time,sig_timeseries)
-title('True signal'),xlabel('Time'), ylabel('Classification accuracy')
+% plot(acc), title(mf,'interpreter','none')
 
-% Plot the simulated noise separately for one trial
-subplot(1,nCol,2)
-plot(time, squeeze(X_noise(1,:,:)) )
-title('Noise'),xlabel('Time'), ylabel('Classification accuracy')
+% performance should be around 100% for the discriminable time points, and
+% around 50% for the non-discriminable ones
+acc_discriminable = mean( acc(can_discriminate));
+acc_nondiscriminable = mean( acc(setdiff(1:ntime,can_discriminate)));
 
-% ERP
-subplot(1,nCol,3)
-plot(time,ERP)
-title('ERPs of all channels (signal+noise)'),xlabel('Time'), ylabel('Amplitude')
+tol = 0.03;
+print_unittest_result('[two-class] CV difference between (non-)/discriminable times', 0.5, acc_discriminable-acc_nondiscriminable, tol);
 
-% Classification result
-subplot(1,nCol,4)
-plot(time,acc)
-title('Classification result (matches true signal?)'),xlabel('Time'), ylabel('Classification accuracy')
+
+%% Create a dataset where classes can be perfectly discriminated for only some time points [4 classes]
+
+nsamples = 100;
+ntime = 300;
+nfeatures = 10;
+nclasses = 4;
+prop = [];
+scale = 0.0001;
+do_plot = 0;
+
+can_discriminate = 50:100;
+
+% Generate data
+X = zeros(nsamples, nfeatures, ntime);
+[~,clabel] = simulate_gaussian_data(nsamples, nfeatures, nclasses, prop, scale, do_plot);
+
+for tt=1:ntime
+    if ismember(tt, can_discriminate)
+        scale = 0.0001;
+        X(:,:,tt) = simulate_gaussian_data(nsamples, nfeatures, nclasses, prop, scale, do_plot);
+    else
+        scale = 10e1;
+        X(:,:,tt) = simulate_gaussian_data(nsamples, nfeatures, nclasses, prop, scale, do_plot);
+    end
+end
+
+cfg = [];
+cfg.feedback = 0;
+cfg.classifier = 'multiclass_lda';
+
+acc = mv_classify_across_time(cfg, X, clabel);
+
+% plot(acc), title(mf,'interpreter','none')
+
+% performance should be around 100% for the discriminable time points, and
+% around 50% for the non-discriminable ones
+acc_discriminable = mean( acc(can_discriminate));
+acc_nondiscriminable = mean( acc(setdiff(1:ntime,can_discriminate)));
+
+tol = 0.03;
+print_unittest_result('[4 classes] CV difference between (non-)/discriminable times', 0.25, acc_discriminable-acc_nondiscriminable, tol);
+

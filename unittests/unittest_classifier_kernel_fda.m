@@ -25,7 +25,7 @@ nrevolutions = 2;       % how often each class spins around the zero point
 nclasses = 4;
 prop = 'equal';
 scale = 0;
-[X_spiral0,clabel_spiral] = simulate_spiral_data(N, nrevolutions, nclasses, prop, scale, 0);
+[X_spiral, clabel_spiral] = simulate_spiral_data(N, nrevolutions, nclasses, prop, scale, 0);
 
 %%% LINEAR kernel: cross-validation
 cfg             = [];

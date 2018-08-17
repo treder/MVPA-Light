@@ -57,35 +57,6 @@ p = corr(m', cf.w);
 % Are all returned values between 0 and 1?
 print_unittest_result('check w parameter for lambda=1 (equal to diff of class means?)',1, p,  tol);
 
-%% Cross-validation: performance for well-separated classes should be 100%
-nsamples = 100;
-nfeatures = 10;
-nclasses = 2;
-prop = [];
-scale = 0.0001;
-do_plot = 0;
-
-[X,clabel] = simulate_gaussian_data(nsamples, nfeatures, nclasses, prop, scale, do_plot);
-
-% Plot the data
-% close all, plot(X(clabel==1,1),X(clabel==1,2),'.')
-% hold all, plot(X(clabel==2,1),X(clabel==2,2),'+')
-% figure(1)
-
-expect = 1;
-
-cfg = [];
-cfg.feedback        = 0;
-cfg.metric          = 'acc';
-cfg.classifier      = 'lda';
-cfg.param           = [];
-cfg.param.lambda    = 'auto';
-
-
-actual = mv_crossvalidate(cfg, X, clabel);
-
-print_unittest_result('CV for well-separated data',expect, actual, tol);
-
 %% Equivalence between ridge and shrinkage regularisation
 
 % Get classifier param for shrinkage regularisation

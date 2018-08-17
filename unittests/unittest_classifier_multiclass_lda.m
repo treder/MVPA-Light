@@ -26,10 +26,11 @@ cf = train_multiclass_lda(param, X, clabel);
 
 p = corr(cf_binary.w, cf.W);
 
-% Are the weight vectors the same (up to scaling?)
 print_unittest_result('correlate weight vectors for multiclass and binary lda',1, abs(p), tol);
 
-%% Cross-validation: performance for well-separated classes should be 100%
+
+%% for multiple classes, the W's should be orthogonal wrt the within-class scatter matrix
+% (though this holds for the empirical covariance only if lambda = 0)
 nsamples = 120;
 nfeatures = 10;
 nclasses = 5;
@@ -39,16 +40,19 @@ do_plot = 0;
 
 [X,clabel] = simulate_gaussian_data(nsamples, nfeatures, nclasses, prop, scale, do_plot);
 
-expect = 1;
+param = mv_get_classifier_param('multiclass_lda');
+param.reg     = 'ridge';
+param.lambda  = 0;
+cf = train_multiclass_lda(param, X, clabel);
 
-cfg = [];
-cfg.feedback        = 0;
-cfg.metric          = 'acc';
-cfg.classifier      = 'multiclass_lda';
-cfg.param           = [];
-cfg.param.lambda    = 'auto';
+% Calculate within-class scatter matrix
+nc = arrayfun(@(c) sum(clabel == c), 1:nclasses);
+Sw = zeros(nfeatures);
+for c=1:nclasses
+    Sw = Sw + (nc(c)-1) * cov(X(clabel==c,:));
+end
 
+actual = cf.W' * Sw * cf.W;
+expect = eye(nclasses-1);
 
-actual = mv_crossvalidate(cfg, X, clabel);
-
-print_unittest_result('CV for well-separated data',expect, actual, tol);
+print_unittest_result('W''*Sw*W - I = 0',0, norm(actual-expect), tol);
