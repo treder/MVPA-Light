@@ -55,7 +55,8 @@ auc = mv_calculate_performance('auc', dval, clabel);
 % Look at the distribution of the decision values. dvals should be positive
 % for clabel 1 (attended deviant) and negative for clabel 2 (unattended
 % deviant). dval = 0 is the decision boundary
-figure
+figure(2)
+clf
 boxplot(dval, clabel)
 hold on
 plot(xlim, [0 0],'k--')
