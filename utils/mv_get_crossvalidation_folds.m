@@ -1,4 +1,4 @@
-function CV = mv_get_crossvalidation_folds(cv, clabel, K, stratify, frac)
+function CV = mv_get_crossvalidation_folds(cv, clabel, k, stratify, frac)
 % Defines a cross-validation scheme and returns a cvpartition object with
 % the definition of the folds.
 %
@@ -7,11 +7,13 @@ function CV = mv_get_crossvalidation_folds(cv, clabel, K, stratify, frac)
 %
 %Parameters:
 % cv          - cross-validation type:
-%               'kfold': K-fold cross-validation. The parameter K specifies
-%               the number of folds.
+%               'kfold':     K-fold cross-validation. The parameter K specifies
+%                            the number of folds
 %               'leave1out': leave-one-out cross-validation
+%               'holdout':   Split data just once into training and
+%                            hold-out/test set
 % clabel      - vector of class labels
-% K           - number of folds (the K in K-fold) (default 5)
+% k           - number of folds (the k in k-fold) (default 5)
 % stratify    - if 1, class proportions are roughly preserved in
 %               each fold (default 0)
 % frac        - if cv_type is 'holdout', frac is the fraction of test samples
@@ -20,22 +22,21 @@ function CV = mv_get_crossvalidation_folds(cv, clabel, K, stratify, frac)
 %Output:
 % CV - struct with cross-validation folds
 
-% (c) Matthias Treder 2017
+% (c) Matthias Treder 2017-18
 
 
 N = numel(clabel);
 
-if nargin < 3,      K = 5; end
+if nargin < 3,      k = 5; end
 if nargin < 4,      stratify = 0; end
 if nargin < 5,      frac = 0.1; end
-
 
 switch(cv)
     case 'kfold'
         if stratify
-            CV= cvpartition(clabel,'kfold', K);
+            CV= cvpartition(clabel,'kfold', k);
         else
-            CV= cvpartition(N, 'kfold', K);
+            CV= cvpartition(N, 'kfold', k);
         end
         
     case 'leaveout'
