@@ -53,7 +53,7 @@ cfg.test    = 'binomial';
 stat = mv_statistics(cfg, result_LDA);
 
 %% Comparing cross-validation to train-test on the same data
-cfg_LDA.metric = 'acc';
+cfg_LDA.metric = 'accuracy';
 
 % Select only the first samples
 nReduced = 29;
