@@ -94,7 +94,7 @@ perf = cell(sz_cf_output);
 % Calculate the requested performance metric
 switch(metric)
     
-    case 'acc'
+    case {'acc', 'accuracy'}
         %%% ------ ACC: classification accuracy -----
         
         if isClassLabel
