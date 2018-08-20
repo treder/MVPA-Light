@@ -93,7 +93,7 @@ The hyperparameter for each classifier can be controlled using the `cfg.param` f
 Classifier output comes in form of decision values (=distances to the hyperplane for linear methods) or directly in form of class labels. However,  one is often only interested in a performance metric that summarises how well the classifier discriminates between the classes. The following metrics can be calculated by the function [`mv_calculate_performance`](utils/mv_calculate_performance.m):
 
 * `accuracy` (can be abbreviated as `acc`): Classification accuracy, representing the fraction correctly predicted class labels.
-* `auc`: Area under the ROC curve. An alternative to classification accuracy that is more robust to imbalanced classes and independent of changes to the classifier threshold.
+* `auc`: Area under the [ROC curve](https://en.wikipedia.org/wiki/Receiver_operating_characteristic). An alternative to classification accuracy that is more robust to imbalanced classes and independent of changes to the classifier threshold.
 * `dval`: Average decision value for each class.
 * `tval`: t-test statistic, calculated by comparing the sets of decision values for two classes. Can be useful for a subsequent second-level analysis across subjects.
 * `confusion`: [confusion matrix](https://en.wikipedia.org/wiki/Confusion_matrix). The rows corresponds to classifier predictions, columns correspond to the true classes. The (i,j)-th element gives the proportion of samples of class j that have been classified as class i.
