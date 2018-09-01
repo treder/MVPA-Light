@@ -31,8 +31,8 @@ cfg_LR.param            = [];       % sub-struct with hyperparameters for classi
 cfg_LR.param.lambda     = 'auto';
 
 %% Run classification across time
-[auc_LDA, result_LDA] = mv_classify_across_time(cfg_LDA, dat.trial, clabel);
-[auc_LR, result_LR] = mv_classify_across_time(cfg_LR, dat.trial, clabel);
+[acc_LDA, result_LDA] = mv_classify_across_time(cfg_LDA, dat.trial, clabel);
+[acc_LR, result_LR] = mv_classify_across_time(cfg_LR, dat.trial, clabel);
 
 %% Plot classification accuracy across time
 close all
