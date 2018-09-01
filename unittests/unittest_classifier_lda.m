@@ -26,7 +26,7 @@ print_unittest_result('check scale parameter for class 1',1, mean(dval(clabel==1
 % Does class 2 project to -1 ?
 print_unittest_result('check scale parameter for class 2',-1, mean(dval(clabel==2)), tol);
 
-%% check "prob" parameter: if prob = 1, probabilities should be returned 
+%% check "prob" parameter: if prob = 1, probabilities should be returned as third parameter
 
 % Get classifier params
 param = mv_get_classifier_param('lda');
@@ -34,10 +34,10 @@ param.prob = 1;
 
 % Train and test classifier
 cf = train_lda(param, X, clabel);
-[~,dval] = test_lda(cf,X);
+[~,~,prob] = test_lda(cf,X);
 
 % Are all returned values between 0 and 1?
-print_unittest_result('check prob parameter',1, all(abs(dval)<=1),  tol);
+print_unittest_result('check prob parameter',1, all(abs(prob)<=1),  tol);
 
 %% check "lambda" parameter: if lambda = 1, w should be collinear with the difference between the class means
 
