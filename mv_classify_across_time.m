@@ -18,8 +18,8 @@ function [perf, result] = mv_classify_across_time(cfg, X, clabel)
 %                 function (default [])
 % .metric       - classifier performance metric, default 'accuracy'. See
 %                 mv_classifier_performance. If set to [] or 'none', the 
-%                 raw classifier output (labels or dvals depending on 
-%                 cfg.cf_output) for each sample is returned. 
+%                 raw classifier output (labels, dvals or probabilities 
+%                 depending on cfg.output_type) for each sample is returned. 
 % .time         - indices of time points (by default all time
 %                 points in X are used)
 % .balance      - for imbalanced data with a minority and a majority class.
@@ -84,10 +84,10 @@ switch(cfg.cv)
     case 'holdout', cfg.k = 1;
 end
 
-if isempty(cfg.metric) || any(ismember({'dval','auc','roc','tval'},cfg.metric))
-    mv_set_default(cfg,'cf_output','dval');
+if any(ismember({'dval','auc','roc','tval'}, cfg.metric))
+    mv_set_default(cfg,'output_type','dval');
 else
-    mv_set_default(cfg,'cf_output','clabel');
+    mv_set_default(cfg,'output_type','clabel');
 end
 
 % Balance the data using oversampling or undersampling
@@ -172,8 +172,8 @@ if ~strcmp(cfg.cv,'none')
                 % Train classifier
                 cf= train_fun(cfg.param, Xtrain_tt, trainlabel);
 
-                % Obtain classifier output (class labels or dvals)
-                cf_output{rr,kk,tt} = mv_get_classifier_output(cfg.cf_output, cf, test_fun, Xtest);
+                % Obtain classifier output (class labels, dvals or probabilities)
+                cf_output{rr,kk,tt} = mv_get_classifier_output(cfg.output_type, cf, test_fun, Xtest);
                 
             end
         end
@@ -209,7 +209,7 @@ else
         cf= train_fun(cfg.param, Xtraintest, clabel);
         
         % Obtain classifier output (class labels or dvals)
-        cf_output(:,tt) = mv_get_classifier_output(cfg.cf_output, cf, test_fun, Xtraintest);
+        cf_output(:,tt) = mv_get_classifier_output(cfg.output_type, cf, test_fun, Xtraintest);
     end
 
     testlabel = clabel;
@@ -222,7 +222,7 @@ if isempty(cfg.metric) || strcmp(cfg.metric,'none')
     perf_std = [];
 else
     if cfg.feedback, fprintf('Calculating classifier performance... '), end
-    [perf, perf_std] = mv_calculate_performance(cfg.metric, cf_output, testlabel, avdim);
+    [perf, perf_std] = mv_calculate_performance(cfg.metric, cfg.output_type, cf_output, testlabel, avdim);
     if cfg.feedback, fprintf('finished\n'), end
 end
 
