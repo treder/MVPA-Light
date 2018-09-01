@@ -30,7 +30,7 @@ function [cf,Sw,lambda,mu1,mu2] = train_lda(cfg,X,clabel)
 %                  to infinity.
 %                  If multiple values are given, a grid search is performed
 %                  for the best lambda (only for reg='shrink')
-% .prob          - if 1, probabilities are returned as decision values. If
+% .prob          - if 1, decision values are returned as probabilities. If
 %                  0, the decision values are simply the distance to the
 %                  hyperplane. Calculating probabilities takes more time
 %                  and memory so don't use this unless needed. Probabilities 

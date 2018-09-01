@@ -14,7 +14,7 @@ function cf = train_svm(cfg,X,clabel)
 %                  1's (class 1) and 2's (class 2)
 %
 % cfg          - struct with hyperparameters:
-% c            - regularisation hyperparameter controlling the magnitude
+% .c            - regularisation hyperparameter controlling the magnitude
 %                  of regularisation. If a single value is given, it is
 %                  used for regularisation. If a vector of values is given,
 %                  5-fold cross-validation is used to test all the values
@@ -34,6 +34,13 @@ function cf = train_svm(cfg,X,clabel)
 %                  where "*" is the name of the kernel (e.g. rbf_kernel).
 % kernel_matrix  - optional kernel matrix. If provided, the .kernel 
 %                  parameter is ignored. (Default [])
+% .prob          - if 1, decision values are returned as probabilities. If
+%                  0, the decision values are simply the distance to the
+%                  hyperplane. Calculating probabilities takes more time
+%                  and memory so don't use this unless needed. A Platt
+%                  approximation using an external function (obtained from
+%                  http://www.work.caltech.edu/~htlin/program/libsvm/) is
+%                  used to estimated probabilities.
 %
 % Note: c is implemented analogous to the classical SVM implementations,
 % see libsvm and liblinear. It is roughly reciprocally related to the
@@ -90,8 +97,10 @@ function cf = train_svm(cfg,X,clabel)
 % REFERENCES:
 % V Kecman (2001). Learning and Soft Computing: Support Vector Machines, 
 % Neural Networks, and Fuzzy Logic Models. MIT Press
-
 %
+% Lin, Lin & Weng (2007). A note on Platt’s probabilistic outputs for 
+% support vector machines. Machine Learning, 68(3), 267-276
+
 
 % (c) Matthias Treder 2017
 
@@ -180,6 +189,7 @@ cf.kernel = cfg.kernel;
 cf.alpha  = alpha;
 cf.gamma  = cfg.gamma;
 cf.bias   = cfg.bias;
+cf.prob   = cfg.prob;
 
 if strcmp(cfg.kernel,'linear')
     % Calculate linear weights w and bias b from alpha
@@ -206,7 +216,7 @@ else
     cf.alpha_y = cf.alpha(cf.support_vector_indices) .* cf.y(:);
     
     if cfg.bias > 0
-        %%% TODO: this part needs fixing
+        %%% TODO: this part might need fixing
         cf.b = 0;
         
 %         % remove bias part from support vectors
@@ -225,6 +235,24 @@ else
     cf.coef0    = cfg.coef0;
     cf.degree   = cfg.degree;
     
+end
+
+if cf.prob == 1
+    % Invoke external function platt.m. It calculates parameters A and B of
+    % the sigmoid that models the probabilities. The method is known as 
+    % Platt's approximation
+    prior0 = sum(clabel == -1); % prior0: number of negative points
+    prior1 = sum(clabel == 1);  % prior1: number of positive points
+    
+    % Calculate decision values for training data
+    if strcmp(cf.kernel,'linear')
+        dval = X*cf.w + cf.b;
+    else
+        dval = kernel_matrix(:, cf.support_vector_indices) * cf.alpha_y   + cf.b;
+    end
+    
+    % Invoke platt function to get sigmoid parameters
+    [cf.A, cf.B] = platt(dval, clabel, prior0, prior1);
 end
 
 end

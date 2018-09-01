@@ -13,7 +13,7 @@ function cf = train_logreg(cfg,X,clabel)
 % clabel         - [samples x 1] vector of class labels
 %
 % cfg          - struct with hyperparameters:
-% lambda         - regularisation hyperparameter controlling the magnitude
+% .lambda        - regularisation hyperparameter controlling the magnitude
 %                  of regularisation. If a single value is given, it is
 %                  used for regularisation. If a vector of values is given,
 %                  5-fold cross-validation is used to test all the values
@@ -21,6 +21,13 @@ function cf = train_logreg(cfg,X,clabel)
 %                  Note: lambda is reciprocally related to the cost
 %                  parameter C used in LIBSVM/LIBLINEAR, ie C = 1/lambda
 %                  roughly
+% .prob          - if 1, decision values are returned as probabilities. If
+%                  0, the decision values are simply the distance to the
+%                  hyperplane (default 0)
+% .correct_bias  - if the number of samples in the two classes is not the
+%                  same, logistic regression is biased towards the majority
+%                  class. If correct_bias is 1, this is corrected for by
+%                  adjusting the bias term
 %
 % Further parameters (that usually do not need to be changed):
 % bias          - if >0 augments the data with a bias term equal to the
@@ -247,11 +254,19 @@ if cfg.bias > 0
     
     % Bias term needs correct scaling 
     cf.b = cf.b * cfg.bias;
+
+    if cfg.correct_bias
+        % Correct the bias term such that it is in between the class means
+        o = X(:, 1:end-1) * cf.w;
+        cf.b = - ( mean(o(clabel==1)) + mean(o(clabel==-1)) )/2;
+    end
 else
     cf.w = w;
     cf.b = 0;
 end
 cf.lambda = lambda;
+
+
 
 %%
 %%% Logistic regression objective function. Given w, data X and
