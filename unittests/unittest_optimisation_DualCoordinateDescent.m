@@ -24,6 +24,7 @@ d(floor(nfeat/2)+1:end) = -10;         % "high cost" entries
 % Transform into matrix
 Q = diag(d);
 
+tol = 10e-10;
 [alpha,iter] = DualCoordinateDescent(Q,C,ONE, tol, 1);
 
 % low cost entries should be high values of alpha and vice versa

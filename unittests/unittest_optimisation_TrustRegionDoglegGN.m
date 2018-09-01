@@ -43,7 +43,7 @@ x = randn(nfeat,1);
 [x_TR,iter,delta] = TrustRegionDoglegGN(@(x) sphere_function(x),w, tolerance, max_iter);
 
 % Global optimum is known to be at x = (0,0,...,0)
-x_opt = zeros(nfeat,0);
+x_opt = zeros(nfeat,1);
 print_unittest_result('Sphere function', 0, norm(x_TR - x_opt), tol);
 
 %% Booth function (specific quadratic function)
