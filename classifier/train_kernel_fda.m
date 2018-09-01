@@ -24,7 +24,7 @@ function cf = train_kernel_fda(cfg,X,clabel)
 % .lambda        - if reg='shrink', the regularisation parameter ranges 
 %                  from 0 to 1 (where 0=no regularisation and 1=maximum
 %                  regularisation).
-% kernel         - kernel function:
+% .kernel        - kernel function:
 %                  'linear'     - linear kernel ker(x,y) = x' y
 %                  'rbf'        - radial basis function or Gaussian kernel
 %                                 ker(x,y) = exp(-gamma * |x-y|^2);
@@ -33,7 +33,7 @@ function cf = train_kernel_fda(cfg,X,clabel)
 %                  Alternatively, a custom kernel can be provided if there
 %                  is a function called *_kernel is in the MATLAB path, 
 %                  where "*" is the name of the kernel (e.g. rbf_kernel).
-% kernel_matrix  - optional kernel matrix. If provided, the .kernel 
+% .kernel_matrix - optional kernel matrix. If provided, the .kernel 
 %                  parameter is ignored. (Default [])
 %
 %

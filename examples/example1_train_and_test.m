@@ -50,7 +50,7 @@ cf = train_lda(param, X, clabel);
 fprintf('Classification accuracy: %2.2f\n', mean(predlabel==clabel))
 
 % Calculate AUC
-auc = mv_calculate_performance('auc', dval, clabel);
+auc = mv_calculate_performance('auc', 'dval', dval, clabel);
 
 % Look at the distribution of the decision values. dvals should be positive
 % for clabel 1 (attended deviant) and negative for clabel 2 (unattended
