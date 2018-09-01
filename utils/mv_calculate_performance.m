@@ -1,4 +1,4 @@
-function [perf, perf_std] = mv_calculate_performance(metric, cf_output, clabel, dim)
+function [perf, perf_std] = mv_calculate_performance(metric, output_type, cf_output, clabel, dim)
 %Calculates a classifier performance metric such as classification accuracy
 %based on the classifier output (e.g. labels or decision values). In
 %cross-validation, the metric needs to be calculated on each test fold
@@ -22,6 +22,8 @@ function [perf, perf_std] = mv_calculate_performance(metric, cf_output, clabel, 
 %                     'auc': area under the ROC curve
 %                     'confusion': confusion matrix (needs class labels) as
 %                     classifier output
+% output_type       - type of classifier ('clabel', 'dval', or 'prob'). See
+%                     mv_get_classifier_output for details
 % cf_output         - vector of classifier outputs (labels or dvals). If
 %                     multiple test sets have been validated using
 %                     cross-validation, a (possibly mult-dimensional)
@@ -64,7 +66,7 @@ function [perf, perf_std] = mv_calculate_performance(metric, cf_output, clabel, 
 
 % (c) Matthias Treder 2017
 
-if nargin<4
+if nargin<5
     dim=[];
 end
 
@@ -80,13 +82,9 @@ nExtra = prod(sz_cf_output(ndims(clabel)+1:end));
 % dimSkipToken helps us looping across the extra dimensions
 dimSkipToken = repmat({':'},[1, ndims(clabel)]);
 
-% Check whether the classifier output is given as predicted labels or
-% dvals. In the former case, it should consist of integer numbers only.
-isClassLabel = all(all(all(mod(cf_output{1},1) == 0)));
-
-% For some metrics dvals are required
-if isClassLabel && any(strcmp(metric,{'dval' 'roc' 'auc'}))
-    error('To calculate dval/roc/auc, classifier output must be given as dvals not as class labels')
+% For some metrics dvals or probabilities are required
+if strcmp(output_type,'clabel') && any(strcmp(metric,{'dval' 'roc' 'auc'}))
+    error('To calculate dval/roc/auc, classifier output must be given as dvals or probabilities, not as class labels')
 end
 
 perf = cell(sz_cf_output);
@@ -97,13 +95,13 @@ switch(metric)
     case {'acc', 'accuracy'}
         %%% ------ ACC: classification accuracy -----
         
-        if isClassLabel
+        if strcmp(output_type,'clabel')
             % Compare predicted labels to the true labels. To this end, we
             % create a function that compares the predicted labels to the
             % true labels and takes the mean of the comparison. This gives
             % us the classification performance for each test fold.
             fun = @(cfo,lab) mean(bsxfun(@eq,cfo,lab(:)));
-        else
+        elseif strcmp(output_type,'dval')
             % We want class 1 labels to be positive, and class 2 labels to
             % be negative, because then their sign corresponds to the sign
             % of the dvals. To this end, we transform the labels as
@@ -115,7 +113,14 @@ switch(metric)
             % product is positive, so compare whether the result is > 0.
             % Taking the mean of this comparison gives classification
             % performance.
-            fun = @(cfo,lab) mean(bsxfun(@times,cfo,-lab(:)+1.5) > 0);
+            fun = @(cfo,lab) mean(bsxfun(@times, cfo, -lab(:)+1.5) > 0);
+        elseif strcmp(output_type,'prob')
+            % Probabilities represent the posterior probability for class
+            % being class 1, ranging from 0 to 1. To transform 
+            % probabilities into class labels, subtract 0.5 from the
+            % probabilities and also transform the labels (see previous
+            % paragraph about dvals for details)
+            fun = @(cfo,lab) mean(bsxfun(@times, cfo-0.5, -lab(:)+1.5) > 0);
         end
         
         % Looping across the extra dimensions if cf_output is multi-dimensional
