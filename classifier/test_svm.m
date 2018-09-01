@@ -1,4 +1,4 @@
-function [predlabel,dval] = test_svm(cf,X)
+function [predlabel,dval,prob] = test_svm(cf,X)
 % Applies a SVM to test data and produces class labels and decision values.
 % 
 % Usage:
@@ -10,7 +10,11 @@ function [predlabel,dval] = test_svm(cf,X)
 %
 %Output:
 % predlabel     - predicted class labels (1's and 2's)
-% dval          - decision values, i.e. distances to the hyperplane
+% dval          - decision values, i.e. distances to the hyperplane. If
+%                 cf.prob==1, dval contains probabilities. Note that
+%                 predicted class labels are always based on the distances
+%                 to the hyperplane.
+% prob          - class probabilities
 
 if strcmp(cf.kernel,'linear')
     dval = X*cf.w + cf.b;
@@ -20,6 +24,11 @@ else
     else
         dval = cf.kernelfun(cf, X, cf.support_vectors) * cf.alpha_y   + cf.b;
     end
+end
+
+if cf.prob == 1
+   % Calculate probabilities using Platt's approximation
+   prob = 1 ./ (1 + exp( dval * cf.A + cf.B ));
 end
 
 predlabel= double(dval >= 0) + 2*double(dval < 0);

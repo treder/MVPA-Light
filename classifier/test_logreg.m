@@ -15,6 +15,7 @@ function [clabel,dval,prob] = test_logreg(cf,X)
 %Output:
 % clabel        - predicted class labels (1's and 2's)
 % dval          - decision values, i.e. distances to the hyperplane
+% prob          - class probabilities
 
 dval = X*cf.w + cf.b;
 clabel= double(dval >= 0) + 2*double(dval < 0);
