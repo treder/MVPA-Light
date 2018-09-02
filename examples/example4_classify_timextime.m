@@ -1,4 +1,9 @@
-%%% Time generalisation example
+%%% Time generalisation example using the function mv_classify_timextime.
+%%% In this function, we need data with a time dimension [samples x
+%%% features x time points]. Then, cross-validation is run separately for
+%%% every combination of training time point and test time point. The
+%%% result is a matrix of classification performance scores, one score for
+%%% every combination of training and test times.
 clear all
 
 % Load data (in /examples folder)
@@ -8,8 +13,7 @@ clear all
 
 % Configuration struct for time classification with cross-validation. We
 % perform 5-fold cross-validation with 10 repetitions. As classifier, we
-% use LDA. The value of the regularisation parameter lambda is determined 
-% automatically.
+% use LDA.
 cfg =  [];
 cfg.classifier = 'lda';
 cfg.normalise  = 'demean';  % 'demean' 'none'
@@ -17,6 +21,8 @@ cfg.metric     = 'accuracy';
 
 [acc, result_acc] = mv_classify_timextime(cfg, dat.trial, clabel);
 
+% Let us re-run the classification, this calculating the area the ROC curve
+% (AUC) as a performance metric
 cfg.metric     = 'auc';
 [auc, result_auc] = mv_classify_timextime(cfg, dat.trial, clabel);
 
@@ -38,6 +44,9 @@ colormap jet
 title('AUC')
 
 %% Compare with and without cross-validation
+
+% We already calculated cross-validated performance above. Here, we do the
+% analysis once again, this time without cross-validation.
 cfg.cv      = 'none';
 cfg.metric     = 'accuracy';
 [acc_noCV, result_acc_noCV] = mv_classify_timextime(cfg, dat.trial, clabel);
@@ -67,7 +76,7 @@ title('AUC')
 % As two datasets, two different subjects are taken. 
 
 [dat, clabel] = load_example_data('epoched3', 0);
-% Load data from a different subject (epoched1). This will served as the 
+% Load data from a different subject (epoched1). This will serve as the 
 % test data.
 % The subject loaded above will serve as training data.
 [dat2, clabel2] = load_example_data('epoched1');

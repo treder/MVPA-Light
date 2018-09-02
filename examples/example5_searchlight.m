@@ -9,6 +9,8 @@
 %%% 'searchlight'
 %%%
 clear
+
+% Load data (in /examples folder)
 [dat, clabel, chans] = load_example_data('epoched3');
 
 % We want to classify on the 300-500 ms window
