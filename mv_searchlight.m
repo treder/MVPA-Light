@@ -68,7 +68,8 @@ function [perf,result] = mv_searchlight(cfg, X, clabel)
 %                 randomly assigned folds (default 1)
 %
 % Returns:
-% perf          - [features x 1] vector of classifier performances
+% perf          - [features x 1] vector of classifier performances 
+%                 corresponding to the selected metric
 
 % (c) Matthias Treder
 

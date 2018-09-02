@@ -1,4 +1,4 @@
-function [perf, result] = mv_classify_timextime(cfg, X, clabel, X2, clabel2)
+function [perf, result, testlabel] = mv_classify_timextime(cfg, X, clabel, X2, clabel2)
 % Time x time generalisation. A classifier is trained on the training data
 % X and validated on either the same dataset X. Cross-validation is
 % recommended to avoid overfitting. If another dataset X2 is provided,
@@ -62,11 +62,20 @@ function [perf, result] = mv_classify_timextime(cfg, X, clabel, X2, clabel2)
 %
 % Returns:
 % perf          - time1 x time2 classification matrix of classification
-%                performance. 
-% res           - struct with fields describing the classification result.
-%                 Can be used as input to mv_statistics
+%                 performances corresponding to the selected metric. If
+%                 metric='none', perf is a [r x k x t] cell array of
+%                 classifier outputs, where each cell corresponds to a test
+%                 set, k is the number of folds, r is the number of 
+%                 repetitions, and t is the number of training time points.
+%                 Each cell contains [n x t2] elements, where n is the
+%                 number of test samples and t2 is the number of test time
+%                 points.
+% result        - struct with fields describing the classification result.
+%                 Can be used as input to mv_statistics and mv_plot_result
+% testlabel     - [r x k] cell array of test labels. Can be useful if
+%                 metric='none'
 
-% (c) Matthias Treder 2017
+% (c) Matthias Treder 2017-18
 
 X = double(X);
 if nargin > 3
