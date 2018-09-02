@@ -1,4 +1,4 @@
-function [perf, result] = mv_classify_across_time(cfg, X, clabel)
+function [perf, result, testlabel] = mv_classify_across_time(cfg, X, clabel)
 % Classification across time. A classifier is trained and validate for
 % different time points in the dataset X. Cross-validation should be used
 % to get a realistic estimate of classification performance.
@@ -55,13 +55,19 @@ function [perf, result] = mv_classify_across_time(cfg, X, clabel)
 %                 randomly assigned folds (default 1)
 %
 % Returns:
-% perf          - [time x 1] vector of classifier performances. 
+% perf          - [time x 1] vector of classifier performances. If
+%                 metric='none', perf is a [r x k x t] cell array of
+%                 classifier outputs, where each cell corresponds to a test
+%                 set, k is the number of folds, r is the number of 
+%                 repetitions, and t is the number of time points
 % result        - struct with fields describing the classification result.
 %                 Can be used as input to mv_statistics and mv_plot_result
+% testlabel     - [r x k] cell array of test labels. Can be useful if
+%                 metric='none'
 %
 % Note: For time x time generalisation, use mv_classify_timextime
 
-% (c) Matthias Treder 2017
+% (c) Matthias Treder 2017-18
 
 X = double(X);
 

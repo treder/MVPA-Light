@@ -1,4 +1,4 @@
-function [perf, result] = mv_crossvalidate(cfg, X, clabel)
+function [perf, result, testlabel] = mv_crossvalidate(cfg, X, clabel)
 % Cross-validation. A classifier is trained and validated for
 % given 2D [samples x features] dataset X.
 %
@@ -57,9 +57,16 @@ function [perf, result] = mv_crossvalidate(cfg, X, clabel)
 %
 %
 % Returns:
-% perf          - [time x 1] vector of classifier performances.
+% perf          - classifier performance corresponding to the selected
+%                 metric. If metric='none', perf is a r x k cell array of
+%                 classifier outputs, where each cell corresponds to a test
+%                 set, k is the number of folds and r is the number of 
+%                 repetitions
 % result        - struct with fields describing the classification result.
-%                 Can be used as input to mv_statistics
+%                 Can be used as input to mv_statistics and mv_plot_result
+% testlabel     - r x k cell array of test labels. Can be useful if
+%                 metric='none'
+% 
 
 
 % (c) Matthias Treder 2017-18
