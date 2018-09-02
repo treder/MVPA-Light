@@ -126,7 +126,7 @@ cf = train_lda(param, X, clabel);
 predlabel = test_lda(cf, X);
 
 % Calculate classification accuracy
-acc = mv_calculate_performance('accuracy',predlabel,clabel)
+acc = mv_calculate_performance('accuracy','clabel',predlabel,clabel)
 ```
 
 See [`examples/example1_train_and_test.m`](examples/example1_train_and_test.m) for more details. In most cases, you would not perform training/testing by hand but rather call one of the high-level functions described below.
