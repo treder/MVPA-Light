@@ -2,8 +2,7 @@
 %%% crossvalidation and classification across time functions provided by
 %%% MVPA-Light
 
-% Before running the code, cd into the examples subfolder or add it to your
-% path temporally
+% Load data (in /examples folder)
 [dat, clabel] = load_example_data('epoched3');
 
 %% Let's have a look at the data first: Calculate and plot ERP for attended and unattended deviants
@@ -34,7 +33,7 @@ ival_idx = find(dat.time >= 0.6 & dat.time <= 0.8);
 % Extract the mean activity in the interval as features
 X = squeeze(mean(dat.trial(:,:,ival_idx),3));
 
-% Get default hyperparameters
+% Get default hyperparameters for the LDA classifier
 param = mv_get_classifier_param('lda');
 
 % Train an LDA classifier
@@ -50,7 +49,7 @@ cf = train_lda(param, X, clabel);
 fprintf('Classification accuracy: %2.2f\n', mean(predlabel==clabel))
 
 % Calculate AUC
-auc = mv_calculate_performance('auc', dval, clabel);
+auc = mv_calculate_performance('auc', 'dval', dval, clabel);
 
 % Look at the distribution of the decision values. dvals should be positive
 % for clabel 1 (attended deviant) and negative for clabel 2 (unattended

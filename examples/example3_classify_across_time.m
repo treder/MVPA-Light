@@ -1,6 +1,8 @@
-%%% Classification across time using the mv_classify_across_time function
+%%% Classification across time using the mv_classify_across_time function.
 %%% In this function, we need data with a time dimension [samples x
-%%% features x time points]. Then, cross-validation is run 
+%%% features x time points]. Then, cross-validation is run for every time
+%%% point separately, hence we obtain a classification performance score
+%%% for every time point.
 
 clear all
 
@@ -11,24 +13,19 @@ clear all
 
 % Configuration struct for time classification with cross-validation. We
 % perform 5-fold cross-validation with 2 repetitions. As classifier, we
-% use LDA. The value of the regularisation parameter lambda is determined 
-% automatically.
+% use LDA with its default settings.
 cfg_LDA =  [];
 cfg_LDA.cv              = 'kfold';
 cfg_LDA.k               = 5;
 cfg_LDA.repeat          = 2;
 cfg_LDA.classifier      = 'lda';
-cfg_LDA.param           = [];       % sub-struct with hyperparameters for classifier
-cfg_LDA.param.lambda    = 'auto';
 cfg_LDA.metric          = 'accuracy';
 
 % We are interested in comparing LDA and Logistic Regression (LR). To this 
-% end, we setup a configuration struct for logreg as well. Again, the
-% lambda parameter is optimised automatically.
+% end, we setup a configuration struct for logreg as well. Again, we do not
+% set the cfg.param field so the default hyperparameters are used.
 cfg_LR =  cfg_LDA;
 cfg_LR.classifier       = 'logreg';
-cfg_LR.param            = [];       % sub-struct with hyperparameters for classifier
-cfg_LR.param.lambda     = 'auto';
 
 %% Run classification across time
 [acc_LDA, result_LDA] = mv_classify_across_time(cfg_LDA, dat.trial, clabel);
@@ -38,7 +35,7 @@ cfg_LR.param.lambda     = 'auto';
 close all
 mv_plot_result({result_LDA, result_LR}, dat.time) % second argument is optional
 
-%% Classification across time for all subjects
+%% Classification across time for all 3 subjects
 nSbj = 3;
 acc = cell(nSbj,1);         % classification accuracies for all subjects
 auc = cell(nSbj,1);         % AUC values for all subjects

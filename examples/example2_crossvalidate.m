@@ -1,6 +1,8 @@
 %%% In example 1, training and testing was performed on the same data. This
 %%% can lead to overfitting and an inflated measure of classification
-%%% accuracy. The function mv_crossvalidate is used for this purpose.
+%%% accuracy. The function mv_crossvalidate implements cross-validation
+%%% which controls for overfitting by repeatedly splitting the data into
+%%% training and test sets.
 close all
 clear all
 
@@ -23,19 +25,26 @@ X = squeeze(mean(dat.trial(:,:,ival_idx),3));
 
 cfg_LDA = [];
 cfg_LDA.classifier      = 'lda';
-cfg_LDA.param           = struct('lambda','auto');
 cfg_LDA.metric          = 'auc';
 cfg_LDA.cv              = 'kfold';  % 'kfold' 'leaveout' 'holdout'
 cfg_LDA.k               = 5;
 cfg_LDA.repeat          = 10;
 cfg_LDA.balance         = 'undersample';
 
+% the param substruct contains the hyperparameters for the classifier.
+% Here, we only set lambda = 'auto'. This is the default, so in general
+% setting param is not required unless one wants to change the default
+% settings.
+cfg_LDA.param           = [];
+cfg_LDA.param.lambda    = 'auto';
+
 [acc_LDA, result_LDA] = mv_crossvalidate(cfg_LDA, X, clabel);
 
-% Compare the result for LDA to Logistic Regression (LR).
+% Run analysis also for Logistic Regression (LR), using the same
+% cross-validation settings.
 cfg_LR = cfg_LDA;
 cfg_LR.classifier       = 'logreg';
-cfg_LR.param            = [];
+cfg_LR.param            = [];       % sub-struct with hyperparameters for classifier
 cfg_LR.param.lambda     = 'auto';
 
 [acc_LR, result_LR] = mv_crossvalidate(cfg_LR, X, clabel);
@@ -52,7 +61,7 @@ cfg.test    = 'binomial';
 
 stat = mv_statistics(cfg, result_LDA);
 
-%% Comparing cross-validation to train-test on the same data
+%% Comparing cross-validation to training and testing on the same data
 cfg_LDA.metric = 'accuracy';
 
 % Select only the first samples
