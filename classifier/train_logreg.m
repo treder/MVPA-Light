@@ -80,6 +80,10 @@ function cf = train_logreg(cfg,X,clabel)
 % cf - struct specifying the classifier with the following fields:
 % w            - projection vector (normal to the hyperplane)
 % b            - bias term, setting the threshold
+%
+%References:
+% Lin, Weng & Keerthi (2008). Trust Region Newton Method for Large-Scale 
+% Logistic Regression. Journal of Machine Learning Research, 9, 627-650
 
 % (c) Matthias Treder 2017
 
