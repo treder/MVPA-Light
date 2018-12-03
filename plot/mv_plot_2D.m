@@ -187,7 +187,7 @@ if ~isempty(cfg.zero)
             hold on
             xl = xlim(gca);
             plot(gca,xl(:), [0 0], cfg.zero{:})
-            set(gca,'YLim',yl)
+            set(gca,'XLim',xl)
         end
     end
 end
