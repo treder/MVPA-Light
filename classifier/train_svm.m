@@ -28,7 +28,7 @@ function cf = train_svm(cfg,X,clabel)
 %                  'rbf'        - radial basis function or Gaussian kernel
 %                                 ker(x,y) = exp(-gamma * |x-y|^2);
 %                  'polynomial' - polynomial kernel
-%                                 ker(x,y) = (gamma * x * y' + coef0)^degree
+%                                 ker(x,y) = (gamma * x' * y + coef0)^degree
 %                  Alternatively, a custom kernel can be provided if there
 %                  is a function called *_kernel is in the MATLAB path, 
 %                  where "*" is the name of the kernel (e.g. rbf_kernel).
@@ -46,7 +46,7 @@ function cf = train_svm(cfg,X,clabel)
 % see libsvm and liblinear. It is roughly reciprocally related to the
 % lambda parameter used in LDA/logistic regression, ie c = 1/lambda.
 %
-% Hyperparameters for specific kernels:
+% HYPERPARAMETERS for specific kernels:
 %
 % gamma         - (kernel: rbf, polynomial) controls the 'width' of the
 %                  kernel. If set to 'auto', gamma is set to 1/(nr of features)
@@ -57,6 +57,11 @@ function cf = train_svm(cfg,X,clabel)
 % degree        - (kernel: polynomial) degree of the polynomial term. A too
 %                 high degree makes overfitting likely (default 2)
 %
+% TUNING: Hyperparameters can be tuned by setting a range instead of a
+% single value. For instance, if cfg.gamma = [10e-1, 1, 10e1] a
+% cross-validation is performed where each of the parameters is tested and
+% the best parameter is chosen.
+%
 % Further parameters (that usually do not need to be changed):
 % bias          - if >0 augments the data with a bias term equal to the
 %                 value of bias:  X <- [X; bias] and augments the weight
@@ -66,7 +71,7 @@ function cf = train_svm(cfg,X,clabel)
 %                 kernel (default 'auto'). This is because for non-linear
 %                 kernels, a bias is usally not needed (Kecman 2001, p.182)
 % k             - the number of folds in the k-fold cross-validation for
-%                 the lambda search (default 5)
+%                 the lambda search (default 3)
 % plot          - if a lambda search is performed, produces diagnostic
 %                 plots including the regularisation path and
 %                 cross-validated accuracy as a function of lambda (default
