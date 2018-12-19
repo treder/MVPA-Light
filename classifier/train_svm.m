@@ -17,7 +17,7 @@ function cf = train_svm(cfg,X,clabel)
 % .c            - regularisation hyperparameter controlling the magnitude
 %                  of regularisation. If a single value is given, it is
 %                  used for regularisation. If a vector of values is given,
-%                  5-fold cross-validation is used to test all the values
+%                  cross-validation is used to test all the values
 %                  in the vector and the best one is selected.
 %                  If set to 'auto', a default search grid is used to
 %                  automatically determine the best lambda (default
@@ -60,7 +60,9 @@ function cf = train_svm(cfg,X,clabel)
 % TUNING: Hyperparameters can be tuned by setting a range instead of a
 % single value. For instance, if cfg.gamma = [10e-1, 1, 10e1] a
 % cross-validation is performed where each of the parameters is tested and
-% the best parameter is chosen.
+% the best parameter is chosen. If multiple parameters are set for tuning,
+% a multi-dimensional search grid is set up where all combinations of
+% parameters are tested.
 %
 % Further parameters (that usually do not need to be changed):
 % bias          - if >0 augments the data with a bias term equal to the
@@ -103,11 +105,10 @@ function cf = train_svm(cfg,X,clabel)
 % V Kecman (2001). Learning and Soft Computing: Support Vector Machines, 
 % Neural Networks, and Fuzzy Logic Models. MIT Press
 %
-% Lin, Lin & Weng (2007). A note on Platt’s probabilistic outputs for 
+% Lin, Lin & Weng (2007). A note on Platt's probabilistic outputs for 
 % support vector machines. Machine Learning, 68(3), 267-276
 
-
-% (c) Matthias Treder 2017
+% (c) Matthias Treder
 
 [N, nFeat] = size(X);
 
@@ -122,7 +123,7 @@ clabel(clabel == 2) = -1;
 
 %% Set kernel hyperparameter defaults
 if ischar(cfg.gamma) && strcmp(cfg.gamma,'auto')
-    cfg.gamma = 1/ nFeat;
+    cfg.gamma = 1/nFeat;
 end
 
 %% Bias
@@ -140,12 +141,30 @@ if cfg.bias > 0
     nFeat = nFeat + 1;
 end
 
+%% Check if hyperparmeters need to be tuned
+
+% need to tune hyperparameters?
+tune_hyperparameters = {};
+if isempty(cfg.kernel_matrix)
+    has_kernel_matrix = 0;
+
+    tmp = {};
+    switch(cfg.kernel)
+        case 'rbf'
+            if numel(cfg.gamma)>1, tmp = {'gamma' cfg.gamma}; end
+        case 'polynomial'
+            if numel(cfg.gamma)>1, tmp = {'gamma' cfg.gamma}; end
+            if numel(cfg.coef0)>1, tmp = {tmp{:}; 'coef0' cfg.coef0}; end
+            if numel(cfg.degree)>1, tmp = {rmp{:}; 'degree' cfg.degree}; end
+    end
+    tune_hyperparameters = tmp;
+end
 
 %% Precompute and regularise kernel
 
-if isempty(cfg.kernel_matrix)
-    
-    has_kernel_matrix = 0;
+if ~has_kernel_matrix && isempty(tune_hyperparameters)
+    % If we do not need to tune hyperparameters, we can precompute the
+    % kernel matrix
 
     % Kernel function
     kernelfun = eval(['@' cfg.kernel '_kernel']);
@@ -159,7 +178,8 @@ if isempty(cfg.kernel_matrix)
     end
     
 else
-    has_kernel_matrix = 1;
+    % kernel matrix has been provided by the user, so we take it from 
+    % the cfg struct
     kernel_matrix = cfg.kernel_matrix;
 end
 
@@ -173,17 +193,17 @@ if ischar(cfg.c) && strcmp(cfg.c,'auto')
 end
 
 %% Optimise hyperparameters using nested cross-validation
-if numel(cfg.c)>1
+if numel(cfg.c)>1 || ~isempty(tune_hyperparameters)
     
    tune_hyperparameter_svm
    
 else
     % there is just one lambda: no grid search
-    best_idx = 1;
+    best_c_idx = 1;
 end
 
 %% Train classifier on the full training data (using the best lambda)
-c = cfg.c(best_idx);
+c = cfg.c(best_c_idx);
 
 % Solve the dual problem and obtain alpha
 alpha = DualCoordinateDescent(Q_cl, c, ONE, cfg.tolerance, cfg.shrinkage_multiplier);
