@@ -1,9 +1,11 @@
 # MVPA-Light
 Light-weight Matlab toolbox for multivariate pattern analysis (MVPA)
 
+<!--
 ### News
 
 * (31-01-2018) Going multi-class: added [multi-class LDA](classifier/train_multiclass_lda.m) and [confusion matrix](utils/mv_calculate_performance.m) as classifier performance metric
+-->
 
 ### Table of contents
 1. [Installation](#installation)
