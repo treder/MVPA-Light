@@ -85,5 +85,5 @@ acc_discriminable = mean( acc(can_discriminate));
 acc_nondiscriminable = mean( acc(setdiff(1:ntime,can_discriminate)));
 
 tol = 0.03;
-print_unittest_result('[4 classes] CV difference between (non-)/discriminable times', 0.25, acc_discriminable-acc_nondiscriminable, tol);
+print_unittest_result('[4 classes] CV difference between (non-)/discriminable times', 0.75, acc_discriminable-acc_nondiscriminable, tol);
 

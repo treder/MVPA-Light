@@ -7,7 +7,8 @@ tol = 10e-10;
 mf = mfilename;
 
 % Random data
-X = randn(1000,100);
+nfeatures = 100;
+X = randn(1000, nfeatures);
 clabel = randi(2, size(X,1),1);
 
 %% check "scale" parameter: if scale = 1, training data should be scaled such that mean(class1)=1 and mean(class2)=-1
