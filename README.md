@@ -1,11 +1,10 @@
 # MVPA-Light
 Light-weight Matlab toolbox for multivariate pattern analysis (MVPA)
 
-<!--
 ### News
 
-* (31-01-2018) Going multi-class: added [multi-class LDA](classifier/train_multiclass_lda.m) and [confusion matrix](utils/mv_calculate_performance.m) as classifier performance metric
--->
+* (Feb 2019) added [kernel Fisher Discriminant Analysis](classifier/train_kernel_fda.m)
+* (Jan 2018) Going multi-class: added [multi-class LDA](classifier/train_multiclass_lda.m) and [confusion matrix](utils/mv_calculate_performance.m) as classifier performance metric
 
 ### Table of contents
 1. [Installation](#installation)
@@ -62,6 +61,8 @@ Classifier performance is evaluated on a dataset called *test data*. To this end
 #### Multi-class classifiers (two or more classes)
 
 * [`multiclass_lda`](classifier/train_multiclass_lda.m) : Regularised Multi-class Linear Discriminant Analysis (LDA). The data is first projected onto a (C-1)-dimensional discriminative subspace, where C is the number of classes. A new sample is assigned to the class with the closest centroid in this subspace. See [`train_multiclass_lda`](classifier/train_multiclass_lda.m) for a full description of the parameters.
+
+* [`kernel_fda`](classifier/train_kernel_fda.m) : Regularised [kernel Fisher Discriminant Analysis (KFDA)](https://en.wikipedia.org/wiki/Kernel_Fisher_discriminant_analysis). This is the kernelized version of LDA. By setting the `.kernel` parameter (e.g. to 'polynomial' or 'rbf'), non-linear classifiers can be trained. See [`train_kernel_fda`](classifier/train_kernel_fda.m) for a full description of the parameters.
 
 #### Cross-validation
 
