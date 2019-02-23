@@ -1,7 +1,7 @@
 function cf = train_kernel_fda(cfg,X,clabel)
 % Trains a kernel Fisher Discriminant Analysis (KFDA). Works with an
-% arbitrary number of classes. For a linear kernel, LDA (for two classes)
-% or multi-class LDA can be used equivalently.
+% arbitrary number of classes. For a linear kernel, it is equivalent to
+% LDA (for two classes) or multi-class LDA.
 %
 % Usage:
 % cf = train_kernel_fda(cfg,X,clabel)
@@ -23,7 +23,7 @@ function cf = train_kernel_fda(cfg,X,clabel)
 %                  (default 'shrink')
 % .lambda        - if reg='shrink', the regularisation parameter ranges 
 %                  from 0 to 1 (where 0=no regularisation and 1=maximum
-%                  regularisation).
+%                  regularisation). (default 10^-5)
 % .kernel        - kernel function:
 %                  'linear'     - linear kernel ker(x,y) = x' y
 %                  'rbf'        - radial basis function or Gaussian kernel
