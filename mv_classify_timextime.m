@@ -25,6 +25,8 @@ function [perf, result, testlabel] = mv_classify_timextime(cfg, X, clabel, X2, c
 %                 mv_classifier_performance. If set to [] or 'none', the 
 %                 raw classifier output (labels, dvals or probabilities 
 %                 depending on cfg.output_type) for each sample is returned. 
+%                 Use cell array to specify multiple metrics (eg
+%                 {'accuracy' 'auc'}
 % .time1        - indices of training time points (by default all time
 %                 points in X are used)
 % .time2        - indices of test time points (by default all time points
@@ -69,13 +71,13 @@ function [perf, result, testlabel] = mv_classify_timextime(cfg, X, clabel, X2, c
 %                 repetitions, and t is the number of training time points.
 %                 Each cell contains [n x t2] elements, where n is the
 %                 number of test samples and t2 is the number of test time
-%                 points.
+%                 points. If multiple metrics are requested, perf is a cell array
 % result        - struct with fields describing the classification result.
 %                 Can be used as input to mv_statistics and mv_plot_result
 % testlabel     - [r x k] cell array of test labels. Can be useful if
 %                 metric='none'
 
-% (c) Matthias Treder 2017-18
+% (c) Matthias Treder
 
 X = double(X);
 if nargin > 3
@@ -111,6 +113,11 @@ if any(ismember({'dval','auc','roc','tval'},cfg.metric))
 else
     mv_set_default(cfg,'output_type','clabel');
 end
+
+if ~iscell(cfg.metric)
+    cfg.metric = {cfg.metric};
+end
+nmetrics = numel(cfg.metric);
 
 % Balance the data using oversampling or undersampling
 mv_set_default(cfg,'balance','none');
@@ -316,15 +323,35 @@ elseif strcmp(cfg.cv,'none')
 
 end
 
-if isempty(cfg.metric) || strcmp(cfg.metric,'none')
-    if cfg.feedback, fprintf('No performance metric requested, returning raw classifier output.\n'), end
-    perf = cf_output;
-    perf_std = [];
-else
-    if cfg.feedback, fprintf('Calculating classifier performance... '), end
-    [perf, perf_std] = mv_calculate_performance(cfg.metric, cfg.output_type, cf_output, testlabel, avdim);
-    if cfg.feedback, fprintf('finished\n'), end
+%% Calculate performance metrics
+if cfg.feedback, fprintf('Calculating performance metrics... '), end
+perf = cell(nmetrics, 1);
+perf_std = cell(nmetrics, 1);
+for mm=1:nmetrics
+    if strcmp(cfg.metric{mm},'none')
+        perf{mm} = cf_output;
+        perf_std{mm} = [];
+    else
+        [perf{mm}, perf_std{mm}] = mv_calculate_performance(cfg.metric{mm}, cfg.output_type, cf_output, testlabel, avdim);
+    end
 end
+if cfg.feedback, fprintf('finished\n'), end
+
+if nmetrics==1
+    perf = perf{1};
+    perf_std = perf_std{1};
+    cfg.metric = cfg.metric{1};
+end
+
+% if isempty(cfg.metric) || strcmp(cfg.metric,'none')
+%     if cfg.feedback, fprintf('No performance metric requested, returning raw classifier output.\n'), end
+%     perf = cf_output;
+%     perf_std = [];
+% else
+%     if cfg.feedback, fprintf('Calculating classifier performance... '), end
+%     [perf, perf_std] = mv_calculate_performance(cfg.metric, cfg.output_type, cf_output, testlabel, avdim);
+%     if cfg.feedback, fprintf('finished\n'), end
+% end
 
 result = [];
 if nargout>1
