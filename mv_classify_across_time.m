@@ -20,6 +20,8 @@ function [perf, result, testlabel] = mv_classify_across_time(cfg, X, clabel)
 %                 mv_classifier_performance. If set to [] or 'none', the 
 %                 raw classifier output (labels, dvals or probabilities 
 %                 depending on cfg.output_type) for each sample is returned. 
+%                 Use cell array to specify multiple metrics (eg
+%                 {'accuracy' 'auc'}
 % .time         - indices of time points (by default all time
 %                 points in X are used)
 % .balance      - for imbalanced data with a minority and a majority class.
@@ -59,7 +61,8 @@ function [perf, result, testlabel] = mv_classify_across_time(cfg, X, clabel)
 %                 metric='none', perf is a [r x k x t] cell array of
 %                 classifier outputs, where each cell corresponds to a test
 %                 set, k is the number of folds, r is the number of 
-%                 repetitions, and t is the number of time points
+%                 repetitions, and t is the number of time points. If
+%                 multiple metrics are requested, perf is a cell array
 % result        - struct with fields describing the classification result.
 %                 Can be used as input to mv_statistics and mv_plot_result
 % testlabel     - [r x k] cell array of test labels. Can be useful if
@@ -67,7 +70,7 @@ function [perf, result, testlabel] = mv_classify_across_time(cfg, X, clabel)
 %
 % Note: For time x time generalisation, use mv_classify_timextime
 
-% (c) Matthias Treder 2017-18
+% (c) Matthias Treder
 
 X = double(X);
 
@@ -96,6 +99,11 @@ else
     mv_set_default(cfg,'output_type','clabel');
 end
 
+if ~iscell(cfg.metric)
+    cfg.metric = {cfg.metric};
+end
+nmetrics = numel(cfg.metric);
+
 % Balance the data using oversampling or undersampling
 mv_set_default(cfg,'balance','none');
 mv_set_default(cfg,'replace',1);
@@ -106,7 +114,7 @@ cfg.param = mv_get_classifier_param(cfg.classifier, cfg.param);
 [clabel, nclasses] = mv_check_clabel(clabel);
 mv_check_cfg(cfg);
 
-nTime = numel(cfg.time);
+ntime = numel(cfg.time);
 
 % Number of samples in the classes
 n = arrayfun( @(c) sum(clabel==c) , 1:nclasses);
@@ -128,7 +136,7 @@ if ~strcmp(cfg.cv,'none')
     if cfg.feedback, mv_print_classification_info(cfg,X,clabel); end
 
     % Initialise classifier outputs
-    cf_output = cell(cfg.repeat, cfg.k, nTime);
+    cf_output = cell(cfg.repeat, cfg.k, ntime);
     testlabel = cell(cfg.repeat, cfg.k);
 
     for rr=1:cfg.repeat                 % ---- CV repetitions ----
@@ -170,7 +178,7 @@ if ~strcmp(cfg.cv,'none')
                 [Xtrain,trainlabel] = mv_balance_classes(Xtrain,trainlabel,cfg.balance,cfg.replace);
             end
 
-            for tt=1:nTime           % ---- Train and test time ----
+            for tt=1:ntime           % ---- Train and test time ----
                 % Train and test data for time point tt
                 Xtrain_tt= squeeze(Xtrain(:,:,cfg.time(tt)));
                 Xtest= squeeze(X(CV.test(kk),:,cfg.time(tt)));
@@ -200,14 +208,14 @@ else
     end
 
     % Initialise classifier outputs
-    cf_output = nan(numel(clabel), nTime);
+    cf_output = nan(numel(clabel), ntime);
 
     % Rebalance data using under-/over-sampling if requested
     if ~strcmp(cfg.balance,'none')
         [X,clabel] = mv_balance_classes(X_orig,label_orig,cfg.balance,cfg.replace);
     end
 
-    for tt=1:nTime          % ---- Train and test time ----
+    for tt=1:ntime          % ---- Train and test time ----
         % Train and test data
         Xtraintest= squeeze(X(:,:,cfg.time(tt)));
 
@@ -222,15 +230,35 @@ else
     avdim = [];
 end
 
-if isempty(cfg.metric) || strcmp(cfg.metric,'none')
-    if cfg.feedback, fprintf('No performance metric requested, returning raw classifier output.\n'), end
-    perf = cf_output;
-    perf_std = [];
-else
-    if cfg.feedback, fprintf('Calculating classifier performance... '), end
-    [perf, perf_std] = mv_calculate_performance(cfg.metric, cfg.output_type, cf_output, testlabel, avdim);
-    if cfg.feedback, fprintf('finished\n'), end
+%% Calculate performance metrics
+if cfg.feedback, fprintf('Calculating performance metrics... '), end
+perf = cell(nmetrics, 1);
+perf_std = cell(nmetrics, 1);
+for mm=1:nmetrics
+    if strcmp(cfg.metric{mm},'none')
+        perf{mm} = cf_output;
+        perf_std{mm} = [];
+    else
+        [perf{mm}, perf_std{mm}] = mv_calculate_performance(cfg.metric{mm}, cfg.output_type, cf_output, testlabel, avdim);
+    end
 end
+if cfg.feedback, fprintf('finished\n'), end
+
+if nmetrics==1
+    perf = perf{1};
+    perf_std = perf_std{1};
+    cfg.metric = cfg.metric{1};
+end
+
+% if isempty(cfg.metric) || strcmp(cfg.metric{1},'none')
+%     if cfg.feedback, fprintf('No performance metric requested, returning raw classifier output.\n'), end
+%     perf = cf_output;
+%     perf_std = [];
+% else
+%     if cfg.feedback, fprintf('Calculating classifier performance... '), end
+%     [perf, perf_std] = mv_calculate_performance(cfg.metric, cfg.output_type, cf_output, testlabel, avdim);
+%     if cfg.feedback, fprintf('finished\n'), end
+% end
 
 result = [];
 if nargout>1

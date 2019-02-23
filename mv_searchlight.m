@@ -21,6 +21,8 @@ function [perf,result] = mv_searchlight(cfg, X, clabel)
 %                 mv_classifier_performance. If set to [] or 'none', the 
 %                 raw classifier output (labels, dvals or probabilities 
 %                 depending on cfg.output_type) for each sample is returned. 
+%                 Use cell array to specify multiple metrics (eg
+%                 {'accuracy' 'auc'}
 % .nb          - [features x features] matrix specifying which features
 %                are neighbours of each other.
 %                          - EITHER - 
@@ -70,6 +72,7 @@ function [perf,result] = mv_searchlight(cfg, X, clabel)
 % Returns:
 % perf          - [features x 1] vector of classifier performances 
 %                 corresponding to the selected metric
+%                 If multiple metrics are requested, perf is a cell array
 
 % (c) Matthias Treder
 

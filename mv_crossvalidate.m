@@ -24,6 +24,8 @@ function [perf, result, testlabel] = mv_crossvalidate(cfg, X, clabel)
 %                 mv_classifier_performance. If set to [] or 'none', the 
 %                 raw classifier output (labels, dvals or probabilities
 %                 depending on cfg.output_type) for each sample is returned. 
+%                 Use cell array to specify multiple metrics (eg
+%                 {'accuracy' 'auc'}
 % .balance      - for imbalanced data with a minority and a majority class.
 %                 'oversample' oversamples the minority class
 %                 'undersample' undersamples the minority class
@@ -61,7 +63,7 @@ function [perf, result, testlabel] = mv_crossvalidate(cfg, X, clabel)
 %                 metric. If metric='none', perf is a r x k cell array of
 %                 classifier outputs, where each cell corresponds to a test
 %                 set, k is the number of folds and r is the number of 
-%                 repetitions
+%                 repetitions. If multiple metrics are requested, perf is a cell array
 % result        - struct with fields describing the classification result.
 %                 Can be used as input to mv_statistics and mv_plot_result
 % testlabel     - r x k cell array of test labels. Can be useful if
@@ -69,7 +71,7 @@ function [perf, result, testlabel] = mv_crossvalidate(cfg, X, clabel)
 % 
 
 
-% (c) Matthias Treder 2017-18
+% (c) Matthias Treder
 
 X = double(X);
 
@@ -96,6 +98,11 @@ if any(ismember({'dval','auc','roc','tval'},cfg.metric))
 else
     mv_set_default(cfg,'output_type','clabel');
 end
+
+if ~iscell(cfg.metric)
+    cfg.metric = {cfg.metric};
+end
+nmetrics = numel(cfg.metric);
 
 % Balance the data using oversampling or undersampling
 mv_set_default(cfg,'balance','none');
@@ -204,15 +211,34 @@ else
     avdim = [];
 end
 
-if isempty(cfg.metric) || strcmp(cfg.metric,'none')
-    if cfg.feedback, fprintf('No performance metric requested, returning raw classifier output.\n'), end
-    perf = cf_output;
-    perf_std = [];
-else
-    if cfg.feedback, fprintf('Calculating classifier performance... '), end
-    [perf, perf_std] = mv_calculate_performance(cfg.metric, cfg.output_type, cf_output, testlabel, avdim);
-    if cfg.feedback, fprintf('finished\n'), end
+%% Calculate performance metrics
+if cfg.feedback, fprintf('Calculating performance metrics... '), end
+perf = cell(nmetrics, 1);
+perf_std = cell(nmetrics, 1);
+for mm=1:nmetrics
+    if strcmp(cfg.metric{mm},'none')
+        perf{mm} = cf_output;
+        perf_std{mm} = [];
+    else
+        [perf{mm}, perf_std{mm}] = mv_calculate_performance(cfg.metric{mm}, cfg.output_type, cf_output, testlabel, avdim);
+    end
 end
+if cfg.feedback, fprintf('finished\n'), end
+
+if nmetrics==1
+    perf = perf{1};
+    perf_std = perf_std{1};
+    cfg.metric = cfg.metric{1};
+end
+% if isempty(cfg.metric) || strcmp(cfg.metric,'none')
+%     if cfg.feedback, fprintf('No performance metric requested, returning raw classifier output.\n'), end
+%     perf = cf_output;
+%     perf_std = [];
+% else
+%     if cfg.feedback, fprintf('Calculating classifier performance... '), end
+%     [perf, perf_std] = mv_calculate_performance(cfg.metric, cfg.output_type, cf_output, testlabel, avdim);
+%     if cfg.feedback, fprintf('finished\n'), end
+% end
 
 result = [];
 if nargout>1
