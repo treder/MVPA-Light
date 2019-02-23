@@ -250,8 +250,8 @@ switch(metric)
     case 'confusion'
         %%% ---------- confusion matrix ---------
         
-        if ~isClassLabel
-            error('confusion matrix requires class labels as classifier output')
+        if ~strcmp(output_type,'clabel')
+            error('confusion matrix requires class labels as classifier output_type')
         end
         
         nclasses = max(max(max( vertcat(clabel{:}) )));
