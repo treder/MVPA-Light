@@ -14,6 +14,8 @@ function h = mv_plot_result(result, varargin)
 %                     results can be provided (e.g. results for different
 %                     subjects); in this case, all results need to be 
 %                     created with the same function using the same metric.
+%                     Plotting does not work if multiple metrics have been
+%                     used.
 %                     
 % Additional arguments can be provided as key-value parameters, e.g.
 % mv_plot_result(result,'title','This is my title'). See ADDITIONAL 
