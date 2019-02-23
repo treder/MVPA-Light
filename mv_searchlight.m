@@ -103,21 +103,26 @@ if cfg.average && ~ismatrix(X)
     X = mean(X,3);
 end
 
-[n, nFeat, ~] = size(X);
+if ~iscell(cfg.metric)
+    cfg.metric = {cfg.metric};
+end
+nmetrics = numel(cfg.metric);
+
+[n, nfeatures, ~] = size(X);
 
 [clabel, nclasses] = mv_check_clabel(clabel);
 mv_check_cfg(cfg);
 
-perf = cell(nFeat,1);
-perf_std = cell(nFeat,1);
+perf = cell(nfeatures,1);
+perf_std = cell(nfeatures,1);
 
 %% Find the neighbourhood of the requested size
 if isempty(cfg.nb)
     if cfg.feedback, fprintf('No neighbour matrix provided, considering each feature individually\n'), end
     % Do not include neighbours: each feature is only neighbour to itself
-    nb = eye(nFeat); 
+    nb = eye(nfeatures); 
 elseif numel(cfg.nb)==1 && cfg.nb == 0
-    nb = eye(nFeat); 
+    nb = eye(nfeatures); 
 else
     %%% Decide whether nb is a graph or a distance matrix
     if all(ismember([0,1],unique(cfg.nb))) % graph 
@@ -133,8 +138,8 @@ else
         % chan2 can still be a different channel. Therefore, the matrix nb
         % contains the information of closest neighbours in its rows. E.g.,
         % the row nb(i,:) gives the closest neighbours of the i-th channel
-        nb = zeros(nFeat);  % initialise as empty matrix
-        for nn=1:nFeat
+        nb = zeros(nfeatures);  % initialise as empty matrix
+        for nn=1:nfeatures
             [~,soidx] = sort(cfg.nb(nn,:),'ascend');
             % put 1's in the row corresponding to the nearest
             % neighbours
@@ -152,11 +157,11 @@ tmp_cfg.feedback = 0;
 rng_state = rng;
 
 %% Loop across features
-for ff=1:nFeat
+for ff=1:nfeatures
 
     % Identify neighbours: multiply a unit vector with 1 at the ff'th with
     % the nb matrix, this yields the neighbours of feature ff
-    u = [zeros(1,ff-1), 1, zeros(1,nFeat-ff)];
+    u = [zeros(1,ff-1), 1, zeros(1,nfeatures-ff)];
     neighbours = find( u * nb > 0);
     
     if cfg.feedback
@@ -181,8 +186,31 @@ for ff=1:nFeat
     
 end
 
-perf = cat(2,perf{:})';
-perf_std = cat(2,perf_std{:})';
+if nmetrics==1 
+    cfg.metric = cfg.metric{1};
+    if numel(perf{1})==1
+        % for a single univariate performance metric, 
+        % we can change the cell array into a vector
+        perf = [perf{:}]';
+        perf_std = [perf_std{:}]';
+    end
+else
+    tmp = cat(2,perf{:})';
+    tmp_std = cat(2,perf_std{:})';
+    perf = cell(nmetrics, 1);
+    perf_std = cell(nmetrics, 1);
+    for ii=1:nmetrics
+        % for each univariate performance metric, 
+        % we can change the cell array into a vector
+        if numel(tmp{1,ii})==1
+            perf{ii} = cell2mat(tmp(:,ii));
+            perf_std{ii} = cell2mat(tmp_std(:,ii));
+        else
+            perf{ii} = tmp(:,ii);
+            perf_std{ii} = tmp_std(:,ii);
+        end
+    end
+end
 
 result = [];
 if nargout>1
