@@ -142,11 +142,11 @@ if cfg.bias > 0
 end
 
 %% Check if hyperparmeters need to be tuned
+has_kernel_matrix = ~isempty(cfg.kernel_matrix);
 
 % need to tune hyperparameters?
 tune_hyperparameters = {};
-if isempty(cfg.kernel_matrix)
-    has_kernel_matrix = 0;
+if ~has_kernel_matrix
 
     tmp = {};
     switch(cfg.kernel)
