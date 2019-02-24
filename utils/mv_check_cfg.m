@@ -30,8 +30,8 @@ incompatible_metrics = { 'confusion' {'auc' 'tval' 'dval'};
 
 idx = find(ismember(incompatible_metrics(:,1), cfg.metric));
 
-if any(idx)
-    error('The metric %s cannot be used together with %s', incompatible_metrics{idx(1),1}, strjoin(incompatible_metrics{idx(1),2}))
+if any(idx) && any(ismember(incompatible_metrics{idx,2}, cfg.metric))
+    error('The metric ''%s'' cannot be calculated together with metrics %s', incompatible_metrics{idx,1}, strjoin(incompatible_metrics{idx,2}))
 end
 
 %% check whether classifier and metric are compatible (eg 'auc' does not work for multiclass_lda)
