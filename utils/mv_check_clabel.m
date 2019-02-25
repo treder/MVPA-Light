@@ -7,3 +7,7 @@ nclasses = max(clabel);
 if ~all(ismember(clabel,1:nclasses))
     error('Class labels must consist of integers 1 (class 1), 2 (class 2), 3 (class 3) and so on')
 end
+
+if numel(unique(clabel))==1
+    error('Only one class specified. Class labels must contain at least 2 classes')
+end
