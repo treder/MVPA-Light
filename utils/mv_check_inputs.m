@@ -1,7 +1,25 @@
-function mv_check_cfg(cfg)
-% Performs some sanity checks on cfg 
+function [clabel, nclasses] = mv_check_inputs(cfg, X, clabel)
+% Performs some sanity checks on input parameters cfg, X, and y
 
-%% Check whether all parameters are written in lowercase
+%% clabel: check class labels
+clabel = clabel(:);
+nclasses = max(clabel);
+
+if ~all(ismember(clabel,1:nclasses))
+    error('Class labels must consist of integers 1 (class 1), 2 (class 2), 3 (class 3) and so on')
+end
+
+if numel(unique(clabel))==1
+    error('Only one class specified. Class labels must contain at least 2 classes')
+end
+
+%% clabel and cfg: check whether there's more than 2 classes but yet a binary classifier is used
+binary_classifiers = {'lda' 'logreg' 'svm'};
+if nclasses > 2 && ismember(cfg.classifier, binary_classifiers)
+    error('Cannot use %s for a classification task with %d classes: use a multiclass classifier instead', upper(cfg.classifier), nclasses)
+end
+
+%% cfg: check whether all parameters are written in lowercase
 
 fn = fieldnames(cfg);
 
@@ -22,7 +40,7 @@ if isfield(cfg,'param') && isstruct(cfg.param)
     end
 end
 
-%% check whether different metrics are compatible with each other 
+%% cfg: check whether different metrics are compatible with each other 
 % eg 'confusion' does not work with 'tval' because the former requires
 % class labels as ouput whereas the latter requires dvals
 incompatible_metrics = { 'confusion' {'auc' 'tval' 'dval'};
@@ -34,14 +52,20 @@ if any(idx) && any(ismember(incompatible_metrics{idx,2}, cfg.metric))
     error('The metric ''%s'' cannot be calculated together with metrics %s', incompatible_metrics{idx,1}, strjoin(incompatible_metrics{idx,2}))
 end
 
-%% check whether classifier and metric are compatible (eg 'auc' does not work for multiclass_lda)
+%% cfg: check whether classifier and metric are compatible (eg 'auc' does not work for multiclass_lda)
 
 % Combinations of classifier and metrics that do not work together
-classifier_metric = { 'multiclass_lda' {'auc' 'tval' 'dval'};
-                      'kernel_fda'     {'auc' 'tval' 'dval'};
+classifier_metric = { 'multiclass_lda' {'auc' 'tval' 'dval' 'binomial'};
+                      'kernel_fda'     {'auc' 'tval' 'dval' 'binomial'};
     };
 
 idx = find(ismember(classifier_metric(:,1), cfg.classifier));
 if any(idx) && any(ismember(classifier_metric{idx,2}, cfg.metric))
     error('The following metrics cannot be used with %s: %s', cfg.classifier, strjoin(classifier_metric{idx,2}))
 end
+
+%% X and clabel: check whether the number of instances matches the number of class labels
+if numel(clabel) ~= size(X,1)
+    error('Number of class labels (%d) does not match number of instances (%d) in data', numel(clabel), size(X,1))
+end
+
