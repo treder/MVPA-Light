@@ -21,6 +21,10 @@ if d < tol      % --- PASS ---
     fprintf('%s < %d', result, tol)
     fprintf('\tPASS\n')
     pass = 1;
+elseif isnan(expect) && isnan(actual) % --- PASS ---
+    fprintf('%s (both NaN)', result)
+    fprintf('\tPASS\n')
+    pass = 1;
 else            % --- FAIL ---
     fprintf('%s > %d', result, tol)
     fprintf('\t[\b---- FAIL ----]\b\n')
