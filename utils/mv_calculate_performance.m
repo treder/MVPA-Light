@@ -21,7 +21,9 @@ function [perf, perf_std] = mv_calculate_performance(metric, output_type, cf_out
 %                     distribution of dvals for two classes
 %                     'auc': area under the ROC curve
 %                     'confusion': confusion matrix (needs class labels) as
-%                     classifier output
+%                     classifier output. Note that the true labels are the
+%                     columns and the predicted labels are the rows
+%                     (sometimes it's the other way round)
 % output_type       - type of classifier ('clabel', 'dval', or 'prob'). See
 %                     mv_get_classifier_output for details
 % cf_output         - vector of classifier outputs (labels or dvals). If
@@ -58,11 +60,17 @@ function [perf, perf_std] = mv_calculate_performance(metric, output_type, cf_out
 % mv_classify_timextime. But then all other dimensions need to have the
 % same size.
 %
+%Reference: 
+% For the multi-class generalisation of the metrics the definitions
+% in this paper are followed:
+% Sokolova, M., & Lapalme, G. (2009). A systematic analysis of performance 
+% measures for classification tasks. Information Processing & Management, 
+% 45(4), 427–437. https://doi.org/10.1016/J.IPM.2009.03.002
+%
 %Returns:
 % perf     - performance metric
 % perf_std - standard deviation of the performance metric across folds 
-%            and repetitions, indicating the 
-%            variability of the metric.
+%            and repetitions, indicating the variability of the metric.
 
 % (c) Matthias Treder 2017
 
@@ -73,14 +81,14 @@ end
 if ~iscell(cf_output), cf_output={cf_output}; end
 if ~iscell(clabel), clabel={clabel}; end
 
-% Check the size of the cf_output and clabel. nExtra keeps the number of
+% Check the size of the cf_output and clabel. nextra keeps the number of
 % elements in the extra dimensions if ndims(cf_output) > ndims(clabel). For
 % instance, if we classify across time, cf_output is [repeats x folds x time]
 % and clabel is [repeats x folds] so we have 1 extra dimension (time).
 sz_cf_output = size(cf_output);
-nExtra = prod(sz_cf_output(ndims(clabel)+1:end));
+nextra = prod(sz_cf_output(ndims(clabel)+1:end));
 % dimSkipToken helps us looping across the extra dimensions
-dimSkipToken = repmat({':'},[1, ndims(clabel)]);
+dim_skip_token = repmat({':'},[1, ndims(clabel)]);
 
 % For some metrics dvals or probabilities are required
 if strcmp(output_type,'clabel') && any(strcmp(metric,{'dval' 'roc' 'auc'}))
@@ -124,9 +132,9 @@ switch(metric)
         end
         
         % Looping across the extra dimensions if cf_output is multi-dimensional
-        for xx=1:nExtra
+        for xx=1:nextra
             % Use cellfun to apply the function defined above to each cell
-            perf(dimSkipToken{:},xx) = cellfun(fun, cf_output(dimSkipToken{:},xx), clabel, 'Un', 0);
+            perf(dim_skip_token{:},xx) = cellfun(fun, cf_output(dim_skip_token{:},xx), clabel, 'Un', 0);
         end
         
     case 'dval'
@@ -135,13 +143,13 @@ switch(metric)
         perf = cell([sz_cf_output,2]);
         
         % Aggregate across samples, for each class separately
-        if nExtra == 1
-            perf(dimSkipToken{:},1) = cellfun( @(cfo,lab) nanmean(cfo(lab==1,:,:,:,:,:),1), cf_output, clabel, 'Un',0);
-            perf(dimSkipToken{:},2) = cellfun( @(cfo,lab) nanmean(cfo(lab==2,:,:,:,:,:),1), cf_output, clabel, 'Un',0);
+        if nextra == 1
+            perf(dim_skip_token{:},1) = cellfun( @(cfo,lab) nanmean(cfo(lab==1,:,:,:,:,:),1), cf_output, clabel, 'Un',0);
+            perf(dim_skip_token{:},2) = cellfun( @(cfo,lab) nanmean(cfo(lab==2,:,:,:,:,:),1), cf_output, clabel, 'Un',0);
         else
-            for xx=1:nExtra % Looping across the extra dimensions if cf_output is multi-dimensional
-                perf(dimSkipToken{:},xx,1) = cellfun( @(cfo,lab) nanmean(cfo(lab==1,:,:,:,:,:),1), cf_output(dimSkipToken{:},xx), clabel, 'Un',0);
-                perf(dimSkipToken{:},xx,2) = cellfun( @(cfo,lab) nanmean(cfo(lab==2,:,:,:,:,:),1), cf_output(dimSkipToken{:},xx), clabel, 'Un',0);
+            for xx=1:nextra % Looping across the extra dimensions if cf_output is multi-dimensional
+                perf(dim_skip_token{:},xx,1) = cellfun( @(cfo,lab) nanmean(cfo(lab==1,:,:,:,:,:),1), cf_output(dim_skip_token{:},xx), clabel, 'Un',0);
+                perf(dim_skip_token{:},xx,2) = cellfun( @(cfo,lab) nanmean(cfo(lab==2,:,:,:,:,:),1), cf_output(dim_skip_token{:},xx), clabel, 'Un',0);
             end
         end
         
@@ -152,7 +160,7 @@ switch(metric)
         perf = cell(sz_cf_output);
         
          % Aggregate across samples, for each class separately
-        if nExtra == 1
+        if nextra == 1
             % Get means
             M1 = cellfun( @(cfo,lab) nanmean(cfo(lab==1,:,:,:,:,:),1), cf_output, clabel, 'Un',0);
             M2 = cellfun( @(cfo,lab) nanmean(cfo(lab==2,:,:,:,:,:),1), cf_output, clabel, 'Un',0);
@@ -167,20 +175,20 @@ switch(metric)
             % T-value
             perf = cellfun( @(m1,m2,n1,n2,sp) (m1-m2)/(sp*sqrt(1/n1 + 1/n2)) , M1,M2,N1,N2,SP,'Un',0);
         else
-            for xx=1:nExtra % Looping across the extra dimensions if cf_output is multi-dimensional
+            for xx=1:nextra % Looping across the extra dimensions if cf_output is multi-dimensional
                 % Get means
-                M1 = cellfun( @(cfo,lab) nanmean(cfo(lab==1,:,:,:,:,:),1), cf_output(dimSkipToken{:},xx), clabel, 'Un',0);
-                M2 = cellfun( @(cfo,lab) nanmean(cfo(lab==2,:,:,:,:,:),1), cf_output(dimSkipToken{:},xx), clabel, 'Un',0);
+                M1 = cellfun( @(cfo,lab) nanmean(cfo(lab==1,:,:,:,:,:),1), cf_output(dim_skip_token{:},xx), clabel, 'Un',0);
+                M2 = cellfun( @(cfo,lab) nanmean(cfo(lab==2,:,:,:,:,:),1), cf_output(dim_skip_token{:},xx), clabel, 'Un',0);
                 % Variances
-                V1 = cellfun( @(cfo,lab) nanvar(cfo(lab==1,:,:,:,:,:)), cf_output(dimSkipToken{:},xx), clabel, 'Un',0);
-                V2 = cellfun( @(cfo,lab) nanvar(cfo(lab==2,:,:,:,:,:)), cf_output(dimSkipToken{:},xx), clabel, 'Un',0);
+                V1 = cellfun( @(cfo,lab) nanvar(cfo(lab==1,:,:,:,:,:)), cf_output(dim_skip_token{:},xx), clabel, 'Un',0);
+                V2 = cellfun( @(cfo,lab) nanvar(cfo(lab==2,:,:,:,:,:)), cf_output(dim_skip_token{:},xx), clabel, 'Un',0);
                 % Class frequencies
                 N1 = cellfun( @(lab) sum(lab==1), clabel, 'Un',0);
                 N2 = cellfun( @(lab) sum(lab==2), clabel, 'Un',0);
                 % Pooled standard deviation
                 SP = cellfun( @(v1,v2,n1,n2) sqrt( ((n1-1)*v1 + (n2-1)*v2) / (n1+n2-2)  ), V1,V2,N1,N2, 'Un',0);
                 % T-value
-                perf(dimSkipToken{:},xx) = cellfun( @(m1,m2,n1,n2,sp) (m1-m2)./(sp.*sqrt(1/n1 + 1/n2)) , M1,M2,N1,N2,SP,'Un',0);
+                perf(dim_skip_token{:},xx) = cellfun( @(m1,m2,n1,n2,sp) (m1-m2)./(sp.*sqrt(1/n1 + 1/n2)) , M1,M2,N1,N2,SP,'Un',0);
             end
         end
         
@@ -230,11 +238,11 @@ switch(metric)
         % arrsum repeats gtfun for each sample in matrix c corresponding to
         % class 1. The counts are then summed across the class 1 samples
         arrsum =  @(c,n1) sum(cell2mat(   arrayfun(@(ii) gtfun(c(ii,:,:,:),c(n1+1:end,:,:,:)), 1:n1,'Un',0)'    ) );
-        for xx=1:nExtra
+        for xx=1:nextra
             % Sort decision values using the indices of the sorted labels.
             % Add a bunch of :'s to make sure that we preserve the other
             % (possible) dimensions
-            cf_so = cellfun(@(c,so) c(so,:,:,:,:,:) , cf_output(dimSkipToken{:},xx), soidx, 'Un',0);
+            cf_so = cellfun(@(c,so) c(so,:,:,:,:,:) , cf_output(dim_skip_token{:},xx), soidx, 'Un',0);
             % Use cellfun to perform the following operation within each
             % cell:
             % For each class 1 sample, we count how many class 2 exemplars
@@ -244,7 +252,7 @@ switch(metric)
             % (n1*n2) gives the AUC.
             % We do this by applying the above-defined arrsum to every cell
             % in cf_output and then normalising by (n1*n2)
-            perf(dimSkipToken{:},xx) = cellfun(@(c,n1,n2) arrsum(c,n1)/(n1*n2), cf_so, N1,N2, 'Un',0);
+            perf(dim_skip_token{:},xx) = cellfun(@(c,n1,n2) arrsum(c,n1)/(n1*n2), cf_so, N1,N2, 'Un',0);
         end
         
     case 'confusion'
@@ -257,15 +265,36 @@ switch(metric)
         nclasses = max(max(max( vertcat(clabel{:}) )));
 %         perf = cell([sz_cf_output,nclasses,nclasses]);
 
-        perf = calculate_confusion_matrix;
+        perf = calculate_confusion_matrix(1);
      
         
     case 'precision'
         %%% ---------- precision ---------
 
         nclasses = max(max(max( vertcat(clabel{:}) )));
-        conf = calculate_confusion_matrix;
 
+        perf = calculate_precision(calculate_confusion_matrix(0));
+
+    case 'recall'
+        %%% ---------- recall ---------
+
+        nclasses = max(max(max( vertcat(clabel{:}) )));
+        
+        perf = calculate_recall(calculate_confusion_matrix(0));
+
+    case 'f1'
+        %%% ---------- F1 score ---------
+        
+        nclasses = max(max(max( vertcat(clabel{:}) )));
+        
+        % F1 is a weighted average between precision and recall, hence we
+        % need to calculate them first
+        conf = calculate_confusion_matrix(0);
+        precision = calculate_precision(conf);
+        recall = calculate_recall(conf);
+        
+        % F1 =  2*(Precision*Recall ) / (Precision + Recall)
+        perf = cellfun( @(p, r) 2* (p*r) ./ (p+r) , precision, recall, 'Un', 0);
         
     otherwise, error('Unknown metric: %s',cfg.metric)
 end
@@ -293,25 +322,41 @@ end
 perf = cell2mat(perf);
 perf_std = [];
 
-%% Average the performance metric 
+%% Summarise the performance metric 
 
-% Average across requested dimensions
+% Calculate STANDARD ERROR OF THE METRIC [use unweighted averages here] of the
+% performance across all dimensions of dim. Typically dim will refer to 
+% folds and repetitions. To this end, we first make sure that the
+% dimensions are the first dimensions
+tmp = permute(perf, [dim, setdiff(1:ndims(perf), dim)]);
+% Then we reshape the array so that we have all of the dim dimensions as 
+% concatenated in the first dimension. Finally, we can calculated the std
+% in this dimension
+sz = size(tmp);
+if ndims(perf) == numel(dim)
+    % there is no additional dimensions, so we can just vectorise tmp
+    tmp = tmp(:);
+else
+    tmp = reshape(tmp, [prod(sz(dim)), sz(setdiff(1:ndims(tmp),dim)) ]);
+end
+perf_std = nanstd(tmp, [], 1);
+
+% Calculate MEAN OF THE METRIC across requested dimensions
 for nn=1:numel(dim)
-
-    % Calculate standard error [use unweighted averages here]
-    if nn==1
-        if size(perf, dim(nn)) == 1 && numel(dim)>1
-            % dimension dim(nn) has size = 1, so there is no std here. We
-            % must then take the std over the other dimension
-            % second dimension. This can happen when there is only 1
-            % repetition.
-            perf_std = nanstd(perf, [], dim(nn+1));
-        else
-            perf_std = nanstd(perf, [], dim(nn));
-        end
-    else
-        perf_std = mean(perf_std, dim(nn));
-    end
+    
+%     if nn==1
+%         if size(perf, dim(nn)) == 1 && numel(dim)>1
+%             % dimension dim(nn) has size = 1, so there is no std here. We
+%             % must then take the std over the other dimension
+%             % second dimension. This can happen when there is only 1
+%             % repetition.
+%             perf_std = nanstd(perf, [], dim(nn+1));
+%         else
+%             perf_std = nanstd(perf, [], dim(nn));
+%         end
+%     else
+%         perf_std = mean(perf_std, dim(nn));
+%     end
     
     % For averaging, use a WEIGHTED mean: Since some test sets may have
     % more samples than others (since the number of data points is not
@@ -344,7 +389,11 @@ perf_std = squeeze(perf_std);
 
 
     %% ---- Helper functions ----
-    function conf = calculate_confusion_matrix()
+    function conf = calculate_confusion_matrix(normalise)
+        % calculates the confusion matrix. if normalise = 1, the absolute
+        % counts are normalised to fractions by dividing each row by the
+        % row total
+        
         conf = cell(sz_cf_output);
 
         % Must compare each class with each other class, therefore create
@@ -352,9 +401,9 @@ perf_std = squeeze(perf_std);
         comb = combvec(1:nclasses,1:nclasses);
         
         % The confusion matrix is a nclasses x nclasses matrix where each
-        % row corresponds to the label predicted by the classifier and each 
-        % column corresponds to the true label. The (i,j)-th element of the
-        % matrix specifies how often class j has been classified as class i
+        % row corresponds to the true label and each column corresponds to 
+        % the label predicted by the classifier . The (i,j)-th element of the
+        % matrix specifies how often class i has been classified as class j
         % by the classifier. The diagonal of the matrix contains the 
         % correctly classified cases, all off-diagonal elements are
         % misclassifications.
@@ -363,19 +412,19 @@ perf_std = squeeze(perf_std);
         % complicated so let's unpack it step-by-step, starting from the
         % inner brackets and working our way towards the outer brackets:
         % - To get the (ii,jj) element of the matrix, we compare how often
-        %   the predicted label (cfo) is equal to ii while at the same time 
-        %   the true label (lab) is equal to jj. This is then summed. The 
+        %   the true label (lab) is equal to ii while at the same time the 
+        %   predicted label (cfo) is equal to jj. This is then summed. The 
         %   code in the sum(...) function accomplishes this
         % - arrayfun(...) executes the sum function for every combination 
         %   of classes 
         % - reshape(...) turns the vector returned by arrayfun into a 
         %   [nclasses x nclasses] cell matrix
-        confusion_fun = @(cfo,lab) reshape( arrayfun( @(ii,jj) sum(cfo==ii & lab==jj),comb(1,:),comb(2,:),'Un',0), nclasses, nclasses, []);
+        confusion_fun = @(lab,cfo) reshape( arrayfun( @(ii,jj) sum(lab==ii & cfo==jj),comb(1,:),comb(2,:),'Un',0), nclasses, nclasses, []);
         
         % Looping across the extra dimensions if cf_output is multi-dimensional
-        for xx=1:nExtra
+        for xx=1:nextra
             % Use cellfun to apply the function defined above to each cell
-            tmp = cellfun(confusion_fun, cf_output(dimSkipToken{:},xx), clabel, 'Un', 0);
+            tmp = cellfun(confusion_fun, clabel, cf_output(dim_skip_token{:},xx), 'Un', 0);
             
             % We're almost done. We just need to transform the cell
             % matrices contained in each cell of tmp into ordinary
@@ -388,29 +437,72 @@ perf_std = squeeze(perf_std);
             % Now we're ready to transform each cell of tmp into a matrix 
             tmp = cellfun( @cell2mat, tmp, 'Un',0);
             
-            % confusion_fun gives us the absolute counts 
-            % for each combination of classes. 
-            % It is useful to normalise the confusion matrix such that the
-            % cells represent proportions instead of absolute counts. To 
-            % this end, each c-th column is divided by the number of
-            % samples in that column. As a result every column sums to 1.
-            nor = cellfun( @(lab) 1./repmat(sum(lab,1), [nclasses,1]), tmp, 'Un',0);
-            tmp = cellfun( @(lab,nor) lab .* nor, tmp, nor, 'Un', 0);
-            
-            % We get a pathological situation when one fold does not 
-            % contain any trials of a particular class (nor gets Inf). It's
-            % unclear how to deal with this situation because averaging
-            % the confusion matrix across folds does not make so much sense 
-            % any more. A perhaps reasonable fix is to set this column to
-            % 0. 
-            for c=1:numel(tmp)
-                tmp{c}(isinf(tmp{c})) = 0;
+            if normalise 
+                % confusion_fun gives us the absolute counts 
+                % for each combination of classes. 
+                % It is useful to normalise the confusion matrix such that the
+                % cells represent proportions instead of absolute counts. To 
+                % this end, each row is divided by the number of
+                % samples in that row. As a result every row sums to 1.
+                nor = cellfun( @(lab) 1./repmat(sum(lab,2), [1,nclasses]), tmp, 'Un',0);
+                tmp = cellfun( @(lab,nor) lab .* nor, tmp, nor, 'Un', 0);
+
+                % We get a pathological situation when one fold does not 
+                % contain any trials of a particular class (nor gets Inf). It's
+                % unclear how to deal with this situation because averaging
+                % the confusion matrix across folds does not make so much sense 
+                % any more. A perhaps reasonable fix is to set this column to
+                % 0. 
+                for c=1:numel(tmp)
+                    tmp{c}(isinf(tmp{c})) = 0;
+                end
             end
-            
-            conf(dimSkipToken{:},xx) = tmp;
+
+            conf(dim_skip_token{:},xx) = tmp;
         end
     end
 
+    function precision = calculate_precision(conf)
+        precision = cell(sz_cf_output);
+        if nclasses==2
+            % for two classes we use the standard formula TP / (TP + FP)
+            for xx=1:nextra % Looping across the extra dimensions if cf_output is multi-dimensional
+                precision(dim_skip_token{:},xx) = cellfun( @(c) c(1,1,:,:)./(c(1,1,:,:)+c(2,1,:,:)), conf(dim_skip_token{:},xx), 'Un',0);
+            end
+        else
+            % for more than two classes, we use the generalisation from
+            % Sokolava and Lapalme (2009) precision_i = c_ii / (sum_j c_ji) 
+            % where c_ij = (i,j)-th entry of the unnormalised confusion matrix
+            if nextra==1
+                precision(dim_skip_token{:},:) = cellfun( @(c) diag(c)./sum(c,1)', conf(dim_skip_token{:},xx), 'Un',0);
+            else
+                for xx=1:nextra % Looping across the extra dimensions if cf_output is multi-dimensional
+                    precision(dim_skip_token{:},xx,:) = cellfun( @(c) diag(c)./sum(c,1)', conf(dim_skip_token{:},xx), 'Un',0);
+                end
+            end
+        end
+    end
 
+    function recall = calculate_recall(conf)
+        recall = cell(sz_cf_output);
+
+        if nclasses==2
+            % for two classes we use the standard formula TP / (TP + FN)
+            for xx=1:nextra % Looping across the extra dimensions if cf_output is multi-dimensional
+                recall(dim_skip_token{:},xx) = cellfun( @(c) c(1,1,:,:)./(c(1,1,:,:)+c(1,2,:,:)), conf(dim_skip_token{:},xx), 'Un',0);
+            end
+        else
+            % for more than two classes, we use the generalisation from
+            % Sokolava and Lapalme (2009) recall_i = c_ii / (sum_j c_ij) 
+            % where c_ij = (i,j)-th entry of the unnormalised confusion matrix
+            if nextra==1
+                recall(dim_skip_token{:},:) = cellfun( @(c) diag(c)./sum(c,2), conf(dim_skip_token{:},xx), 'Un',0);
+            else
+                for xx=1:nextra % Looping across the extra dimensions if cf_output is multi-dimensional
+                    recall(dim_skip_token{:},xx,:) = cellfun( @(c) diag(c)./sum(c,2), conf(dim_skip_token{:},xx), 'Un',0);
+                end
+            end
+        end
+    end
 end
 
