@@ -55,13 +55,33 @@ end
 %% cfg: check whether classifier and metric are compatible (eg 'auc' does not work for multiclass_lda)
 
 % Combinations of classifier and metrics that do not work together
-classifier_metric = { 'multiclass_lda' {'auc' 'tval' 'dval' 'binomial'};
-                      'kernel_fda'     {'auc' 'tval' 'dval' 'binomial'};
+classifier_metric = { 'multiclass_lda' {'auc' 'tval' 'dval'};
+                      'kernel_fda'     {'auc' 'tval' 'dval'};
     };
 
 idx = find(ismember(classifier_metric(:,1), cfg.classifier));
 if any(idx) && any(ismember(classifier_metric{idx,2}, cfg.metric))
     error('The following metrics cannot be used with %s: %s', cfg.classifier, strjoin(classifier_metric{idx,2}))
+end
+
+%% cfg: check whether metrics are compatible with output_type
+% eg 'confusion' does not work with 'tval' because the former requires
+% class labels as ouput whereas the latter requires dvals
+metric_outputtype = { 'auc'       {'dval' 'prob'};
+                      'dval'      {'dval' 'prob'};
+                      'tval'      {'dval' 'prob'};
+                      'confusion' 'clabel';
+                      'precision' 'clabel';
+                      'recall'    'clabel';
+                      'f1'        'clabel'
+                      };
+
+idx = find(ismember(metric_outputtype(:,1), cfg.metric));
+
+for ii=1:numel(idx)
+    if ~any(strcmp(metric_outputtype{idx(ii),2}, cfg.output_type))
+        error('The metric ''%s'' requires %s as output_type', metric_outputtype{idx(ii),1},metric_outputtype{idx(ii),2})
+    end
 end
 
 %% X and clabel: check whether the number of instances matches the number of class labels
