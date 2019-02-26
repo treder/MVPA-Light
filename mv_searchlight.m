@@ -110,8 +110,7 @@ nmetrics = numel(cfg.metric);
 
 [n, nfeatures, ~] = size(X);
 
-[clabel, nclasses] = mv_check_clabel(clabel);
-mv_check_cfg(cfg);
+[clabel, nclasses] = mv_check_inputs(cfg, X, clabel);
 
 perf = cell(nfeatures,1);
 perf_std = cell(nfeatures,1);
