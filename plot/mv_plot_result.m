@@ -68,12 +68,22 @@ function h = mv_plot_result(result, varargin)
 % RETURNS:
 % h        - struct with handles to the graphical elements 
 
-% (c) Matthias Treder 2017-2018
+% (c) matthias treder
 
 if ~iscell(result), result = {result}; end
 
+if iscell(result{1}.metric) && numel(result{1}.metric) > 1
+    warning('Multiple metrics provided, plotting the first metric')
+    for ii=1:numel(result)
+        result{ii}.metric = result{ii}.metric{1};
+        result{ii}.perf = result{ii}.perf{1};
+        result{ii}.perf_std = result{ii}.perf_std{1};
+    end
+end
+
 nResults = numel(result);
 metric = result{1}.metric;
+
 fun = result{1}.function;
 
 if numel(unique(cellfun( @(res) res.function, result,'Un',0))) > 1
@@ -153,9 +163,13 @@ switch(fun)
         end
         
         % Indicate SEM if the bars are not grouped
-        if any(strcmp(metric,{'auc' 'acc'}))
+        if any(strcmp(metric,{'auc' 'acc' 'accuracy' 'precision' 'recall' 'f1'}))
             hold on
-            errorbar(1:nResults+1,[perf, perf_mean]', [perf_std, perf_std_mean]','.')
+            if nResults == 1
+                errorbar(1:nResults,perf', perf_std','.')
+            else
+                errorbar(1:nResults+1,[perf, perf_mean]', [perf_std, perf_std_mean]','.')
+            end
         end
         
         % X and Y labels
