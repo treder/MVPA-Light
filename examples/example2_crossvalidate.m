@@ -45,7 +45,7 @@ cfg_LDA.param.lambda    = 'auto';
 cfg_LR = cfg_LDA;
 cfg_LR.classifier       = 'logreg';
 cfg_LR.param            = [];       % sub-struct with hyperparameters for classifier
-cfg_LR.param.lambda     = 'auto';
+cfg_LR.param.lambda     = 10^-3; 'auto';
 
 [acc_LR, result_LR] = mv_crossvalidate(cfg_LR, X, clabel);
 
@@ -54,6 +54,18 @@ fprintf('Classification accuracy (Logreg): %2.2f%%\n', 100*acc_LR)
 
 % Produce plot of results
 h = mv_plot_result({result_LDA, result_LR});
+
+%% Confusion matrix
+% The confusion matrix is more informative than classification performance.
+% It tells how well instances of class 1 and 2 have been correctly
+% classified. It also shows how many class 1 instances have been
+% misclassified as class 2 and vice versa
+
+cfg_LDA.metric          = 'confusion';
+[confusion, result_LDA] = mv_crossvalidate(cfg_LDA, X, clabel);
+
+% Produce plot of result
+h = mv_plot_result({result_LDA});
 
 %% Use a binomial test to assess statistical significance of accuracies (ACC)
 cfg = [];
