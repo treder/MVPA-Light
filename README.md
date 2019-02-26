@@ -3,7 +3,7 @@ Light-weight Matlab toolbox for multivariate pattern analysis (MVPA)
 
 ### News
 
-* (Feb 2019) added [kernel Fisher Discriminant Analysis](classifier/train_kernel_fda.m)
+* (Feb 2019) added [kernel Fisher Discriminant Analysis](classifier/train_kernel_fda.m) and new metrics `precision`, `recall`, and `f1`
 * (Jan 2018) Going multi-class: added [multi-class LDA](classifier/train_multiclass_lda.m) and [confusion matrix](utils/mv_calculate_performance.m) as classifier performance metric
 
 ### Table of contents
@@ -97,9 +97,12 @@ Classifier output comes in form of decision values (=distances to the hyperplane
 
 * `accuracy` (can be abbreviated as `acc`): Classification accuracy, representing the fraction correctly predicted class labels.
 * `auc`: Area under the [ROC curve](https://en.wikipedia.org/wiki/Receiver_operating_characteristic). An alternative to classification accuracy that is more robust to imbalanced classes and independent of changes to the classifier threshold.
-* `dval`: Average decision value for each class.
-* `tval`: t-test statistic, calculated by comparing the sets of decision values for two classes. Can be useful for a subsequent second-level analysis across subjects.
 * `confusion`: [confusion matrix](https://en.wikipedia.org/wiki/Confusion_matrix). The rows corresponds to classifier predictions, columns correspond to the true classes. The (i,j)-th element gives the proportion of samples of class j that have been classified as class i.
+* `dval`: Average decision value for each class.
+* `f1`: [F1 score](https://en.wikipedia.org/wiki/F1_score) is the harmonic average of precision and recall, given by `2 *(precision * recall) / (precision + recall)`.
+* `precision`: [precision](https://en.wikipedia.org/wiki/Precision_and_recall) is given as the number of true positives divided by true positives plus false positives. For multi-class, it is calculated per class from the confusion matrix by dividing each diagonal element by the row sum. 
+* `recall`: [recall](https://en.wikipedia.org/wiki/Precision_and_recall) is given as the number of true positives divided by true positives plus false negatives. For multi-class, it is calculated per class from the confusion matrix by dividing each diagonal element by the respective column sum. 
+* `tval`: t-test statistic, calculated by comparing the sets of decision values for two classes. Can be useful for a subsequent second-level analysis across subjects.
 * `none`: Does not calculate a metric but returns the raw classifier output instead. 
 
 There is usually no need to call [`mv_calculate_performance`](utils/mv_calculate_performance.m) directly. By setting the `cfg.metric` field, the performance metric is calculated automatically in [`mv_crossvalidate`](mv_crossvalidate.m), [`mv_classify_across_time`](mv_classify_across_time.m),  [`mv_classify_timextime`](mv_classify_timextime.m) and [`mv_searchlight`](mv_searchlight.m).
