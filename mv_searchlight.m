@@ -103,6 +103,12 @@ if cfg.average && ~ismatrix(X)
     X = mean(X,3);
 end
 
+if any(ismember({'dval','auc','roc','tval'},cfg.metric))
+    mv_set_default(cfg,'output_type','dval');
+else
+    mv_set_default(cfg,'output_type','clabel');
+end
+
 if ~iscell(cfg.metric)
     cfg.metric = {cfg.metric};
 end
@@ -110,8 +116,7 @@ nmetrics = numel(cfg.metric);
 
 [n, nfeatures, ~] = size(X);
 
-[clabel, nclasses] = mv_check_clabel(clabel);
-mv_check_cfg(cfg);
+[clabel, nclasses] = mv_check_inputs(cfg, X, clabel);
 
 perf = cell(nfeatures,1);
 perf_std = cell(nfeatures,1);
