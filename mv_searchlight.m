@@ -103,6 +103,12 @@ if cfg.average && ~ismatrix(X)
     X = mean(X,3);
 end
 
+if any(ismember({'dval','auc','roc','tval'},cfg.metric))
+    mv_set_default(cfg,'output_type','dval');
+else
+    mv_set_default(cfg,'output_type','clabel');
+end
+
 if ~iscell(cfg.metric)
     cfg.metric = {cfg.metric};
 end
