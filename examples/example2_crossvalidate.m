@@ -25,7 +25,7 @@ X = squeeze(mean(dat.trial(:,:,ival_idx),3));
 
 cfg_LDA = [];
 cfg_LDA.classifier      = 'lda';
-cfg_LDA.metric          = 'auc';
+cfg_LDA.metric          = 'accuracy';
 cfg_LDA.cv              = 'kfold';  % 'kfold' 'leaveout' 'holdout'
 cfg_LDA.k               = 5;
 cfg_LDA.repeat          = 10;
@@ -55,23 +55,26 @@ fprintf('Classification accuracy (Logreg): %2.2f%%\n', 100*acc_LR)
 % Produce plot of results
 h = mv_plot_result({result_LDA, result_LR});
 
-%% Confusion matrix
-% The confusion matrix is more informative than classification performance.
-% It tells how well instances of class 1 and 2 have been correctly
-% classified. It also shows how many class 1 instances have been
-% misclassified as class 2 and vice versa
-
-cfg_LDA.metric          = 'confusion';
-[confusion, result_LDA] = mv_crossvalidate(cfg_LDA, X, clabel);
-
-% Produce plot of result
-h = mv_plot_result({result_LDA});
-
 %% Use a binomial test to assess statistical significance of accuracies (ACC)
 cfg = [];
 cfg.test    = 'binomial';
 
 stat = mv_statistics(cfg, result_LDA);
+
+%% Confusion matrix
+% The confusion matrix ca be more informative than classification performance.
+% It tells what proportion of instances of class 1 and 2 have been correctly
+% classified. It also shows how many class 1 instances have been
+% misclassified as class 2 and vice versa
+
+cfg_LDA.metric          = 'confusion';
+[~, result_LDA] = mv_crossvalidate(cfg_LDA, X, clabel);
+
+cfg_LR.metric          = cfg_LDA.metric;
+[~, result_LR] = mv_crossvalidate(cfg_LR, X, clabel);
+
+% Produce plot of result
+h = mv_plot_result({result_LDA, result_LR});
 
 %% Comparing cross-validation to training and testing on the same data
 cfg_LDA.metric = 'accuracy';
