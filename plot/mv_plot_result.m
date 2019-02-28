@@ -178,7 +178,7 @@ switch(fun)
                 set(gca,'Xtick',1:nclasses,'Ytick',1:nclasses)
                 for rr=1:nclasses
                     for cc=1:nclasses
-                        text(rr,cc, sprintf('%0.2f',result{ii}.perf(rr,cc)), opt_txt{:})
+                        text(cc,rr, sprintf('%0.2f',result{ii}.perf(rr,cc)), opt_txt{:})
                     end
                 end
                 h.title(ii) = title(sprintf('confusion matrix\n%s',result{ii}.classifier));
