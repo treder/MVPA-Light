@@ -14,8 +14,8 @@ function h = mv_plot_result(result, varargin)
 %                     results can be provided (e.g. results for different
 %                     subjects); in this case, all results need to be 
 %                     created with the same function using the same metric.
-%                     Plotting does not work if multiple metrics have been
-%                     used.
+%                     If multiple metrics have been used, a separate plot
+%                     is generated for each metric.
 %                     
 % Additional arguments can be provided as key-value parameters, e.g.
 % mv_plot_result(result,'title','This is my title'). See ADDITIONAL 
@@ -35,7 +35,8 @@ function h = mv_plot_result(result, varargin)
 % Usage: h = mv_plot_result(result,x)
 %
 % Plots the classification result as a line plot. Plots multiple lines and 
-% a mean, if multiple result are provided. 
+% a mean, if multiple result are provided.  Optional in x is the values for
+% the x axis (eg time in sec).
 %
 % MV_CLASSIFY_TIMExTIME:
 % h = mv_plot_result(result,x,y)
@@ -43,7 +44,7 @@ function h = mv_plot_result(result, varargin)
 % Plots the classification result as an image. Plots multiple images and a
 % mean, if multiple result are provided.
 % Optionally, second and third inputs x and y can be provided that 
-% specify the values for the x and y axes (e.g. the times in sec).
+% specify the values for the x and y axes (eg time in sec).
 %
 % MV_SEARCHLIGHT:
 % h = mv_plot_result(result,chanlocs)
@@ -60,8 +61,6 @@ function h = mv_plot_result(result, varargin)
 %                  be provided to label the different results (serves as
 %                  legend labels for mv_classify_across_time plots and as
 %                  xlabels for mv_crossvalidate plots)
-% plot_mean      - if 1 and multiple results are provided, also plots the 
-%                  mean across the results (default 1)
 % new_figure     - if 1, results are plotted in a new figure. If 0, results
 %                  are plotted in the current axes instead (default 1)
 %
@@ -73,15 +72,24 @@ function h = mv_plot_result(result, varargin)
 if ~iscell(result), result = {result}; end
 
 if iscell(result{1}.metric) && numel(result{1}.metric) > 1
-    warning('Multiple metrics provided, plotting the first metric')
-    for ii=1:numel(result)
-        result{ii}.metric = result{ii}.metric{1};
-        result{ii}.perf = result{ii}.perf{1};
-        result{ii}.perf_std = result{ii}.perf_std{1};
+    % if multiple metrics are provided, this function is called for each
+    % metric separately
+    for mm=1:numel(result{1}.metric)
+        res = cell(numel(result), 1);
+        for ii=1:numel(result)
+            res{ii} = result{ii};
+            res{ii}.metric = res{ii}.metric{mm};
+            res{ii}.perf = res{ii}.perf{mm};
+            res{ii}.perf_std = res{ii}.perf_std{mm};
+        end
+        mv_plot_result(res, varargin);
     end
+    h=[];
+    return
 end
 
-nResults = numel(result);
+nresults = numel(result);
+nclasses = result{1}.nclasses;
 metric = result{1}.metric;
 
 fun = result{1}.function;
@@ -95,11 +103,21 @@ end
 
 fprintf('Plotting the results of %s.\n', fun);
 
+%% Check whether the combination of metric and function is supported for plotting
+incompatible_metric_function = {...
+    'confusion'          {'mv_classify_across_time','mv_classify_timextime','mv_searchlight'};
+    };
+
+idx = find(ismember(incompatible_metric_function(:,1), result{1}.metric));
+
+if any(idx) && any(ismember(incompatible_metric_function{idx,2}, result{1}.function))
+    error('mv_plot_result does not currently support the metric ''%s'' for results from %s', incompatible_metric_function{idx,1}, result{1}.function)
+end
+
 %% Parse any key-value pairs
 opt = mv_parse_key_value_pairs(varargin{:});
 
-if ~isfield(opt,'plot_mean'), opt.plot_mean = 1; end
-if ~isfield(opt,'new_figure'), opt.new_figure = 0; end
+if ~isfield(opt,'new_figure'), opt.new_figure = 1; end
 
 %% Extract all performance measures into a matrix
 perf = cellfun( @(res) res.perf, result, 'Un', 0);
@@ -115,7 +133,11 @@ else
     cat_dim = 2;
 end
 
-if strcmp(metric,'dval')
+% check whether metric is multivariate
+is_multivariate = strcmp(metric,'dval') || ...
+        (nclasses>2 && any(strcmp(metric,{'precision','recall','f1'})));
+    
+if is_multivariate
     cat_dim = cat_dim + 1;
 end
 
@@ -124,15 +146,7 @@ perf_std = cat(cat_dim, perf_std{:});
 
 %% Create axis or legend labels (unless they have already been specified)
 if ~isfield(opt,'label')
-    opt.label = arrayfun( @(x) [num2str(x) ' (' result{x}.classifier ')'], 1:nResults,'Un',0);
-end
-
-%% If multiple results are given, calculate mean
-opt.plot_mean = (opt.plot_mean && nResults > 1);
-if opt.plot_mean
-    perf_mean = mean(perf,ndims(perf));
-    perf_std_mean = mean(perf_std,ndims(perf_std));
-    mean_lab = 'MEAN';
+    opt.label = arrayfun( @(x) [num2str(x) ' (' result{x}.classifier ')'], 1:nresults,'Un',0);
 end
 
 %% Struct with handles to graphical objects
@@ -143,43 +157,50 @@ h.title = [];
 %% Prepare title
 titleopt = {'Interpreter','none'};
 if ~isfield(opt,'title')
-    opt.title = fun;
+    opt.title = metric;
 end
 
 %% Plot
 switch(fun)
-    
-    
     %% --------------- MV_CROSSVALIDATE ---------------
     case 'mv_crossvalidate'
 
         if opt.new_figure, figure; end
         h.ax = gca;
-        if nResults == 1
-            h.bar = bar(perf');
-        else
-            h.bar = bar(1:nResults+1, [perf, perf_mean]');
-            set(gca,'XTick',1:nResults+1, 'XTickLabel',[opt.label mean_lab])
-        end
-        
-        % Indicate SEM if the bars are not grouped
-        if any(strcmp(metric,{'auc' 'acc' 'accuracy' 'precision' 'recall' 'f1'}))
-            hold on
-            if nResults == 1
-                errorbar(1:nResults,perf', perf_std','.')
-            else
-                errorbar(1:nResults+1,[perf, perf_mean]', [perf_std, perf_std_mean]','.')
+        if strcmp(result{1}.metric, 'confusion')  % plot confusion matrix
+            opt_txt = {'Fontsize',15,'HorizontalAlignment','center'};
+            for ii=1:nresults
+                subplot(1,nresults,ii)
+                imagesc(result{ii}.perf)
+                colorbar
+                h.xlabel(ii) = xlabel('Predicted class');
+                h.ylabel(ii) = ylabel('True class');
+                set(gca,'Xtick',1:nclasses,'Ytick',1:nclasses)
+                for rr=1:nclasses
+                    for cc=1:nclasses
+                        text(cc,rr, sprintf('%0.2f',result{ii}.perf(rr,cc)), opt_txt{:})
+                    end
+                end
+                h.title(ii) = title(sprintf('confusion matrix\n%s',result{ii}.classifier));
             end
-        end
-        
-        % X and Y labels
-        h.ylabel = ylabel(metric);
-        h.fig = gcf;
-        h.title = title(opt.title,titleopt{:});
-        
-        % Set Y label
-        for ii=1:numel(h.ax)
-            h.ylabel(ii) = ylabel(h.ax(ii),metric);
+        else
+            h.bar = bar(1:nresults, perf');
+            set(gca,'XTick',1:nresults, 'XTickLabel',opt.label)
+            % Indicate SEM if the bars are not grouped
+            if any(strcmp(metric,{'auc' 'acc' 'accuracy' 'precision' 'recall' 'f1'}))
+                hold on
+                errorbar(1:nresults, perf', perf_std','.')
+            end
+            
+            % X and Y labels
+            h.ylabel = ylabel(metric);
+            h.fig = gcf;
+            h.title = title(opt.title,titleopt{:});
+            
+            % Set Y label
+            for ii=1:numel(h.ax)
+                h.ylabel(ii) = ylabel(h.ax(ii),metric);
+            end
         end
 
     %% --------------- MV_CLASSIFY_ACROSS_TIME ---------------
@@ -191,26 +212,31 @@ switch(fun)
         
         if opt.new_figure, figure; end
         cfg = [];
-        if any(strcmp(metric,{'auc', 'acc'}))
-            cfg.hor = 1 / result{1}.nclasses;
-        elseif any(strcmp(metric,{'dval', 'tval'}))
+        if any(strcmp(metric,{'auc', 'acc','accuracy'}))
+            cfg.hor = 1 / nclasses;
+        elseif any(strcmp(metric,{'dval', 'tval','precision','recall','f1'}))
             cfg.hor = 0;
         end
             
-        if strcmp(metric,'dval')
+        if is_multivariate
             % dval: create separate subplot for each result
             N = size(perf,3);
             nc = ceil(sqrt(N));
             nr = ceil(N/nc);
             h.plt = [];
+            classes = arrayfun( @(x) sprintf('Class %d', x), 1:nclasses, 'Un', 0);
             for ii=1:N
                 subplot(nr,nc,ii)
-                tmp = mv_plot_2D(cfg,x, squeeze(perf(:,:,ii)), squeeze(perf_std(:,:,ii)) );
-                legend(opt.label(ii))
+                tmp = mv_plot_1D(cfg, x, squeeze(perf(:,:,ii)), squeeze(perf_std(:,:,ii)),'ylabel',metric);
+                legend(tmp.plt, classes)
                 h.ax = [h.ax; tmp.ax];
                 h.plt = [h.plt; tmp.plt];
                 h.fig = gcf;
-                h.title = [h.title; title(opt.title,titleopt{:})];
+                if N>1
+                    h.title = [h.title; title(sprintf('%s [%d]',opt.title,ii),titleopt{:})];
+                else
+                    h.title = [h.title; title(sprintf('%s',opt.title),titleopt{:})];
+                end
             end
         else
             tmp = mv_plot_1D(cfg,x, perf, perf_std);
@@ -221,18 +247,6 @@ switch(fun)
             h.title = title(opt.title,titleopt{:});
         end
         
-        % Plot mean
-        if opt.plot_mean
-            figure
-            tmp = mv_plot_1D(cfg,x, perf_mean, perf_std_mean);
-            set(tmp.plt, 'LineWidth',2);
-            h.ax = [h.ax; tmp.ax];
-            h.plt = [h.plt; tmp.plt];
-            legend({'MEAN'})
-            h.fig(2) = gcf;
-            h.title = [h.title; title([opt.title ' (MEAN)'],titleopt{:})];
-        end
-
         % Set Y label
         for ii=1:numel(h.ax)
             h.ylabel(ii) = ylabel(h.ax(ii),metric);
@@ -240,21 +254,14 @@ switch(fun)
 
     %% --------------- MV_CLASSIFY_TIMEXTIME ---------------
     case 'mv_classify_timextime'
-
-%         if nargin > 1,  x = varargin{1};
-%         else,           x = 1:size(result{1}.perf,1);
-%         end
-%         if nargin > 2,  y = varargin{2};
-%         else,           y = 1:size(result{1}.perf,2);
-%         end
         
         % settings for 2d plot
         cfg= [];
         if isfield(opt,'x'), cfg.x = opt.x; end
         if isfield(opt,'y'), cfg.y = opt.y; end
-        if any(strcmp(metric,{'auc', 'acc'}))
-            cfg.climzero = 1 / result{1}.nclasses;
-        elseif any(strcmp(metric,{'dval', 'tval'}))
+        if any(strcmp(metric,{'auc', 'acc','accuracy'}))
+            cfg.climzero = 1 / nclasses;
+        elseif any(strcmp(metric,{'dval', 'tval','predicion','recall','f1'}))
             cfg.climzero = 0;
         end
         
@@ -268,29 +275,15 @@ switch(fun)
             end
             h = [hs{:}];
             
-            % Plot mean
-            if opt.plot_mean
-                figure
-                cfg.title = strcat(opt.title, '-' ,mean_lab);
-                h(numel(h)+1) = mv_plot_2D(cfg, cat(3,squeeze(perf_mean(:,1,:)), squeeze(perf_mean(:,2,:))) );
-            end
         else
             cfg.title = strcat(opt.title, '-' ,opt.label);
             h = mv_plot_2D(cfg, perf);
-            
-            % Plot mean
-            if opt.plot_mean
-                figure
-                cfg.title = strcat(opt.title, '-' ,mean_lab);
-                h(numel(h)+1) = mv_plot_2D(cfg, perf_mean );
-            end
         end
         
         % set metric as title for colorbar
         for ii=1:numel(h)
             set(get(h(ii).colorbar,'title'),'String',metric)
         end
-        
 
 
     %% --------------- MV_SEARCHLIGHT ---------------
@@ -304,9 +297,9 @@ switch(fun)
             cfg.cbtitle = metric;
             cfg.clim = 'sym';
             
-            if any(strcmp(metric,{'auc', 'acc'}))
+            if any(strcmp(metric,{'auc', 'acc','accuracy'}))
                 cfg.climzero = 0.5;
-            elseif any(strcmp(metric,{'dval', 'tval'}))
+            elseif any(strcmp(metric,{'dval', 'tval','predicion','recall','f1'}))
                 cfg.climzero = 0;
             end
 
@@ -329,13 +322,6 @@ switch(fun)
                 h = mv_plot_topography(cfg, perf, chans.pos);
             end
             
-            % Plot mean
-            if opt.plot_mean
-                figure
-                cfg.title = strcat(opt.title, '-' ,mean_lab);
-                h(numel(h)+1) = mv_plot_topography(cfg, perf_mean, chans.pos);
-            end
-
         else
             % If no chans are provided: plot classification performance 
             % for each feature as a grouped bar graph
@@ -349,7 +335,7 @@ switch(fun)
                     hs{cl}.title= title(sprintf('%s - class %d',opt.title,cl),titleopt{:});
                     hs{cl}.xlabel = xlabel('features');
                     hs{cl}.ylabel = ylabel(metric);
-                    set(gca,'XTick',1:nResults,'XTickLabel',opt.label)
+                    set(gca,'XTick',1:nresults,'XTickLabel',opt.label)
                 end
                 h = [hs{:}];
             else
@@ -357,19 +343,11 @@ switch(fun)
                 h.bar = bar(perf');
                 h.xlabel = xlabel('features');
                 h.ylabel = ylabel(metric);
-                set(gca,'XTick',1:nResults,'XTickLabel',opt.label)
+                set(gca,'XTick',1:nresults,'XTickLabel',opt.label)
                 h.title= title(opt.title,titleopt{:});
             end
             grid on
             
-            % Plot mean
-            if opt.plot_mean
-                figure
-                h(2).bar = bar(perf_mean');
-                h(2).xlabel = xlabel('features');
-                h(2).ylabel = ylabel(metric);
-                h(2).title= title(strcat(opt.title, '-' ,mean_lab),titleopt{:});
-            end
         end
         
 end
