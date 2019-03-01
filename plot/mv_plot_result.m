@@ -82,7 +82,7 @@ if iscell(result{1}.metric) && numel(result{1}.metric) > 1
             res{ii}.perf = res{ii}.perf{mm};
             res{ii}.perf_std = res{ii}.perf_std{mm};
         end
-        mv_plot_result(res, varargin);
+        mv_plot_result(res, varargin{:});
     end
     h=[];
     return
@@ -146,7 +146,11 @@ perf_std = cat(cat_dim, perf_std{:});
 
 %% Create axis or legend labels (unless they have already been specified)
 if ~isfield(opt,'label')
-    opt.label = arrayfun( @(x) [num2str(x) ' (' result{x}.classifier ')'], 1:nresults,'Un',0);
+    if nresults==1
+        opt.label = {result{1}.classifier};
+    else
+        opt.label = arrayfun( @(x) [num2str(x) ' (' result{x}.classifier ')'], 1:nresults,'Un',0);
+    end
 end
 
 %% Struct with handles to graphical objects
@@ -181,11 +185,11 @@ switch(fun)
                         text(cc,rr, sprintf('%0.2f',result{ii}.perf(rr,cc)), opt_txt{:})
                     end
                 end
-                h.title(ii) = title(sprintf('confusion matrix\n%s',result{ii}.classifier));
+                h.title(ii) = title(sprintf('confusion matrix\n%s',result{ii}.classifier),titleopt{:});
             end
         else
             h.bar = bar(1:nresults, perf');
-            set(gca,'XTick',1:nresults, 'XTickLabel',opt.label)
+            set(gca,'XTick',1:nresults, 'XTickLabel', strrep(opt.label,'_','\_'))
             % Indicate SEM if the bars are not grouped
             if any(strcmp(metric,{'auc' 'acc' 'accuracy' 'precision' 'recall' 'f1'}))
                 hold on
@@ -211,13 +215,13 @@ switch(fun)
         end
         
         if opt.new_figure, figure; end
-        cfg = [];
         if any(strcmp(metric,{'auc', 'acc','accuracy'}))
-            cfg.hor = 1 / nclasses;
+            hor = 1 / nclasses;
         elseif any(strcmp(metric,{'dval', 'tval','precision','recall','f1'}))
-            cfg.hor = 0;
+            hor = 0;
         end
             
+        opt_1D = {'ylabel',metric, 'hor', hor};
         if is_multivariate
             % dval: create separate subplot for each result
             N = size(perf,3);
@@ -227,7 +231,7 @@ switch(fun)
             classes = arrayfun( @(x) sprintf('Class %d', x), 1:nclasses, 'Un', 0);
             for ii=1:N
                 subplot(nr,nc,ii)
-                tmp = mv_plot_1D(cfg, x, squeeze(perf(:,:,ii)), squeeze(perf_std(:,:,ii)),'ylabel',metric);
+                tmp = mv_plot_1D(x, squeeze(perf(:,:,ii)), squeeze(perf_std(:,:,ii)), opt_1D{:});
                 legend(tmp.plt, classes)
                 h.ax = [h.ax; tmp.ax];
                 h.plt = [h.plt; tmp.plt];
@@ -239,7 +243,7 @@ switch(fun)
                 end
             end
         else
-            tmp = mv_plot_1D(cfg,x, perf, perf_std);
+            tmp = mv_plot_1D(x, perf, perf_std,opt_1D{:});
             legend(opt.label)
             h.ax = tmp.ax;
             h.plt = tmp.plt;
