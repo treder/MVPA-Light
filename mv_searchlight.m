@@ -83,7 +83,6 @@ mv_set_default(cfg,'param',[]);
 mv_set_default(cfg,'metric','accuracy');
 mv_set_default(cfg,'nb',[]);
 mv_set_default(cfg,'size',1);
-mv_set_default(cfg,'metric','auc');
 mv_set_default(cfg,'average',0);
 mv_set_default(cfg,'feedback',1);
 
