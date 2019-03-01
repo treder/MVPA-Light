@@ -97,7 +97,7 @@ Classifier output comes in form of decision values (=distances to the hyperplane
 
 * `accuracy` (can be abbreviated as `acc`): Classification accuracy, representing the fraction correctly predicted class labels.
 * `auc`: Area under the [ROC curve](https://en.wikipedia.org/wiki/Receiver_operating_characteristic). An alternative to classification accuracy that is more robust to imbalanced classes and independent of changes to the classifier threshold.
-* `confusion`: [confusion matrix](https://en.wikipedia.org/wiki/Confusion_matrix). The rows corresponds to classifier predictions, columns correspond to the true classes. The (i,j)-th element gives the proportion of samples of class j that have been classified as class i.
+* `confusion`: [confusion matrix](https://en.wikipedia.org/wiki/Confusion_matrix). Rows corresponds to true class labels, columns correspond to predicted class labels. The (i,j)-th element gives the proportion of samples of class i that have been classified as class j.
 * `dval`: Average decision value for each class.
 * `f1`: [F1 score](https://en.wikipedia.org/wiki/F1_score) is the harmonic average of precision and recall, given by `2 *(precision * recall) / (precision + recall)`.
 * `precision`: [precision](https://en.wikipedia.org/wiki/Precision_and_recall) is given as the number of true positives divided by true positives plus false positives. For multi-class, it is calculated per class from the confusion matrix by dividing each diagonal element by the row sum. 
