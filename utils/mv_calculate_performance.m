@@ -322,7 +322,7 @@ end
 perf = cell2mat(perf);
 perf_std = [];
 
-%% Summarise the performance metric 
+%% Average the performance metric across test sets
 
 % Calculate STANDARD ERROR OF THE METRIC [use unweighted averages here] of the
 % performance across all dimensions of dim. Typically dim will refer to 
@@ -387,6 +387,8 @@ end
 perf = squeeze(perf);
 perf_std = squeeze(perf_std);
 
+if isvector(perf), perf = perf(:); end
+if isvector(perf_std), perf_std = perf_std(:); end
 
     %% ---- Helper functions ----
     function conf = calculate_confusion_matrix(normalise)
