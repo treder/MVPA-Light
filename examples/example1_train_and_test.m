@@ -2,8 +2,7 @@
 %%% crossvalidation and classification across time functions provided by
 %%% MVPA-Light
 
-% Before running the code, cd into the examples subfolder or add it to your
-% path temporally
+% Load data (in /examples folder)
 [dat, clabel] = load_example_data('epoched3');
 
 %% Let's have a look at the data first: Calculate and plot ERP for attended and unattended deviants
@@ -34,30 +33,50 @@ ival_idx = find(dat.time >= 0.6 & dat.time <= 0.8);
 % Extract the mean activity in the interval as features
 X = squeeze(mean(dat.trial(:,:,ival_idx),3));
 
-% Get default hyperparameters
+% Get default hyperparameters for the LDA classifier
 param = mv_get_classifier_param('lda');
+
+% We also want to calculate class probabilities (prob variable) for each 
+% sample (do not use if not explicitly required since it slows down 
+% calculations a bit)
+param.prob  = 1;
 
 % Train an LDA classifier
 cf = train_lda(param, X, clabel);
 
 % Test classifier on the same data: the function gives the predicted
-% labels (predlabel) and the decision values (dval) which represent the
-% distance to the hyperplane
-[predlabel, dval] = test_lda(cf, X);
+% labels (predlabel), the decision values (dval) which represent the
+% distance to the hyperplane, and the class probability for the sample
+% belonging to class 1 (prob)
+[predlabel, dval, prob] = test_lda(cf, X);
 
 % To calculate classification accuracy, compare the predicted labels to
 % the true labels and take the mean
 fprintf('Classification accuracy: %2.2f\n', mean(predlabel==clabel))
 
 % Calculate AUC
-auc = mv_calculate_performance('auc', dval, clabel);
+auc = mv_calculate_performance('auc', 'dval', dval, clabel);
 
 % Look at the distribution of the decision values. dvals should be positive
 % for clabel 1 (attended deviant) and negative for clabel 2 (unattended
 % deviant). dval = 0 is the decision boundary
-figure
+figure(2)
+clf
 boxplot(dval, clabel)
 hold on
 plot(xlim, [0 0],'k--')
 ylabel('Decision values')
 xlabel('Class')
+title('Distribution of decision values')
+
+% Look at the distribution of the probabilities. prob should be higher
+% for clabel 1 (attended deviant) than clabel 2 (unattended
+% deviant)
+figure(3)
+clf
+boxplot(prob, clabel)
+hold on
+plot(xlim, [0.5 0.5],'k--')
+ylabel('Probability for class 1')
+xlabel('Class')
+title('Distribution of class probabilities')

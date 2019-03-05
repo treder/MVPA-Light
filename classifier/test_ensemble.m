@@ -3,7 +3,7 @@ function [clabel,dval] = test_ensemble(cf,Xtest)
 % and decision values.
 % 
 % Usage:
-% [labels,...] = test_ensemble(cf,Xtest)
+% [clabel,dval] = test_ensemble(cf,Xtest)
 % 
 %Parameters:
 % cf             - struct describing the classifier obtained from training 
@@ -12,12 +12,12 @@ function [clabel,dval] = test_ensemble(cf,Xtest)
 %                  test samples
 %
 %Output:
-% clabel        - predicted class labels (1's and 2's)
+% clabel        - predicted class labels
 % dval          - decision values, i.e. distances to the hyperplane
 
 N= size(Xtest,1);
-label_en= zeros(N,cf.nLearners);
-dval_en= zeros(N,cf.nLearners);
+label_en= zeros(N,cf.nlearners);
+dval_en= zeros(N,cf.nlearners);
 
 if cf.simplify
     % If the ensemble consists of linear classifier, we can simply apply
@@ -27,27 +27,32 @@ if cf.simplify
 else
     
     % Collect the predictions from the learners
-    for ll=1:cf.nLearners
+    for ll=1:cf.nlearners
         if strcmp(cf.strategy,'vote')
-            label_en(:,ll)= cf.test(cf.classifier(ll), Xtest(:,cf.randomFeatures(:,ll)));
+            label_en(:,ll)= cf.test(cf.classifier(ll), Xtest(:,cf.random_features(:,ll)));
         elseif strcmp(cf.strategy,'dval')
-            [label_en(:,ll),dval_en(:,ll)]= cf.test(cf.classifier(ll), Xtest(:,cf.randomFeatures(:,ll)));
+            [label_en(:,ll),dval_en(:,ll)]= cf.test(cf.classifier(ll), Xtest(:,cf.random_features(:,ll)));
         end
     end
     
+    clabel = zeros(N,1);
+    
     % Pool the predictions to make a decision
     if strcmp(cf.strategy,'vote')
-        S= sum(label_en,2);
-        clabel= sign(S);
-        % In case of draws, we randomly choose a label
-        draws = find(S == 0);
-        clabel(draws) = sign(randn(numel(draws),1));
+                       
         dval= nan(N,1);  % we have no decision values
+
+        % cycle through test samples
+        for ii=1:N
+            % count how many times each class was chosen and choose the class
+            % with the maximum votes
+            [~, clabel(ii)] = max(arrayfun( @(c) sum(label_en(ii,:)==c), 1:cf.nclasses));
+        end
         
     elseif strcmp(cf.strategy,'dval')
-        dval= mean(dval_en,2);
-        clabel= sign(dval);
-        
+        dval= sum(dval_en,2);
+        clabel(dval>0)  = 1;
+        clabel(dval<=0) = 2;
     end
     
 end

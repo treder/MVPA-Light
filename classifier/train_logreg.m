@@ -1,7 +1,7 @@
 function cf = train_logreg(cfg,X,clabel)
 % Trains a logistic regression classifier with L2 regularisation. 
 %
-% Note: Due to the exponential term in the cost function, it is recommended 
+% NOTE: Due to the exponential term in the cost function, it is recommended 
 % that X (the data) is z-scored to reduce the probability of numerical
 % issues due to round-off errors.
 %
@@ -13,7 +13,7 @@ function cf = train_logreg(cfg,X,clabel)
 % clabel         - [samples x 1] vector of class labels
 %
 % cfg          - struct with hyperparameters:
-% lambda         - regularisation hyperparameter controlling the magnitude
+% .lambda        - regularisation hyperparameter controlling the magnitude
 %                  of regularisation. If a single value is given, it is
 %                  used for regularisation. If a vector of values is given,
 %                  5-fold cross-validation is used to test all the values
@@ -21,6 +21,13 @@ function cf = train_logreg(cfg,X,clabel)
 %                  Note: lambda is reciprocally related to the cost
 %                  parameter C used in LIBSVM/LIBLINEAR, ie C = 1/lambda
 %                  roughly
+% .prob          - if 1, decision values are returned as probabilities. If
+%                  0, the decision values are simply the distance to the
+%                  hyperplane (default 0)
+% .correct_bias  - if the number of samples in the two classes is not the
+%                  same, logistic regression is biased towards the majority
+%                  class. If correct_bias is 1, this is corrected for by
+%                  adjusting the bias term
 %
 % Further parameters (that usually do not need to be changed):
 % bias          - if >0 augments the data with a bias term equal to the
@@ -29,7 +36,7 @@ function cf = train_logreg(cfg,X,clabel)
 %                 If 0, the bias is assumed to be 0. By default, it is set
 %                 to a large value (bias=100). This prevents that b is
 %                 penalised by the regularisation term.
-% K             - the number of folds in the K-fold cross-validation for
+% k             - the number of folds in the k-fold cross-validation for
 %                 the lambda search
 % plot          - if a lambda search is performed, produces diagnostic
 %                 plots including the regularisation path and
@@ -73,6 +80,10 @@ function cf = train_logreg(cfg,X,clabel)
 % cf - struct specifying the classifier with the following fields:
 % w            - projection vector (normal to the hyperplane)
 % b            - bias term, setting the threshold
+%
+%References:
+% Lin, Weng & Keerthi (2008). Trust Region Newton Method for Large-Scale 
+% Logistic Regression. Journal of Machine Learning Research, 9, 627-650
 
 % (c) Matthias Treder 2017
 
@@ -125,7 +136,7 @@ if numel(cfg.lambda)>1
     % the best result is then taken forward and a model is trained on the
     % full data using the best lambda.
     
-    CV = cvpartition(N,'KFold',cfg.K);
+    CV = cvpartition(N,'KFold',cfg.k);
     ws = zeros(nFeat, numel(cfg.lambda));
     acc = zeros(numel(cfg.lambda),1);
     
@@ -148,7 +159,7 @@ if numel(cfg.lambda)>1
     end
     
     % --- Start cross-validation ---
-    for ff=1:cfg.K
+    for ff=1:cfg.k
         % Training data
         X = X0(CV.training(ff),:);
         YX = Y(CV.training(ff),CV.training(ff))*X;
@@ -192,7 +203,7 @@ if numel(cfg.lambda)>1
         acc = acc + sum( (X0(CV.test(ff),:) * ws) .* repmat(cl(:),[1,numel(cfg.lambda)]) > 0)' / CV.TestSize(ff);
     end
     
-    acc = acc / cfg.K;
+    acc = acc / cfg.k;
     
     [~, best_idx] = max(acc);
     
@@ -202,7 +213,7 @@ if numel(cfg.lambda)>1
         nCol=3; nRow=1;
         subplot(nRow,nCol,1),imagesc(C); title({'Mean correlation' 'between w''s'}),xlabel('lambda#')
         subplot(nRow,nCol,2),plot(delta),title({'Mean trust region' 'size at termination'}),xlabel('lambda#')
-        subplot(nRow,nCol,3),plot(iter/cfg.K),hold all,
+        subplot(nRow,nCol,3),plot(iter/cfg.k),hold all,
         title({'Mean number' 'of iterations (across folds)'}),xlabel('lambda#')
         
         % Plot regularisation path (for the last training fold)
@@ -213,7 +224,7 @@ if numel(cfg.lambda)>1
         % Plot cross-validated classification performance
         figure
         semilogx(cfg.lambda,acc)
-        title([num2str(cfg.K) '-fold cross-validation performance'])
+        title([num2str(cfg.k) '-fold cross-validation performance'])
         hold all
         plot([cfg.lambda(best_idx), cfg.lambda(best_idx)],ylim,'r--'),plot(cfg.lambda(best_idx), acc(best_idx),'ro')
         xlabel('Lambda'),ylabel('Accuracy'),grid on
@@ -240,17 +251,26 @@ X = X0;
 
 w = TrustRegionDoglegGN(logfun, w0, cfg.tolerance, cfg.max_iter, 1);
 
-%% Set up classifier
+%% Set up classifier struct
 if cfg.bias > 0
     cf.w = w(1:end-1);
     cf.b = w(end);
     
     % Bias term needs correct scaling 
     cf.b = cf.b * cfg.bias;
+
+    if cfg.correct_bias
+        % Correct the bias term such that it is in between the class means
+        o = X(:, 1:end-1) * cf.w;
+        cf.b = - ( mean(o(clabel==1)) + mean(o(clabel==-1)) )/2;
+    end
 else
     cf.w = w;
     cf.b = 0;
 end
+cf.lambda = lambda;
+
+
 
 %%
 %%% Logistic regression objective function. Given w, data X and

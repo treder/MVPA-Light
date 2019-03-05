@@ -17,10 +17,12 @@ function [perf,result] = mv_searchlight(cfg, X, clabel)
 %                  1's (class 1) and 2's (class 2)
 %
 % cfg          - struct with parameters:
-% .metric       - classifier performance metric, default 'acc'. See
+% .metric       - classifier performance metric, default 'accuracy'. See
 %                 mv_classifier_performance. If set to [] or 'none', the 
-%                 raw classifier output (labels or dvals depending on 
-%                 cfg.cf_output) for each sample is returned. 
+%                 raw classifier output (labels, dvals or probabilities 
+%                 depending on cfg.output_type) for each sample is returned. 
+%                 Use cell array to specify multiple metrics (eg
+%                 {'accuracy' 'auc'}
 % .nb          - [features x features] matrix specifying which features
 %                are neighbours of each other.
 %                          - EITHER - 
@@ -57,10 +59,10 @@ function [perf,result] = mv_searchlight(cfg, X, clabel)
 % .feedback     - print feedback on the console (default 1)
 %
 % CROSS-VALIDATION parameters:
-% .CV           - perform cross-validation, can be set to 'kfold',
+% .cv           - perform cross-validation, can be set to 'kfold',
 %                 'leaveout', 'holdout', or 'none' (default 'kfold')
-% .K            - number of folds in k-fold cross-validation (default 5)
-% .P            - if CV is 'holdout', P is the fraction of test samples
+% .k            - number of folds in k-fold cross-validation (default 5)
+% .p            - if cv is 'holdout', p is the fraction of test samples
 %                 (default 0.1)
 % .stratify     - if 1, the class proportions are approximately preserved
 %                 in each fold (default 1)
@@ -68,51 +70,63 @@ function [perf,result] = mv_searchlight(cfg, X, clabel)
 %                 randomly assigned folds (default 1)
 %
 % Returns:
-% perf          - [features x 1] vector of classifier performances
+% perf          - [features x 1] vector of classifier performances 
+%                 corresponding to the selected metric
+%                 If multiple metrics are requested, perf is a cell array
 
-% (c) Matthias Treder 2017
+% (c) Matthias Treder
 
 X = double(X);
 
-mv_set_default(cfg,'nb',[]);
-mv_set_default(cfg,'size',1);
-mv_set_default(cfg,'metric','auc');
-mv_set_default(cfg,'average',0);
-mv_set_default(cfg,'feedback',1);
 mv_set_default(cfg,'classifier','lda');
 mv_set_default(cfg,'param',[]);
-mv_set_default(cfg,'metric','acc');
+mv_set_default(cfg,'metric','accuracy');
+mv_set_default(cfg,'nb',[]);
+mv_set_default(cfg,'size',1);
+mv_set_default(cfg,'average',0);
+mv_set_default(cfg,'feedback',1);
 
 % Cross-validation settings
-mv_set_default(cfg,'CV','kfold');
+mv_set_default(cfg,'cv','kfold');
 mv_set_default(cfg,'repeat',5);
-mv_set_default(cfg,'K',5);
-mv_set_default(cfg,'P',0.1);
+mv_set_default(cfg,'k',5);
+mv_set_default(cfg,'p',0.1);
 mv_set_default(cfg,'stratify',1);
 
-switch(cfg.CV)
-    case 'leaveout', cfg.K = size(X,1);
-    case 'holdout', cfg.K = 1;
+switch(cfg.cv)
+    case 'leaveout', cfg.k = size(X,1);
+    case 'holdout', cfg.k = 1;
 end
 
 if cfg.average && ~ismatrix(X)
     X = mean(X,3);
 end
 
-[N, nFeat, ~] = size(X);
+if any(ismember({'dval','auc','roc','tval'},cfg.metric))
+    mv_set_default(cfg,'output_type','dval');
+else
+    mv_set_default(cfg,'output_type','clabel');
+end
 
-[clabel, nclasses] = mv_check_clabel(clabel);
+if ~iscell(cfg.metric)
+    cfg.metric = {cfg.metric};
+end
+nmetrics = numel(cfg.metric);
 
-perf = cell(nFeat,1);
-perf_std = cell(nFeat,1);
+[n, nfeatures, ~] = size(X);
+
+[clabel, nclasses] = mv_check_inputs(cfg, X, clabel);
+
+perf = cell(nfeatures,1);
+perf_std = cell(nfeatures,1);
 
 %% Find the neighbourhood of the requested size
 if isempty(cfg.nb)
     if cfg.feedback, fprintf('No neighbour matrix provided, considering each feature individually\n'), end
     % Do not include neighbours: each feature is only neighbour to itself
-    nb = eye(nFeat); 
+    nb = eye(nfeatures); 
 elseif numel(cfg.nb)==1 && cfg.nb == 0
-    nb = eye(nFeat); 
+    nb = eye(nfeatures); 
 else
     %%% Decide whether nb is a graph or a distance matrix
     if all(ismember([0,1],unique(cfg.nb))) % graph 
@@ -128,8 +142,8 @@ else
         % chan2 can still be a different channel. Therefore, the matrix nb
         % contains the information of closest neighbours in its rows. E.g.,
         % the row nb(i,:) gives the closest neighbours of the i-th channel
-        nb = zeros(nFeat);  % initialise as empty matrix
-        for nn=1:nFeat
+        nb = zeros(nfeatures);  % initialise as empty matrix
+        for nn=1:nfeatures
             [~,soidx] = sort(cfg.nb(nn,:),'ascend');
             % put 1's in the row corresponding to the nearest
             % neighbours
@@ -147,11 +161,11 @@ tmp_cfg.feedback = 0;
 rng_state = rng;
 
 %% Loop across features
-for ff=1:nFeat
+for ff=1:nfeatures
 
     % Identify neighbours: multiply a unit vector with 1 at the ff'th with
     % the nb matrix, this yields the neighbours of feature ff
-    u = [zeros(1,ff-1), 1, zeros(1,nFeat-ff)];
+    u = [zeros(1,ff-1), 1, zeros(1,nfeatures-ff)];
     neighbours = find( u * nb > 0);
     
     if cfg.feedback
@@ -163,11 +177,11 @@ for ff=1:nFeat
     end
     
     % Extract desired features and reshape into [samples x features]
-    Xfeat = reshape(X(:,neighbours,:), N, []);
+    Xfeat = reshape(X(:,neighbours,:), n, []);
 
     % We always set the random number generator back to the same state:
-    % this assures that the cross-validation folds are created in the same
-    % way for each channel, increasing comparability
+    % this assures that the same cross-validation folds are used for each 
+    % channel, increasing comparability
     rng(rng_state);
     
     % Perform cross-validation for specific feature(s)
@@ -176,8 +190,31 @@ for ff=1:nFeat
     
 end
 
-perf = cat(2,perf{:})';
-perf_std = cat(2,perf_std{:})';
+if nmetrics==1 
+    cfg.metric = cfg.metric{1};
+    if numel(perf{1})==1
+        % for a single univariate performance metric, 
+        % we can change the cell array into a vector
+        perf = [perf{:}]';
+        perf_std = [perf_std{:}]';
+    end
+else
+    tmp = cat(2,perf{:})';
+    tmp_std = cat(2,perf_std{:})';
+    perf = cell(nmetrics, 1);
+    perf_std = cell(nmetrics, 1);
+    for ii=1:nmetrics
+        % for each univariate performance metric, 
+        % we can change the cell array into a vector
+        if numel(tmp{1,ii})==1
+            perf{ii} = cell2mat(tmp(:,ii));
+            perf_std{ii} = cell2mat(tmp_std(:,ii));
+        else
+            perf{ii} = tmp(:,ii);
+            perf_std{ii} = tmp_std(:,ii);
+        end
+    end
+end
 
 result = [];
 if nargout>1
@@ -185,9 +222,9 @@ if nargout>1
    result.perf      = perf;
    result.perf_std  = perf_std;
    result.metric    = cfg.metric;
-   result.CV        = cfg.CV;
-   result.K         = cfg.K;
-   result.N         = size(X,1);
+   result.cv        = cfg.cv;
+   result.k         = cfg.k;
+   result.n         = size(X,1);
    result.repeat    = cfg.repeat;
    result.nclasses  = nclasses;
    result.classifier = cfg.classifier;

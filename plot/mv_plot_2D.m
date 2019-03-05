@@ -83,8 +83,8 @@ end
 
 [nX,nY,P] = size(dat);
 
-mv_set_default(cfg,'x',1:nX);
-mv_set_default(cfg,'y',1:nY);
+mv_set_default(cfg,'x',1:nY);
+mv_set_default(cfg,'y',1:nX);
 mv_set_default(cfg,'xlim',[min(cfg.x), max(cfg.x)]);
 mv_set_default(cfg,'ylim',[min(cfg.y), max(cfg.y)]);
 mv_set_default(cfg,'xlabel','Testing time');
@@ -129,7 +129,11 @@ axnum=1;
 for rr=1:cfg.nrow
     for cc=1:cfg.ncol
         if axnum<=P
-            h.ax(axnum) = subplot(cfg.nrow,cfg.ncol,axnum);
+            if P > 1
+                h.ax(axnum) = subplot(cfg.nrow,cfg.ncol,axnum);
+            else
+                h.ax = gca;
+            end
             set(gcf,'CurrentAxes',h.ax(axnum));
             
             % Plot the classification performance image here. The y-axis
@@ -183,7 +187,7 @@ if ~isempty(cfg.zero)
             hold on
             xl = xlim(gca);
             plot(gca,xl(:), [0 0], cfg.zero{:})
-            set(gca,'YLim',yl)
+            set(gca,'XLim',xl)
         end
     end
 end

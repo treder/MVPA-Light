@@ -49,7 +49,6 @@ function stat = mv_statistics(cfg, result)
 
 % (c) Matthias Treder 2017
 
-
 mv_set_default(cfg,'alpha', 0.05);
 mv_set_default(cfg,'chance', 0.5);
 mv_set_default(cfg,'feedback', 1);
@@ -63,11 +62,11 @@ stat = struct('test',cfg.test,'statistic',[],'p',[]);
 if strcmp(cfg.test,'binomial')
 
     % N is the total number of samples
-    N = result.N;
+    n = result.n;
     
     % Calculate p-value using the cumulative distribution function, testing
     % H0: the observed accuracy was due to chance
-    stat.p = 1 - binocdf( round(result.perf * N), N, cfg.chance);
+    stat.p = 1 - binocdf( round(result.perf * n), n, cfg.chance);
 
 elseif strcmp(cfg.test,'permutation')
 end

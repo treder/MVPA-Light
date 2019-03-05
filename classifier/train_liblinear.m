@@ -48,7 +48,7 @@ function cf = train_liblinear(cfg,X,clabel)
 % .bias : if bias >= 0, instance x becomes [x; bias]; if < 0, no bias term added (default -1)
 % .weight: weights adjust the parameter C of different classes (see README for details)
 % .cv: n-fold cross validation mode
-% .C : find parameter C (only for -s 0 and 2)
+% .c : find parameter C (only for -s 0 and 2)
 % .quiet : quiet mode (no outputs)
 %
 %Output:
@@ -61,7 +61,7 @@ function cf = train_liblinear(cfg,X,clabel)
 % http://www.csie.ntu.edu.tw/~cjlin/liblinear
 %
 
-if ~any(cfg.type == [0,2]) && any(cfg.C==1)
+if ~any(cfg.type == [0,2]) && any(cfg.c==1)
     error('Warm-start parameter search only available for type 0 and type 2')
 end
 
@@ -82,7 +82,7 @@ if cfg.quiet
     liblinear_options= [liblinear_options ' -q' ];
 end
 
-if ~isempty(cfg.C)
+if ~isempty(cfg.c)
     % First run cross-validation to find best cost parameter C
     cfg.cost = train(double(clabel(:)), sparse(X), [liblinear_options ' -C']);
 end

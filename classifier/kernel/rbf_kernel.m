@@ -2,11 +2,11 @@ function out = rbf_kernel(param, x,y)
 % Radial basis function (RBF) kernel. 
 % 
 % Usage:
-% ker = rbf_kernel(param, X)
-% val = rbf_kernel(param, x,y)
+% out = rbf_kernel(param, X)
+% out = rbf_kernel(param, x,y)
 % 
 %Parameters:
-% param          - struct with kernel hyperparameter (
+% param          - struct with kernel hyperparameter (gamma)
 % X              - [samples x features] data matrix 
 %             - OR -
 % x,y            - two feature vectors or matrices of feature vectors

@@ -5,7 +5,7 @@ function cf = train_libsvm(cfg,X,clabel)
 % https://www.csie.ntu.edu.tw/~cjlin/libsvm
 %
 % Usage:
-% cfy = train_libsvm(cfg,X,clabel)
+% cf = train_libsvm(cfg,X,clabel)
 % 
 %Parameters:
 % X              - [samples x features] matrix of training samples

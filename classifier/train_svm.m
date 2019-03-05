@@ -14,10 +14,10 @@ function cf = train_svm(cfg,X,clabel)
 %                  1's (class 1) and 2's (class 2)
 %
 % cfg          - struct with hyperparameters:
-% C            - regularisation hyperparameter controlling the magnitude
+% .c            - regularisation hyperparameter controlling the magnitude
 %                  of regularisation. If a single value is given, it is
 %                  used for regularisation. If a vector of values is given,
-%                  5-fold cross-validation is used to test all the values
+%                  cross-validation is used to test all the values
 %                  in the vector and the best one is selected.
 %                  If set to 'auto', a default search grid is used to
 %                  automatically determine the best lambda (default
@@ -28,18 +28,25 @@ function cf = train_svm(cfg,X,clabel)
 %                  'rbf'        - radial basis function or Gaussian kernel
 %                                 ker(x,y) = exp(-gamma * |x-y|^2);
 %                  'polynomial' - polynomial kernel
-%                                 ker(x,y) = (gamma * x * y' + coef0)^degree
+%                                 ker(x,y) = (gamma * x' * y + coef0)^degree
 %                  Alternatively, a custom kernel can be provided if there
 %                  is a function called *_kernel is in the MATLAB path, 
 %                  where "*" is the name of the kernel (e.g. rbf_kernel).
-% Q              - optional kernel matrix. If Q is provided, the .kernel 
+% kernel_matrix  - optional kernel matrix. If provided, the .kernel 
 %                  parameter is ignored. (Default [])
+% .prob          - if 1, decision values are returned as probabilities. If
+%                  0, the decision values are simply the distance to the
+%                  hyperplane. Calculating probabilities takes more time
+%                  and memory so don't use this unless needed. A Platt
+%                  approximation using an external function (obtained from
+%                  http://www.work.caltech.edu/~htlin/program/libsvm/) is
+%                  used to estimated probabilities.
 %
-% Note: C is implemented analogous to the classical SVM implementations,
+% Note: c is implemented analogous to the classical SVM implementations,
 % see libsvm and liblinear. It is roughly reciprocally related to the
-% lambda parameter used in LDA/logistic regression, ie C = 1/lambda.
+% lambda parameter used in LDA/logistic regression, ie c = 1/lambda.
 %
-% Hyperparameters for specific kernels:
+% HYPERPARAMETERS for specific kernels:
 %
 % gamma         - (kernel: rbf, polynomial) controls the 'width' of the
 %                  kernel. If set to 'auto', gamma is set to 1/(nr of features)
@@ -50,6 +57,13 @@ function cf = train_svm(cfg,X,clabel)
 % degree        - (kernel: polynomial) degree of the polynomial term. A too
 %                 high degree makes overfitting likely (default 2)
 %
+% TUNING: Hyperparameters can be tuned by setting a range instead of a
+% single value. For instance, if cfg.gamma = [10e-1, 1, 10e1] a
+% cross-validation is performed where each of the parameters is tested and
+% the best parameter is chosen. If multiple parameters are set for tuning,
+% a multi-dimensional search grid is set up where all combinations of
+% parameters are tested.
+%
 % Further parameters (that usually do not need to be changed):
 % bias          - if >0 augments the data with a bias term equal to the
 %                 value of bias:  X <- [X; bias] and augments the weight
@@ -58,8 +72,8 @@ function cf = train_svm(cfg,X,clabel)
 %                 bias is 1 for linear kernel and 0 for non-linear
 %                 kernel (default 'auto'). This is because for non-linear
 %                 kernels, a bias is usally not needed (Kecman 2001, p.182)
-% K             - the number of folds in the K-fold cross-validation for
-%                 the lambda search (default 5)
+% k             - the number of folds in the k-fold cross-validation for
+%                 the lambda search (default 3)
 % plot          - if a lambda search is performed, produces diagnostic
 %                 plots including the regularisation path and
 %                 cross-validated accuracy as a function of lambda (default
@@ -90,10 +104,11 @@ function cf = train_svm(cfg,X,clabel)
 % REFERENCES:
 % V Kecman (2001). Learning and Soft Computing: Support Vector Machines, 
 % Neural Networks, and Fuzzy Logic Models. MIT Press
-
 %
+% Lin, Lin & Weng (2007). A note on Platt's probabilistic outputs for 
+% support vector machines. Machine Learning, 68(3), 267-276
 
-% (c) Matthias Treder 2017
+% (c) Matthias Treder
 
 [N, nFeat] = size(X);
 
@@ -108,7 +123,7 @@ clabel(clabel == 2) = -1;
 
 %% Set kernel hyperparameter defaults
 if ischar(cfg.gamma) && strcmp(cfg.gamma,'auto')
-    cfg.gamma = 1/ nFeat;
+    cfg.gamma = 1/nFeat;
 end
 
 %% Bias
@@ -126,50 +141,72 @@ if cfg.bias > 0
     nFeat = nFeat + 1;
 end
 
+%% Check if hyperparmeters need to be tuned
+has_kernel_matrix = ~isempty(cfg.kernel_matrix);
+
+% need to tune hyperparameters?
+tune_hyperparameters = {};
+if ~has_kernel_matrix
+
+    tmp = {};
+    switch(cfg.kernel)
+        case 'rbf'
+            if numel(cfg.gamma)>1, tmp = {'gamma' cfg.gamma}; end
+        case 'polynomial'
+            if numel(cfg.gamma)>1, tmp = {'gamma' cfg.gamma}; end
+            if numel(cfg.coef0)>1, tmp = {tmp{:}; 'coef0' cfg.coef0}; end
+            if numel(cfg.degree)>1, tmp = {rmp{:}; 'degree' cfg.degree}; end
+    end
+    tune_hyperparameters = tmp;
+end
 
 %% Precompute and regularise kernel
 
-if isempty(cfg.Q)
-    
+if ~has_kernel_matrix && isempty(tune_hyperparameters)
+    % If we do not need to tune hyperparameters, we can precompute the
+    % kernel matrix
+
     % Kernel function
     kernelfun = eval(['@' cfg.kernel '_kernel']);
     
     % Compute kernel matrix
-    Q = kernelfun(cfg, X);
+    kernel_matrix = kernelfun(cfg, X);
     
     % Regularise
     if cfg.regularise_kernel > 0
-        Q = Q + cfg.regularise_kernel * eye(size(X,1));
+        kernel_matrix = kernel_matrix + cfg.regularise_kernel * eye(size(X,1));
     end
     
 else
-    Q = cfg.Q;
+    % kernel matrix has been provided by the user, so we take it from 
+    % the cfg struct
+    kernel_matrix = cfg.kernel_matrix;
 end
 
-% Create a copy of Q wherein class labels 1 and -1 are absorbed in the
+% Create a copy of kernel_matrix wherein class labels 1 and -1 are absorbed in the
 % kernel matrix. This is useful for optimisation.
-Q_cl = Q .* (clabel * clabel');
+Q_cl = kernel_matrix .* (clabel * clabel');
 
-% %% Automatically set the search grid for C
-if ischar(cfg.C) && strcmp(cfg.C,'auto')
-    cfg.C = logspace(-4,4,10);
+% %% Automatically set the search grid for c
+if ischar(cfg.c) && strcmp(cfg.c,'auto')
+    cfg.c = logspace(-4,4,10);
 end
 
 %% Optimise hyperparameters using nested cross-validation
-if numel(cfg.C)>1
+if numel(cfg.c)>1 || ~isempty(tune_hyperparameters)
     
    tune_hyperparameter_svm
    
 else
     % there is just one lambda: no grid search
-    best_idx = 1;
+    best_c_idx = 1;
 end
 
 %% Train classifier on the full training data (using the best lambda)
-C = cfg.C(best_idx);
+c = cfg.c(best_c_idx);
 
 % Solve the dual problem and obtain alpha
-alpha = DualCoordinateDescent(Q_cl, C, ONE, cfg.tolerance, cfg.shrinkage_multiplier);
+alpha = DualCoordinateDescent(Q_cl, c, ONE, cfg.tolerance, cfg.shrinkage_multiplier);
 
 %% Set up classifier struct
 cf= [];
@@ -177,6 +214,7 @@ cf.kernel = cfg.kernel;
 cf.alpha  = alpha;
 cf.gamma  = cfg.gamma;
 cf.bias   = cfg.bias;
+cf.prob   = cfg.prob;
 
 if strcmp(cfg.kernel,'linear')
     % Calculate linear weights w and bias b from alpha
@@ -203,7 +241,7 @@ else
     cf.alpha_y = cf.alpha(cf.support_vector_indices) .* cf.y(:);
     
     if cfg.bias > 0
-        %%% TODO: this part needs fixing
+        %%% TODO: this part might need fixing
         cf.b = 0;
         
 %         % remove bias part from support vectors
@@ -212,14 +250,34 @@ else
         cf.b = 0;
     end
     
-    % Save kernel function
-    cf.kernelfun = kernelfun;
+    cf.has_kernel_matrix = has_kernel_matrix;
+    if ~has_kernel_matrix
+        cf.kernelfun = kernelfun;
+    end
     
     % Save hyperparameters
     cf.gamma    = cfg.gamma;
     cf.coef0    = cfg.coef0;
     cf.degree   = cfg.degree;
     
+end
+
+if cf.prob == 1
+    % Invoke external function platt.m. It calculates parameters A and B of
+    % the sigmoid that models the probabilities. The method is known as 
+    % Platt's approximation
+    prior0 = sum(clabel == -1); % prior0: number of negative points
+    prior1 = sum(clabel == 1);  % prior1: number of positive points
+    
+    % Calculate decision values for training data
+    if strcmp(cf.kernel,'linear')
+        dval = X*cf.w + cf.b;
+    else
+        dval = kernel_matrix(:, cf.support_vector_indices) * cf.alpha_y   + cf.b;
+    end
+    
+    % Invoke platt function to get sigmoid parameters
+    [cf.A, cf.B] = platt(dval, clabel, prior0, prior1);
 end
 
 end

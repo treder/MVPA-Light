@@ -3,7 +3,8 @@ Light-weight Matlab toolbox for multivariate pattern analysis (MVPA)
 
 ### News
 
-* (31-01-2018) Going multi-class: added [multi-class LDA](classifier/train_multiclass_lda.m) and [confusion matrix](utils/mv_calculate_performance.m) as classifier performance metric
+* (Feb 2019) added [kernel Fisher Discriminant Analysis](classifier/train_kernel_fda.m) and new metrics `precision`, `recall`, and `f1`
+* (Jan 2018) Going multi-class: added [multi-class LDA](classifier/train_multiclass_lda.m) and [confusion matrix](utils/mv_calculate_performance.m) as classifier performance metric
 
 ### Table of contents
 1. [Installation](#installation)
@@ -15,7 +16,7 @@ Light-weight Matlab toolbox for multivariate pattern analysis (MVPA)
 Download the toolbox or, better, clone it using Git. In Matlab, you can add the following line to your `startup.m` file to add the MVPA-Light toolbox to the Matlab path:
 
 ```Matlab
-cd('your-path-to/MVPA-Light/utils/')
+addpath('your-path-to/MVPA-Light/startup/')
 startup_MVPA_Light
 ```
 
@@ -47,28 +48,30 @@ Classifier performance is evaluated on a dataset called *test data*. To this end
 
 #### Classifiers for two classes
 
-* `lda`: Regularised Linear Discriminant Analysis (LDA). LDA searches for a projection of the data into 1D such that the class means are separated as far as possible and the within-class variability is as small as possible. To counteract overfitting, ridge regularisation and shrinkage regularisation are available. In shrinkage, the regularisation parameter λ (lambda) rankges from λ=0 (no regularisation) to λ=1 (maximum regularisation). It can also be set to 'auto' to have λ be estimated automatically. For more details on regularised LDA see [[Bla2011]](#Bla2011). LDA has been shown to be formally equivalent to LCMV beamforming and it can be used for recovering time series of ERP sources [[Tre2011]](#Tre2011). See [`train_lda`](classifier/train_lda.m) for a full description of the parameters.
-* `logreg`: Logistic regression (LR) with L2-regularisation. LR directly models class probabilities by fitting a logistic function to the data. Like LDA, LR is a linear classifier and hence its operation is expressed by a weight vector w and a bias b. To prevent overfitting the regularisation parameter λ (lambda) is used to control the penalisation of the classifier weights.  λ has to be positive but its value is unbounded. It can also be set to 'auto'. In this case, different λ's are tried out using a searchgrid; the value of λ maximising cross-validation performance is then used for training on the full dataset. See [`train_logreg`](classifier/train_logreg.m) for a full description of the parameters.
-* `svm`: Support Vector Machine (SVM). The parameter C is the cost parameter that controls the amount of regularisation. It is inversely related to the lambda defined above. By default, a linear SVM is used. By setting the `.kernel` parameter (e.g. to 'polynomial' or 'rbf'), non-linear SVMs can be trained as well. See [`train_svm`](classifier/train_svm.m) for a full description of the parameters.
-* `ensemble`: Uses an ensemble of classifiers trained on random subsets of the features and random subsets of the samples. Can use any classifier with train/test functions as a learner. See [`train_ensemble`](classifier/train_ensemble.m) for a full description of the parameters.
+* [`lda`](classifier/train_lda.m): Regularised Linear Discriminant Analysis (LDA). LDA searches for a projection of the data into 1D such that the class means are separated as far as possible and the within-class variability is as small as possible. To counteract overfitting, ridge regularisation and shrinkage regularisation are available. In shrinkage, the regularisation parameter λ (lambda) rankges from λ=0 (no regularisation) to λ=1 (maximum regularisation). It can also be set to 'auto' to have λ be estimated automatically. For more details on regularised LDA see [[Bla2011]](#Bla2011). LDA has been shown to be formally equivalent to LCMV beamforming and it can be used for recovering time series of ERP sources [[Tre2011]](#Tre2011). See [`train_lda`](classifier/train_lda.m) for a full description of the parameters.
+* [`logreg`](classifier/train_logreg.m): Logistic regression (LR) with L2-regularisation. LR directly models class probabilities by fitting a logistic function to the data. Like LDA, LR is a linear classifier and hence its operation is expressed by a weight vector w and a bias b. To prevent overfitting the regularisation parameter λ (lambda) is used to control the penalisation of the classifier weights.  λ has to be positive but its value is unbounded. It can also be set to 'auto'. In this case, different λ's are tried out using a searchgrid; the value of λ maximising cross-validation performance is then used for training on the full dataset. See [`train_logreg`](classifier/train_logreg.m) for a full description of the parameters.
+* [`svm`](classifier/train_svm.m): Support Vector Machine (SVM). The parameter C is the cost parameter that controls the amount of regularisation. It is inversely related to the λ defined above. By default, a linear SVM is used. By setting the `.kernel` parameter (e.g. to 'polynomial' or 'rbf'), non-linear SVMs can be trained as well. See [`train_svm`](classifier/train_svm.m) for a full description of the parameters.
+* [`ensemble`](classifier/train_ensemble.m): Uses an ensemble of classifiers trained on random subsets of the features and random subsets of the samples. Can use any classifier with train/test functions as a learner. See [`train_ensemble`](classifier/train_ensemble.m) for a full description of the parameters.
 
 <!--
 * `train_svm`, `test_svm`: Support vector machines (SVM). Uses the [LIBSVM package](https://github.com/arnaudsj/libsvm) that needs to be installed.
 * `train_logist`, `test_logist`: Logistic regression classifier using Lucas Parra's implementation. See `external/logist.m` for an explanation of the hyperparameters.
 -->
 
-#### Multi-class classifiers
+#### Multi-class classifiers (two or more classes)
 
 * [`multiclass_lda`](classifier/train_multiclass_lda.m) : Regularised Multi-class Linear Discriminant Analysis (LDA). The data is first projected onto a (C-1)-dimensional discriminative subspace, where C is the number of classes. A new sample is assigned to the class with the closest centroid in this subspace. See [`train_multiclass_lda`](classifier/train_multiclass_lda.m) for a full description of the parameters.
+
+* [`kernel_fda`](classifier/train_kernel_fda.m) : Regularised [kernel Fisher Discriminant Analysis (KFDA)](https://en.wikipedia.org/wiki/Kernel_Fisher_discriminant_analysis). This is the kernelized version of LDA. By setting the `.kernel` parameter (e.g. to 'polynomial' or 'rbf'), non-linear classifiers can be trained. See [`train_kernel_fda`](classifier/train_kernel_fda.m) for a full description of the parameters.
 
 #### Cross-validation
 
 To obtain a realistic estimate of classifier performance and control for overfitting, a classifier should be tested on an independent dataset that has not been used for training. In most neuroimaging experiments, there is only one dataset with a restricted number of trials. *K-fold cross-validation* makes efficient use of this data by splitting it into k different folds. In each iteration, one of the k folds is held out and used as test set, whereas all other folds are used for training. This is repeated until every fold has been used as test set once. See [[Lemm2011]](#Lemm2011) for a discussion of cross-validation and potential pitfalls. Cross-validation is implemented in [`mv_crossvalidate`](mv_crossvalidate.m). Note that the more specialised functions [`mv_classify_across_time`](mv_classify_across_time.m), [`mv_classify_timextime`](mv_classify_timextime.m) and [`mv_searchlight`](mv_searchlight.m) implement cross-validation too. Cross-validation is always controlled by the following parameters:
 
-* `cfg.CV`: cross-validation type, either 'kfold', 'leaveout' or 'holdout' (default 'kfold')
-* `cfg.K`: number of folds in k-fold cross-validation (default 5)
+* `cfg.cv`: cross-validation type, either 'kfold', 'leaveout' or 'holdout' (default 'kfold')
+* `cfg.k`: number of folds in k-fold cross-validation (default 5)
 * `cfg.repeat`: number of times the cross-validation is repeated with new randomly assigned folds (default 5)
-* `cfg.P`: if CV is 'holdout', P is the fraction of test samples (default 0.1)
+* `cfg.p`: if cfg.cv is 'holdout', p is the fraction of test samples (default 0.1)
 * `cfg.stratify`: if 1, the class proportions are approximately preserved in each test fold (default 1)
 
 
@@ -84,16 +87,23 @@ Classification across time does not give insight into whether information is sha
 
 Which features contribute most to classification performance? The answer to this question can be used to better interpret the data or to perform feature selection. To this end, [`mv_searchlight`](mv_searchlight.m) performs cross-validated classification for each feature separately. If there is a spatial structure in the features (e.g. neighbouring eletrodes, neighbouring voxels), groups of features rather than single features can be considered. The result is a classification performance measure for each feature. If the features are e.g. channels, the result can be plotted as a topography.
 
+#### Hyperparameter
+
+The hyperparameter for each classifier can be controlled using the `cfg.param` field before calling any of the above functions. To this end, initialise the field using `cfg.param = []`. Then, add the desired parameters, e.g. `cfg.param.lambda = 0.5` for setting the regularisation parameter or `cfg.param.kernel = 'polynomial'` for defining the kernel in SVM. The hyperparameters for each classifier are specified in the documentation for each train_ function in the folder [`classifier`](classifier/).
 
 #### Classifier performance metrics
 
 Classifier output comes in form of decision values (=distances to the hyperplane for linear methods) or directly in form of class labels. However,  one is often only interested in a performance metric that summarises how well the classifier discriminates between the classes. The following metrics can be calculated by the function [`mv_calculate_performance`](utils/mv_calculate_performance.m):
 
-* `acc`: Classification accuracy, representing the fraction correctly predicted class labels.
-* `auc`: Area under the ROC curve. An alternative to classification accuracy that is more robust to imbalanced classes and independent of changes to the classifier threshold.
+* `accuracy` (can be abbreviated as `acc`): Classification accuracy, representing the fraction correctly predicted class labels.
+* `auc`: Area under the [ROC curve](https://en.wikipedia.org/wiki/Receiver_operating_characteristic). An alternative to classification accuracy that is more robust to imbalanced classes and independent of changes to the classifier threshold.
+* `confusion`: [confusion matrix](https://en.wikipedia.org/wiki/Confusion_matrix). Rows corresponds to true class labels, columns correspond to predicted class labels. The (i,j)-th element gives the proportion of samples of class i that have been classified as class j.
 * `dval`: Average decision value for each class.
-* `tval`: t-test statistic, calculated by comparing the sets of decision values for two classes. Can be useful for a subsequent second-level analysis across subjects.
-* `confusion`: [confusion matrix](https://en.wikipedia.org/wiki/Confusion_matrix). The rows corresponds to classifier predictions, columns correspond to the true classes. The (i,j)-th element gives the proportion of samples of class j that have been classified as class i.
+* `f1`: [F1 score](https://en.wikipedia.org/wiki/F1_score) is the harmonic average of precision and recall, given by `2 *(precision * recall) / (precision + recall)`.
+* `precision`: [precision](https://en.wikipedia.org/wiki/Precision_and_recall) is given as the number of true positives divided by true positives plus false positives. For multi-class, it is calculated per class from the confusion matrix by dividing each diagonal element by the row sum. 
+* `recall`: [recall](https://en.wikipedia.org/wiki/Precision_and_recall) is given as the number of true positives divided by true positives plus false negatives. For multi-class, it is calculated per class from the confusion matrix by dividing each diagonal element by the respective column sum. 
+* `tval`: for two classes, calculates the [t-test statistic](https://en.wikipedia.org/wiki/Student's_t-test#Equal_or_unequal_sample_sizes.2C_equal_variance) for unequal sample size, equal variance case, based on the decision values. Can be useful for a subsequent second-level analysis across subjects.
+* `none`: Does not calculate a metric but returns the raw classifier output instead. 
 
 There is usually no need to call [`mv_calculate_performance`](utils/mv_calculate_performance.m) directly. By setting the `cfg.metric` field, the performance metric is calculated automatically in [`mv_crossvalidate`](mv_crossvalidate.m), [`mv_classify_across_time`](mv_classify_across_time.m),  [`mv_classify_timextime`](mv_classify_timextime.m) and [`mv_searchlight`](mv_searchlight.m).
 
@@ -122,10 +132,10 @@ cf = train_lda(param, X, clabel);
 predlabel = test_lda(cf, X);
 
 % Calculate classification accuracy
-acc = mv_calculate_performance('acc',predlabel,clabel)
+acc = mv_calculate_performance('accuracy','clabel',predlabel,clabel)
 ```
 
-See [`examples/example1_train_and_test.m`](examples/example1_train_and_test.m) for more details.
+See [`examples/example1_train_and_test.m`](examples/example1_train_and_test.m) for more details. In most cases, you would not perform training/testing by hand but rather call one of the high-level functions described below.
 
 #### Cross-validation
 
@@ -133,9 +143,9 @@ See [`examples/example1_train_and_test.m`](examples/example1_train_and_test.m) f
 ```Matlab
 cfg = [];
 cfg.classifier      = 'lda';
-cfg.metric          = 'acc';
-cfg.CV              = 'kfold';
-cfg.K               = 5;
+cfg.metric          = 'accuracy';
+cfg.cv              = 'kfold';
+cfg.k               = 5;
 cfg.repeat          = 2;
 
 % Perform 5-fold cross-validation with 2 repetitions.
@@ -175,8 +185,7 @@ See [`examples/example4_classify_timextime.m`](examples/example4_classify_timext
 
 ```Matlab
 cfg =  [];
-
-auc = mv_searchlight(cfg, dat.trial, clabel);
+acc = mv_searchlight(cfg, dat.trial, clabel);
 
 ```
 

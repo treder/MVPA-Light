@@ -1,4 +1,4 @@
-function [perf, result] = mv_classify_timextime(cfg, X, clabel, X2, clabel2)
+function [perf, result, testlabel] = mv_classify_timextime(cfg, X, clabel, X2, clabel2)
 % Time x time generalisation. A classifier is trained on the training data
 % X and validated on either the same dataset X. Cross-validation is
 % recommended to avoid overfitting. If another dataset X2 is provided,
@@ -21,10 +21,12 @@ function [perf, result] = mv_classify_timextime(cfg, X, clabel, X2, clabel2)
 %                 functions (default 'lda')
 % .param        - struct with parameters passed on to the classifier train
 %                 function (default [])
-% .metric       - classifier performance metric, default 'acc'. See
+% .metric       - classifier performance metric, default 'accuracy'. See
 %                 mv_classifier_performance. If set to [] or 'none', the 
-%                 raw classifier output (labels or dvals depending on 
-%                 cfg.cf_output) for each sample is returned. 
+%                 raw classifier output (labels, dvals or probabilities 
+%                 depending on cfg.output_type) for each sample is returned. 
+%                 Use cell array to specify multiple metrics (eg
+%                 {'accuracy' 'auc'}
 % .time1        - indices of training time points (by default all time
 %                 points in X are used)
 % .time2        - indices of test time points (by default all time points
@@ -50,10 +52,10 @@ function [perf, result] = mv_classify_timextime(cfg, X, clabel, X2, clabel2)
 % .feedback     - print feedback on the console (default 1)
 %
 % CROSS-VALIDATION parameters:
-% .CV           - perform cross-validation, can be set to 'kfold',
+% .cv           - perform cross-validation, can be set to 'kfold',
 %                 'leaveout', 'holdout', or 'none' (default 'kfold')
-% .K            - number of folds in k-fold cross-validation (default 5)
-% .P            - if CV is 'holdout', P is the fraction of test samples
+% .k            - number of folds in k-fold cross-validation (default 5)
+% .p            - if cv is 'holdout', p is the fraction of test samples
 %                 (default 0.1)
 % .stratify     - if 1, the class proportions are approximately preserved
 %                 in each fold (default 1)
@@ -62,11 +64,20 @@ function [perf, result] = mv_classify_timextime(cfg, X, clabel, X2, clabel2)
 %
 % Returns:
 % perf          - time1 x time2 classification matrix of classification
-%                performance. 
-% res           - struct with fields describing the classification result.
-%                 Can be used as input to mv_statistics
+%                 performances corresponding to the selected metric. If
+%                 metric='none', perf is a [r x k x t] cell array of
+%                 classifier outputs, where each cell corresponds to a test
+%                 set, k is the number of folds, r is the number of 
+%                 repetitions, and t is the number of training time points.
+%                 Each cell contains [n x t2] elements, where n is the
+%                 number of test samples and t2 is the number of test time
+%                 points. If multiple metrics are requested, perf is a cell array
+% result        - struct with fields describing the classification result.
+%                 Can be used as input to mv_statistics and mv_plot_result
+% testlabel     - [r x k] cell array of test labels. Can be useful if
+%                 metric='none'
 
-% (c) Matthias Treder 2017
+% (c) Matthias Treder
 
 X = double(X);
 if nargin > 3
@@ -75,21 +86,21 @@ end
 
 mv_set_default(cfg,'classifier','lda');
 mv_set_default(cfg,'param',[]);
-mv_set_default(cfg,'metric','acc');
+mv_set_default(cfg,'metric','accuracy');
 mv_set_default(cfg,'time1',1:size(X,3));
 mv_set_default(cfg,'normalise','zscore');
 mv_set_default(cfg,'feedback',1);
 
 % Cross-validation settings
-mv_set_default(cfg,'CV','kfold');
+mv_set_default(cfg,'cv','kfold');
 mv_set_default(cfg,'repeat',5);
-mv_set_default(cfg,'K',5);
-mv_set_default(cfg,'P',0.1);
+mv_set_default(cfg,'k',5);
+mv_set_default(cfg,'p',0.1);
 mv_set_default(cfg,'stratify',1);
 
-switch(cfg.CV)
-    case 'leaveout', cfg.K = size(X,1);
-    case 'holdout', cfg.K = 1;
+switch(cfg.cv)
+    case 'leaveout', cfg.k = size(X,1);
+    case 'holdout', cfg.k = 1;
 end
 
 hasX2 = (nargin==5);
@@ -97,11 +108,16 @@ if hasX2, mv_set_default(cfg,'time2',1:size(X2,3));
 else,     mv_set_default(cfg,'time2',1:size(X,3));
 end
 
-if isempty(cfg.metric) || any(ismember({'dval','auc','roc','tval'},cfg.metric))
-    mv_set_default(cfg,'cf_output','dval');
+if any(ismember({'dval','auc','roc','tval'},cfg.metric))
+    mv_set_default(cfg,'output_type','dval');
 else
-    mv_set_default(cfg,'cf_output','clabel');
+    mv_set_default(cfg,'output_type','clabel');
 end
+
+if ~iscell(cfg.metric)
+    cfg.metric = {cfg.metric};
+end
+nmetrics = numel(cfg.metric);
 
 % Balance the data using oversampling or undersampling
 mv_set_default(cfg,'balance','none');
@@ -110,13 +126,13 @@ mv_set_default(cfg,'replace',1);
 % Set non-specified classifier parameters to default
 cfg.param = mv_get_classifier_param(cfg.classifier, cfg.param);
 
-[clabel, nclasses] = mv_check_clabel(clabel);
+[clabel, nclasses] = mv_check_inputs(cfg, X, clabel);
 
 nTime1 = numel(cfg.time1);
 nTime2 = numel(cfg.time2);
 
 % Number of samples in the classes
-N = arrayfun( @(c) sum(clabel==c) , 1:nclasses);
+n = arrayfun( @(c) sum(clabel==c) , 1:nclasses);
 
 %% Reduce data to selected time points and normalise
 X = X(:,:,cfg.time1);
@@ -132,7 +148,7 @@ train_fun = eval(['@train_' cfg.classifier]);
 test_fun = eval(['@test_' cfg.classifier]);
 
 %% Time x time generalisation
-if ~strcmp(cfg.CV,'none') && ~hasX2
+if ~strcmp(cfg.cv,'none') && ~hasX2
     % -------------------------------------------------------
     % One dataset X has been provided as input. X is hence used for both
     % training and testing. To avoid overfitting, cross-validation is
@@ -144,8 +160,8 @@ if ~strcmp(cfg.CV,'none') && ~hasX2
     label_orig = clabel;
     
     % Initialise classifier outputs
-    cf_output = cell(cfg.repeat, cfg.K, nTime1);
-    testlabel = cell(cfg.repeat, cfg.K);
+    cf_output = cell(cfg.repeat, cfg.k, nTime1);
+    testlabel = cell(cfg.repeat, cfg.k);
     
     for rr=1:cfg.repeat                 % ---- CV repetitions ----
         if cfg.feedback, fprintf('Repetition #%d. Fold ',rr), end
@@ -157,9 +173,9 @@ if ~strcmp(cfg.CV,'none') && ~hasX2
         if strcmp(cfg.balance,'undersample')
             [X,clabel] = mv_balance_classes(X_orig,label_orig,cfg.balance,cfg.replace);
         elseif isnumeric(cfg.balance)
-            if numel(unique(sign(N - cfg.balance)))==2
+            if numel(unique(sign(n - cfg.balance)))==2
                 error(['cfg.balance [%d] is in between the sample sizes in the classes %s. ' ...
-                    'Concurrent over- and undersampling is currently not supported.'],cfg.balance,mat2str(N))
+                    'Concurrent over- and undersampling is currently not supported.'],cfg.balance,mat2str(n))
             end
             % Sometimes we want to undersample to a specific
             % number (e.g. to match the number of samples across
@@ -168,7 +184,7 @@ if ~strcmp(cfg.CV,'none') && ~hasX2
         end
         
         % Define cross-validation
-        CV = mv_get_crossvalidation_folds(cfg.CV, clabel, cfg.K, cfg.stratify, cfg.P);
+        CV = mv_get_crossvalidation_folds(cfg.cv, clabel, cfg.k, cfg.stratify, cfg.p);
         
         for kk=1:CV.NumTestSets                      % ---- CV folds ----
             if cfg.feedback, fprintf('%d ',kk), end
@@ -209,8 +225,8 @@ if ~strcmp(cfg.CV,'none') && ~hasX2
                 % Train classifier
                 cf= train_fun(cfg.param, Xtrain_tt, trainlabel);
 
-                % Obtain classifier output (labels or dvals)
-                cf_output{rr,kk,t1} = reshape( mv_get_classifier_output(cfg.cf_output, cf, test_fun, Xtest), sum(CV.test(kk)),[]);
+                % Obtain classifier output (labels, dvals or probabilities)
+                cf_output{rr,kk,t1} = reshape( mv_get_classifier_output(cfg.output_type, cf, test_fun, Xtest), sum(CV.test(kk)),[]);
             end
 
         end
@@ -223,11 +239,26 @@ if ~strcmp(cfg.CV,'none') && ~hasX2
 elseif hasX2
     % -------------------------------------------------------
     % An additional dataset X2 has been provided. The classifier is trained
-    % on X and tested on X2. No cross-validation is performed.
-    if cfg.feedback
-        fprintf('Training on X and testing on X2.\n')
-        if ~strcmp(cfg.CV,'none'), fprintf('No cross-validation is performed, the cross-validation settings are ignored.\n'), end
+    % on X and tested on X2. Cross-validation does not make sense here and
+    % is not performed.
+    cfg.cv = 'none';
+    
+    % Undersample or oversample if requested
+    if strcmp(cfg.balance,'undersample') || strcmp(cfg.balance,'oversample')
+        [X,clabel] = mv_balance_classes(X, clabel,cfg.balance,cfg.replace);
+    elseif isnumeric(cfg.balance)
+        if numel(unique(sign(n - cfg.balance)))==2
+            error(['cfg.balance [%d] is in between the sample sizes in the classes %s. ' ...
+                'Concurrent over- and undersampling is currently not supported.'],cfg.balance,mat2str(n))
+        end
+        % Sometimes we want to undersample to a specific
+        % number (e.g. to match the number of samples across
+        % subconditions)
+        [X,clabel] = mv_balance_classes(X, clabel, cfg.balance, cfg.replace);
     end
+    
+    % Print info on datasets
+    if cfg.feedback, mv_print_classification_info(cfg, X, clabel, X2, clabel2); end
 
     % Initialise classifier outputs
     cf_output = nan(size(X2,1), nTime1, nTime2);
@@ -246,21 +277,21 @@ elseif hasX2
         cf= train_fun(cfg.param, Xtrain, clabel);
 
         % Obtain classifier output (labels or dvals)
-        cf_output(:,t1,:) = reshape( mv_get_classifier_output(cfg.cf_output, cf, test_fun, Xtest), size(X2,1),[]);
+        cf_output(:,t1,:) = reshape( mv_get_classifier_output(cfg.output_type, cf, test_fun, Xtest), size(X2,1),[]);
 
     end
 
     testlabel = clabel2;
     avdim = [];
 
-elseif strcmp(cfg.CV,'none')
+elseif strcmp(cfg.cv,'none')
     % -------------------------------------------------------
     % One dataset X has been provided as input. X is hence used for both
     % training and testing. However, cross-validation is not performed.
     % Note that this can lead to overfitting.
 
     if cfg.feedback
-        fprintf('Training and testing on X (can lead to overfitting).\n')
+        fprintf('Training and testing on the same dataset (note: this can lead to overfitting).\n')
     end
 
     % Initialise classifier outputs
@@ -282,7 +313,7 @@ elseif strcmp(cfg.CV,'none')
 
         % Obtain classifier output (labels or dvals)
 
-        cf_output(:,t1,:) = reshape( mv_get_classifier_output(cfg.cf_output, cf, test_fun, Xtest), size(X,1),[]);
+        cf_output(:,t1,:) = reshape( mv_get_classifier_output(cfg.output_type, cf, test_fun, Xtest), size(X,1),[]);
 
     end
 
@@ -291,15 +322,35 @@ elseif strcmp(cfg.CV,'none')
 
 end
 
-if isempty(cfg.metric) || strcmp(cfg.metric,'none')
-    if cfg.feedback, fprintf('No performance metric requested, returning raw classifier output.\n'), end
-    perf = cf_output;
-    perf_std = [];
-else
-    if cfg.feedback, fprintf('Calculating classifier performance... '), end
-    [perf, perf_std] = mv_calculate_performance(cfg.metric, cf_output, testlabel, avdim);
-    if cfg.feedback, fprintf('finished\n'), end
+%% Calculate performance metrics
+if cfg.feedback, fprintf('Calculating performance metrics... '), end
+perf = cell(nmetrics, 1);
+perf_std = cell(nmetrics, 1);
+for mm=1:nmetrics
+    if strcmp(cfg.metric{mm},'none')
+        perf{mm} = cf_output;
+        perf_std{mm} = [];
+    else
+        [perf{mm}, perf_std{mm}] = mv_calculate_performance(cfg.metric{mm}, cfg.output_type, cf_output, testlabel, avdim);
+    end
 end
+if cfg.feedback, fprintf('finished\n'), end
+
+if nmetrics==1
+    perf = perf{1};
+    perf_std = perf_std{1};
+    cfg.metric = cfg.metric{1};
+end
+
+% if isempty(cfg.metric) || strcmp(cfg.metric,'none')
+%     if cfg.feedback, fprintf('No performance metric requested, returning raw classifier output.\n'), end
+%     perf = cf_output;
+%     perf_std = [];
+% else
+%     if cfg.feedback, fprintf('Calculating classifier performance... '), end
+%     [perf, perf_std] = mv_calculate_performance(cfg.metric, cfg.output_type, cf_output, testlabel, avdim);
+%     if cfg.feedback, fprintf('finished\n'), end
+% end
 
 result = [];
 if nargout>1
@@ -307,12 +358,12 @@ if nargout>1
    result.perf      = perf;
    result.perf_std  = perf_std;
    result.metric    = cfg.metric;
-   result.CV        = cfg.CV;
-   result.K         = cfg.K;
+   result.cv        = cfg.cv;
+   result.k         = cfg.k;
    if hasX2
-       result.N         = size(X2,1);
+       result.n         = size(X2,1);
    else
-       result.N         = size(X,1);
+       result.n         = size(X,1);
    end
    result.repeat    = cfg.repeat;
    result.nclasses  = nclasses;

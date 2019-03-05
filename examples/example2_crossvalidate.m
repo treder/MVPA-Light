@@ -1,6 +1,8 @@
 %%% In example 1, training and testing was performed on the same data. This
 %%% can lead to overfitting and an inflated measure of classification
-%%% accuracy. The function mv_crossvalidate is used for this purpose.
+%%% accuracy. The function mv_crossvalidate implements cross-validation
+%%% which controls for overfitting by repeatedly splitting the data into
+%%% training and test sets.
 close all
 clear all
 
@@ -19,24 +21,31 @@ X = squeeze(mean(dat.trial(:,:,ival_idx),3));
 % ('auc').
 %
 % To get a realistic estimate of classification performance, we perform 
-% 5-fold (cfg.K = 5) cross-validation with 10 repetitions (cfg.repeat = 10).
+% 5-fold (cfg.k = 5) cross-validation with 10 repetitions (cfg.repeat = 10).
 
 cfg_LDA = [];
 cfg_LDA.classifier      = 'lda';
-cfg_LDA.param           = struct('lambda','auto');
-cfg_LDA.metric          = 'auc';
-cfg_LDA.CV              = 'kfold';  % 'kfold' 'leaveout' 'holdout'
-cfg_LDA.K               = 5;
+cfg_LDA.metric          = 'accuracy';
+cfg_LDA.cv              = 'kfold';  % 'kfold' 'leaveout' 'holdout'
+cfg_LDA.k               = 5;
 cfg_LDA.repeat          = 10;
 cfg_LDA.balance         = 'undersample';
 
+% the param substruct contains the hyperparameters for the classifier.
+% Here, we only set lambda = 'auto'. This is the default, so in general
+% setting param is not required unless one wants to change the default
+% settings.
+cfg_LDA.param           = [];
+cfg_LDA.param.lambda    = 'auto';
+
 [acc_LDA, result_LDA] = mv_crossvalidate(cfg_LDA, X, clabel);
 
-% Compare the result for LDA to Logistic Regression (LR).
+% Run analysis also for Logistic Regression (LR), using the same
+% cross-validation settings.
 cfg_LR = cfg_LDA;
 cfg_LR.classifier       = 'logreg';
-cfg_LR.param            = [];
-cfg_LR.param.lambda     = 'auto';
+cfg_LR.param            = [];       % sub-struct with hyperparameters for classifier
+cfg_LR.param.lambda     = 10^-3; 'auto';
 
 [acc_LR, result_LR] = mv_crossvalidate(cfg_LR, X, clabel);
 
@@ -46,8 +55,29 @@ fprintf('Classification accuracy (Logreg): %2.2f%%\n', 100*acc_LR)
 % Produce plot of results
 h = mv_plot_result({result_LDA, result_LR});
 
-%% Comparing cross-validation to train-test on the same data
-cfg_LDA.metric = 'acc';
+%% Use a binomial test to assess statistical significance of accuracies (ACC)
+cfg = [];
+cfg.test    = 'binomial';
+
+stat = mv_statistics(cfg, result_LDA);
+
+%% Confusion matrix
+% The confusion matrix ca be more informative than classification performance.
+% It tells what proportion of instances of class 1 and 2 have been correctly
+% classified. It also shows how many class 1 instances have been
+% misclassified as class 2 and vice versa
+
+cfg_LDA.metric          = 'confusion';
+[~, result_LDA] = mv_crossvalidate(cfg_LDA, X, clabel);
+
+cfg_LR.metric          = cfg_LDA.metric;
+[~, result_LR] = mv_crossvalidate(cfg_LR, X, clabel);
+
+% Produce plot of result
+h = mv_plot_result({result_LDA, result_LR});
+
+%% Comparing cross-validation to training and testing on the same data
+cfg_LDA.metric = 'accuracy';
 
 % Select only the first samples
 nReduced = 29;
@@ -55,11 +85,11 @@ label_reduced = clabel(1:nReduced);
 X_reduced = X(1:nReduced,:);
 
 % Cross-validation (proper way)
-cfg_LDA.CV = 'kfold';
+cfg_LDA.cv = 'kfold';
 acc_LDA = mv_crossvalidate(cfg_LDA, X_reduced, label_reduced);
 
 % No cross-validation (test on training data)
-cfg_LDA.CV     = 'none';
+cfg_LDA.cv     = 'none';
 acc_reduced = mv_crossvalidate(cfg_LDA, X_reduced, label_reduced);
 
 fprintf('Using %d samples with cross-validation (proper way): %2.2f%%\n', nReduced, 100*acc_LDA)

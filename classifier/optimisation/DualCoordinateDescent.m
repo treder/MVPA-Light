@@ -4,7 +4,7 @@ function [alpha,iter] = DualCoordinateDescent(Q,C,ONE,tolerance, shrinkage_multi
 %
 % The dual optimisation problem for L1-SVM is
 %
-%    min_a         f(a) = 1/2 a' * Q * a - e' * a
+%    arg min a     f(a) = 1/2 a' * Q * a - e' * a
 %    subject to    0 <= a <= C
 %
 % where e is a vector of 1's, C is the cost hyperparameter, and Q is the
@@ -15,12 +15,10 @@ function [alpha,iter] = DualCoordinateDescent(Q,C,ONE,tolerance, shrinkage_multi
 % by solving 
 %
 % min_d   f(a + d e_i) = 1/2 Q_ii d^2 + grad_f_i d + constant
-%
 % 
 %
-% Usage: [w,iter] = DualCoordinateDescent(a,Q,ONE,tolerance)
+% Usage: [w,iter] = DualCoordinateDescent(Q,C,ONE,tolerance,shrinkage_multiplier)
 %
-% alpha     - start dual vector
 % Q         - kernel matrix with class labels absorbed
 % C         - cost hyperparameter
 % ONE       - column vectors of 1's, same size as a 
@@ -30,7 +28,7 @@ function [alpha,iter] = DualCoordinateDescent(Q,C,ONE,tolerance, shrinkage_multi
 %                 aggressively, potentially leading to speed up
 %
 
-% (c) Matthias Treder 2017
+% (c) Matthias Treder 2017-2018
 
 alpha = zeros(size(Q,1),1);
 
@@ -53,7 +51,7 @@ PGmin_old = -Inf;
 iter = 0;
 max_iter = 1000;
 
-tmp = 0;
+% tmp = 0;
 o = 1:N;
 
 %%% debug
