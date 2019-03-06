@@ -14,14 +14,12 @@ Light-weight Matlab toolbox for multivariate pattern analysis (MVPA)
 
 ## Installation <a name="installation"></a>
 
-In Linux/Mac, open a terminal and `cd` into the folder where you keep your Git repositories. If there is none yet, you can create it by typing `mkdir git`. From within the `git` folder, check out the repository by typing 
+In Linux/Mac, open a terminal and check out the repository by typing 
 
 ```
 git clone https://github.com/treder/MVPA-Light.git
 ```
-In Windows, you might prefer to perform these steps using a [Git client](https://www.google.com/search?q=git+client+for+windows). Alternatively, you can simply download the toolbox. Git makes it easier to keep your local version up-do-date using `git pull` but it's not essential.
-
-Next, the toolbox needs to be added to Matlab's search path. In Matlab, add these lines to your `startup.m` file:
+In Windows, you might prefer to perform these steps using a [Git client](https://www.google.com/search?q=git+client+for+windows). Alternatively, you can simply download the toolbox. Git makes it easier to keep your local version up-do-date using `git pull` but it's not essential. Next, the toolbox needs to be added to Matlab's search path. In Matlab, add these lines to your `startup.m` file:
 
 ```Matlab
 addpath('C:\git\MVPA-Light\startup')
