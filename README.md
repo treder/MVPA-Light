@@ -13,14 +13,23 @@ Light-weight Matlab toolbox for multivariate pattern analysis (MVPA)
 4. [Examples](#examples)
 
 ## Installation <a name="installation"></a>
-Download the toolbox or, better, clone it using Git. In Matlab, you can add the following line to your `startup.m` file to add the MVPA-Light toolbox to the Matlab path:
+
+On the command line, `cd` into the folder where you keep your Git repositories. If there is no such folder yet, you can create it by typing `mkdir git`. Then type `cd git` to move into the folder. Checkout the repository by typing 
+
+```
+git clone https://github.com/treder/MVPA-Light.git
+```
+
+This is better than downloading the toolbox because you can execute `git pull` to automatically sync it with the latest Github version. Next, the toolbox needs to be added to the Matlab search path. In Matlab, you can add the following two lines to your `startup.m` file:
 
 ```Matlab
-addpath('your-path-to/MVPA-Light/startup/')
+addpath('C:\git\MVPA-Light\startup')
 startup_MVPA_Light
 ```
 
-Alternatively, use [MATLAB's Path tool](https://uk.mathworks.com/help/matlab/matlab_env/add-remove-or-reorder-folders-on-the-search-path.html) to manually add the `MVPA-Light` folder and its subfolders to your MATLAB path. The Git repository contains two branches: the `master` branch (recommended) is the stable branch that should always work. `devel` is the development branch that contains new features that are either under construction or not tested. `MVPA-Light` has been tested with Matlab `R2012a` and newer. There may be issues with earlier Matlab versions.
+This assumes that the repository is located in `C:\git\MVPA-Light`, so change the path accordingly. The function `startup_MVPA_Light` adds the relevant folders and it avoids adding the `.git` subfolder. As an alternative, you can use [MATLAB's Path tool](https://uk.mathworks.com/help/matlab/matlab_env/add-remove-or-reorder-folders-on-the-search-path.html) to manually add the `MVPA-Light` folder and its subfolders to your MATLAB path. 
+
+`MVPA-Light` contains two branches: the `master` branch (recommended) is the stable branch that should always work. `devel` is the development branch that contains new features that are either under construction or not tested. The toolbox has been tested with Matlab `R2012a` and newer. There may be issues with earlier Matlab versions.
 
 ## Overview <a name="overview"></a>
 `MVPA-Light` provides functions for the classification of neuroimaging data. It is meant to address the basic issues in MVPA (such as classification across time and generalisation) in a fast and robust way while retaining a slim and readable codebase. For Fieldtrip users, the use of the toolbox will be familiar: The first argument to the main functions is a configuration struct `cfg` that contains all the parameters. However, the toolbox does *not* require or use Fieldtrip.
