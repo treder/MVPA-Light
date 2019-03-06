@@ -14,20 +14,23 @@ Light-weight Matlab toolbox for multivariate pattern analysis (MVPA)
 
 ## Installation <a name="installation"></a>
 
-On the command line, `cd` into the folder where you keep your Git repositories. If there is no such folder yet, you can create it by typing `mkdir git`. Then type `cd git` to move into the folder. Checkout the repository by typing 
+In Linux/Mac, open a terminal and `cd` into the folder where you keep your Git repositories. If there is none yet, you can create it by typing `mkdir git`. From within the `git` folder, check out the repository by typing 
 
 ```
 git clone https://github.com/treder/MVPA-Light.git
 ```
+In Windows, you might prefer to perform these steps using a [Git client](https://www.google.com/search?q=git+client+for+windows). Alternatively, you can simply download the toolbox. Git makes it easier to keep your local version up-do-date using `git pull` but it's not essential.
 
-This is better than downloading the toolbox because you can execute `git pull` to automatically sync it with the latest Github version. Next, the toolbox needs to be added to the Matlab search path. In Matlab, you can add the following two lines to your `startup.m` file:
+Next, the toolbox needs to be added to Matlab's search path. In Matlab, add these lines to your `startup.m` file:
 
 ```Matlab
 addpath('C:\git\MVPA-Light\startup')
 startup_MVPA_Light
 ```
 
-This assumes that the repository is located in `C:\git\MVPA-Light`, so change the path accordingly. The function `startup_MVPA_Light` adds the relevant folders and it avoids adding the `.git` subfolder. As an alternative, you can use [MATLAB's Path tool](https://uk.mathworks.com/help/matlab/matlab_env/add-remove-or-reorder-folders-on-the-search-path.html) to manually add the `MVPA-Light` folder and its subfolders to your MATLAB path. 
+This assumes that the repository is located in `C:\git\MVPA-Light`, so change the path if necessary. The function `startup_MVPA_Light` adds the relevant folders and it avoids adding the `.git` subfolder. 
+
+If you do not want to use the `startup.m` file, you can directly add the `MVPA-Light` folder and its subfolders to the path using [MATLAB's Path tool](https://uk.mathworks.com/help/matlab/matlab_env/add-remove-or-reorder-folders-on-the-search-path.html).
 
 `MVPA-Light` contains two branches: the `master` branch (recommended) is the stable branch that should always work. `devel` is the development branch that contains new features that are either under construction or not tested. The toolbox has been tested with Matlab `R2012a` and newer. There may be issues with earlier Matlab versions.
 
