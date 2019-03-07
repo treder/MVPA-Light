@@ -115,7 +115,7 @@ Classifier output comes in form of decision values (=distances to the hyperplane
 * `tval`: for two classes, calculates the [t-test statistic](https://en.wikipedia.org/wiki/Student's_t-test#Equal_or_unequal_sample_sizes.2C_equal_variance) for unequal sample size, equal variance case, based on the decision values. Can be useful for a subsequent second-level analysis across subjects.
 * `none`: Does not calculate a metric but returns the raw classifier output instead. 
 
-There is usually no need to call [`mv_calculate_performance`](utils/mv_calculate_performance.m) directly. By setting the `cfg.metric` field, the performance metric is calculated automatically in [`mv_crossvalidate`](mv_crossvalidate.m), [`mv_classify_across_time`](mv_classify_across_time.m),  [`mv_classify_timextime`](mv_classify_timextime.m) and [`mv_searchlight`](mv_searchlight.m).
+There is usually no need to call [`mv_calculate_performance`](utils/mv_calculate_performance.m) directly. By setting the `cfg.metric` field, the performance metric is calculated automatically in [`mv_crossvalidate`](mv_crossvalidate.m), [`mv_classify_across_time`](mv_classify_across_time.m),  [`mv_classify_timextime`](mv_classify_timextime.m) and [`mv_searchlight`](mv_searchlight.m). You can provide a cell array of metrics, e.g. `cfg.metric = {'accuracy', 'confusion'}` to calculate multiple metrics at once.
 
 
 ## Examples<a name="examples"></a>
