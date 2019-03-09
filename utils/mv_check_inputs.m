@@ -3,10 +3,14 @@ function [clabel, nclasses] = mv_check_inputs(cfg, X, clabel)
 
 %% clabel: check class labels
 clabel = clabel(:);
-nclasses = max(clabel);
+oldlabels = unique(clabel);
+nclasses = length(oldlabels);
 
 if ~all(ismember(clabel,1:nclasses))
-    error('Class labels must consist of integers 1 (class 1), 2 (class 2), 3 (class 3) and so on')
+    warning('Class labels should consist of integers 1 (class 1), 2 (class 2), 3 (class 3) and so on. \nRelabelling them accordingly', '\n');
+    for i = 1:nclasses
+        clabel(clabel==oldlabels(i)) = i; % set to 1:nth classes
+    end
 end
 
 if numel(unique(clabel))==1
