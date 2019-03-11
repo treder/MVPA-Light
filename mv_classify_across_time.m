@@ -24,12 +24,13 @@ function [perf, result, testlabel] = mv_classify_across_time(cfg, X, clabel)
 %                 {'accuracy' 'auc'}
 % .time         - indices of time points (by default all time
 %                 points in X are used)
-% .balance      - for imbalanced data with a minority and a majority class.
-%                 'oversample' oversamples the minority class
-%                 'undersample' undersamples the minority class
-%                 such that both classes have the same number of samples
-%                 (default 'none'). Note that for we undersample at the
-%                 level of the repeats, whereas we oversample within each
+% .balance      - for imbalanced data that does not have
+%                 the same number of instances in each class
+%                 'oversample'          oversamples the minority classes
+%                 'undersample'         undersamples the minority classes
+%                 such that all classes have the same number of samples
+%                 (default 'none'). Note that undersample occurs at the
+%                 level of the repeats, whereas oversample occurs within each
 %                 training set (for an explanation see mv_balance_classes).
 %                 You can also give an integer number for undersampling.
 %                 The samples will be reduced to this number. Note that
@@ -37,7 +38,7 @@ function [perf, result, testlabel] = mv_classify_across_time(cfg, X, clabel)
 %                 smaller class, undersampling of the larger class) is not
 %                 supported at the moment
 % .replace      - if balance is set to 'oversample' or 'undersample',
-%                 replace deteremines whether data is drawn with
+%                 replace determines whether data is drawn with
 %                 replacement (default 1)
 % .normalise    - normalises the data across samples, for each time point 
 %                 and each feature separately, using 'zscore' or 'demean' 
