@@ -176,7 +176,7 @@ switch(fun)
             for ii=1:nresults
                 subplot(1,nresults,ii)
                 imagesc(result{ii}.perf)
-                h.colorbar = colorbar;
+                colorbar
                 h.xlabel(ii) = xlabel('Predicted class');
                 h.ylabel(ii) = ylabel('True class');
                 set(gca,'Xtick',1:nclasses,'Ytick',1:nclasses)
@@ -259,15 +259,10 @@ switch(fun)
     %% --------------- MV_CLASSIFY_TIMEXTIME ---------------
     case 'mv_classify_timextime'
         
-        if nargin > 1,  cfg.x = varargin{1};
-        else,           cfg.x = 1:size(result{1}.perf,1);
-        end
-        if nargin > 2,  cfg.y = varargin{2};
-        elseif size(result{1}.perf,1)==size(result{1}.perf,2), cfg.y = cfg.x;
-        else,           cfg.y = 1:size(result{1}.perf,2);
-        end
-
         % settings for 2d plot
+        cfg= [];
+        if isfield(opt,'x'), cfg.x = opt.x; end
+        if isfield(opt,'y'), cfg.y = opt.y; end
         if any(strcmp(metric,{'auc', 'acc','accuracy'}))
             cfg.climzero = 1 / nclasses;
         elseif any(strcmp(metric,{'dval', 'tval','predicion','recall','f1'}))
