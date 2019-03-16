@@ -23,7 +23,7 @@ function [perf,result] = mv_searchlight(cfg, X, clabel)
 %                 depending on cfg.output_type) for each sample is returned. 
 %                 Use cell array to specify multiple metrics (eg
 %                 {'accuracy' 'auc'}
-% .nb          - [features x features] matrix specifying which features
+% .neighbours  - [features x features] matrix specifying which features
 %                are neighbours of each other.
 %                          - EITHER - 
 %                a GRAPH consisting of 0's and 1's. A 1 in the 
@@ -34,17 +34,17 @@ function [perf,result] = mv_searchlight(cfg, X, clabel)
 %                If no matrix is provided, every feature is only neighbour
 %                to itself and classification is performed for each feature 
 %                separately.
-% .size        - if a nb matrix is provided, size defines the 
+% .size        - if a neighbours matrix is provided, size defines the 
 %                size of the 'neighbourhood' of a feature.
-%                if nb is a graph, it gives the number of steps taken 
-%                     through the nb matrix to find neighbours:
+%                if neighbours is a graph, it gives the number of steps taken 
+%                     through the neighbours matrix to find neighbours:
 %                     0: only the feature itself is considered (no neighbours)
 %                     1: the feature and its immediate neighbours
 %                     2: the feature, its neighbours, and its neighbours'
 %                     neighbours
 %                     3+: neighbours of neighbours of neighbours etc
 %                     (default 1)
-%                if nb is a distance matrix, size defines the number of
+%                if neighbours is a distance matrix, size defines the number of
 %                     neighbouring features that enter the classification
 %                     0: only the feature itself is considered (no neighbours)
 %                     1: the feature and its first closest neighbour 
@@ -81,7 +81,7 @@ X = double(X);
 mv_set_default(cfg,'classifier','lda');
 mv_set_default(cfg,'param',[]);
 mv_set_default(cfg,'metric','accuracy');
-mv_set_default(cfg,'nb',[]);
+mv_set_default(cfg,'neighbours',[]);
 mv_set_default(cfg,'size',1);
 mv_set_default(cfg,'average',0);
 mv_set_default(cfg,'feedback',1);
@@ -115,39 +115,39 @@ nmetrics = numel(cfg.metric);
 
 [n, nfeatures, ~] = size(X);
 
-[clabel, nclasses] = mv_check_inputs(cfg, X, clabel);
+[cfg, clabel, nclasses] = mv_check_inputs(cfg, X, clabel);
 
 perf = cell(nfeatures,1);
 perf_std = cell(nfeatures,1);
 
 %% Find the neighbourhood of the requested size
-if isempty(cfg.nb)
+if isempty(cfg.neighbours)
     if cfg.feedback, fprintf('No neighbour matrix provided, considering each feature individually\n'), end
     % Do not include neighbours: each feature is only neighbour to itself
-    nb = eye(nfeatures); 
-elseif numel(cfg.nb)==1 && cfg.nb == 0
-    nb = eye(nfeatures); 
+    neighbours = eye(nfeatures); 
+elseif numel(cfg.neighbours)==1 && cfg.neighbours == 0
+    neighbours = eye(nfeatures); 
 else
-    %%% Decide whether nb is a graph or a distance matrix
-    if all(ismember([0,1],unique(cfg.nb))) % graph 
+    %%% Decide whether neighbours is a graph or a distance matrix
+    if all(ismember([0,1],unique(cfg.neighbours))) % graph 
         
         % Use a trick used in transition matrices for Markov chains: taking the
         % i-th power of the matrix yields information about the neighbours that
         % can be reached in i steps
-        nb = double(double(cfg.nb)^cfg.size > 0);
+        neighbours = double(double(cfg.neighbours)^cfg.size > 0);
     
     else % distance matrix -> change it into a graph 
         % The resulting graph is not necessarily symmetric since if the
         % closest neighbour of chan1 is chan2, the closest neighbour of
-        % chan2 can still be a different channel. Therefore, the matrix nb
+        % chan2 can still be a different channel. Therefore, the matrix neighbours
         % contains the information of closest neighbours in its rows. E.g.,
-        % the row nb(i,:) gives the closest neighbours of the i-th channel
-        nb = zeros(nfeatures);  % initialise as empty matrix
+        % the row neighbours(i,:) gives the closest neighbours of the i-th channel
+        neighbours = zeros(nfeatures);  % initialise as empty matrix
         for nn=1:nfeatures
-            [~,soidx] = sort(cfg.nb(nn,:),'ascend');
+            [~,soidx] = sort(cfg.neighbours(nn,:),'ascend');
             % put 1's in the row corresponding to the nearest
             % neighbours
-            nb(nn,soidx(1:cfg.size+1)) = 1;
+            neighbours(nn,soidx(1:cfg.size+1)) = 1;
         end
     end
     
@@ -164,20 +164,20 @@ rng_state = rng;
 for ff=1:nfeatures
 
     % Identify neighbours: multiply a unit vector with 1 at the ff'th with
-    % the nb matrix, this yields the neighbours of feature ff
+    % the neighbours matrix, this yields the neighbours of feature ff
     u = [zeros(1,ff-1), 1, zeros(1,nfeatures-ff)];
-    neighbours = find( u * nb > 0);
+    nb = find( u * neighbours > 0);
     
     if cfg.feedback
-        if numel(neighbours)>1
-            fprintf('Classifying using feature %d with neighbours %s\n', ff, mat2str(setdiff(neighbours,ff)))
+        if numel(nb)>1
+            fprintf('Classifying using feature %d with neighbours %s\n', ff, mat2str(setdiff(nb,ff)))
         else
             fprintf('Classifying using feature %d with no neighbours\n', ff)
         end
     end
     
     % Extract desired features and reshape into [samples x features]
-    Xfeat = reshape(X(:,neighbours,:), n, []);
+    Xfeat = reshape(X(:,nb,:), n, []);
 
     % We always set the random number generator back to the same state:
     % this assures that the same cross-validation folds are used for each 

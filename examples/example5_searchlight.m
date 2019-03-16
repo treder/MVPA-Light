@@ -21,7 +21,7 @@ nb_mat = squareform(pdist(chans.pos));
 
 %% Searchlight classification
 cfg = [];
-cfg.nb          = nb_mat;
+cfg.neighbours  = nb_mat;
 cfg.average     = 1;
 cfg.metric      = 'auc';
 cfg.size        = 3;    % consider each electrode and its 3 closest neighbouring electrodes
@@ -104,7 +104,7 @@ grid on
 
 %% Searchlight analysis
 cfg = [];
-cfg.nb          = nb_mat;
+cfg.neighbours  = nb_mat;
 cfg.average     = 1;
 
 maxstep = 2;        % maximum neighbourhood size
