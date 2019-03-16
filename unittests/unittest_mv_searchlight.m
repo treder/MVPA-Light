@@ -37,7 +37,7 @@ for ii=1:nfeatures
     nb(ii,sel_idx) = 1;
 end
 
-cfg.nb      = nb;
+cfg.neighbours      = nb;
 acc_nb = mv_searchlight(cfg, X, clabel);
 
 print_unittest_result('Bad features with neighbours get better', 1, mean(acc(good_features))<mean(acc_nb(good_features)), tol);
