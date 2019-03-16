@@ -1,5 +1,9 @@
-function [clabel, nclasses] = mv_check_inputs(cfg, X, clabel)
+function [cfg, clabel, nclasses] = mv_check_inputs(cfg, X, clabel)
 % Performs some sanity checks on input parameters cfg, X, and y
+
+if ~iscell(cfg.metric)
+    cfg.metric = {cfg.metric};
+end
 
 %% clabel: check class labels
 clabel = clabel(:);
@@ -26,7 +30,6 @@ if nclasses > 2 && ismember(cfg.classifier, binary_classifiers)
 end
 
 %% cfg: check whether all parameters are written in lowercase
-
 fn = fieldnames(cfg);
 
 % Are all cfg fields given in lowercase?
@@ -89,6 +92,18 @@ for ii=1:numel(idx)
         error('The metric ''%s'' requires %s as output_type', metric_outputtype{idx(ii),1},metric_outputtype{idx(ii),2})
     end
 end
+
+%% cfg: check for parameter names that have been changed
+changed_fields = { 'nb'      'neighbours';
+                      };
+for ii=1:size(changed_fields, 1)
+    if isfield(cfg,changed_fields{ii,1})
+        cfg.(changed_fields{ii,2}) = cfg.(changed_fields{ii,1});
+        cfg = rmfield(cfg,changed_fields{ii,1});
+        warning('cfg.%s is now called cfg.%s, renaming argument', changed_fields{ii,1},changed_fields{ii,2})
+    end
+end
+
 
 %% X and clabel: check whether the number of instances matches the number of class labels
 if numel(clabel) ~= size(X,1)
