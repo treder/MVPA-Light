@@ -104,6 +104,12 @@ for ii=1:size(changed_fields, 1)
     end
 end
 
+%% cfg: translate feedback specified as 'yes' or 'no' into boolean
+if ischar(cfg.feedback)
+    if strcmp(cfg.feedback, 'yes'),     cfg.feedback = 1;
+    elseif strcmp(cfg.feedback, 'no'),  cfg.feedback = 0;
+    end
+end
 
 %% X and clabel: check whether the number of instances matches the number of class labels
 if numel(clabel) ~= size(X,1)
