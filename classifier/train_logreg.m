@@ -99,7 +99,7 @@ function cf = train_logreg(cfg,X,clabel)
 % Lin, Weng & Keerthi (2008). Trust Region Newton Method for Large-Scale 
 % Logistic Regression. Journal of Machine Learning Research, 9, 627-650
 %
-%?Rahman, M. S., & Sultana, M. (2017). Performance of Firth-and logF-type 
+% Rahman, M. S., & Sultana, M. (2017). Performance of Firth-and logF-type 
 % penalized methods in risk prediction for small or sparse binary data. 
 % BMC Medical Research Methodology, 17(1), 33. https://doi.org/10.1186/s12874-017-0313-9
 
