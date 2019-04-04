@@ -63,7 +63,7 @@ end
 acc = acc / N;
 
 % Best overall parameter
-[~, best_idx] = max(acc);
+[~, best_c_idx] = max(acc);
 
 % Diagnostic plots if requested
 if cfg.plot
@@ -73,7 +73,7 @@ if cfg.plot
     semilogx(cfg.c, acc)
     title([num2str(cfg.k) '-fold cross-validation performance'])
     hold all
-    plot([cfg.c(best_idx), cfg.c(best_idx)],ylim,'r--'),plot(cfg.c(best_idx), acc(best_idx),'ro')
+    plot([cfg.c(best_c_idx), cfg.c(best_c_idx)],ylim,'r--'),plot(cfg.c(best_c_idx), acc(best_c_idx),'ro')
     xlabel('Lambda'),ylabel('Accuracy'),grid on
 
 end
