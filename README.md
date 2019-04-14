@@ -3,8 +3,8 @@ Light-weight Matlab toolbox for multivariate pattern analysis (MVPA)
 
 ### News
 
+* (Mar 2019) MVPA-Light has been integrated with FieldTrip (see [tutorial](http://www.fieldtriptoolbox.org/tutorial/mvpa_light/))
 * (Feb 2019) added [kernel Fisher Discriminant Analysis](classifier/train_kernel_fda.m) and new metrics `precision`, `recall`, and `f1`
-* (Jan 2018) Going multi-class: added [multi-class LDA](classifier/train_multiclass_lda.m) and [confusion matrix](utils/mv_calculate_performance.m) as classifier performance metric
 
 ### Table of contents
 1. [Installation](#installation)
