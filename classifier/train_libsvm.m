@@ -68,4 +68,10 @@ if cfg.quiet
 end
 
 % Call LIBSVM training function
-cf = svmtrain(double(clabel(:)), double(X), libsvm_options);
+cf = [];
+cf.model = svmtrain(double(clabel(:)), double(X), libsvm_options);
+
+% Save parameters needed for testing
+cf.kernel_type      = cfg.kernel_type;
+cf.kernel_matrix    = cfg.kernel_matrix;
+
