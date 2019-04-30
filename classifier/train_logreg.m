@@ -30,14 +30,16 @@ function cf = train_logreg(cfg,X,clabel)
 % .prob          - if 1, decision values are returned as probabilities. If
 %                  0, the decision values are simply the distance to the
 %                  hyperplane (default 0)
-% .correct_bias  - if the number of instances in the two classes is not the
-%                  same, logistic regression is biased towards the majority
+% .correct_bias  - if the number of instances in the two classes is not
+%                  equal, logistic regression is biased towards the majority
 %                  class. If correct_bias is 1, this is corrected for by
-%                  adjusting the bias term 
-%                  %%% TODO use observation weights
-%                      for correction
-% .weights       - [instance x 1] vector of observation weights (default
-%                  all 1) 
+%                  adjusting the weights (note that if the weights have
+%                  already been set by the user, bias correction is not
+%                  applied)
+% .weights       - [instances x 1] vector of instance weights. This
+%                  allows for up/down weighting of instances such that they
+%                  contribute more/less to the loss function. By default,
+%                  all instances are treated equally (weights all 1's)
 % 
 % Further parameters (that usually do not need to be changed):
 % bias          - if >0 augments the data with a bias term equal to the
@@ -96,6 +98,9 @@ function cf = train_logreg(cfg,X,clabel)
 % b            - bias term, setting the threshold
 %
 %References:
+% King, G., & Zeng, L. (2001). Logistic Regression in Rare Events Data. 
+% Political Analysis, 9(2), 137?163. https://doi.org/10.1162/00208180152507597
+%
 % Lin, Weng & Keerthi (2008). Trust Region Newton Method for Large-Scale 
 % Logistic Regression. Journal of Machine Learning Research, 9, 627-650
 %
@@ -107,8 +112,6 @@ function cf = train_logreg(cfg,X,clabel)
 
 [N, nfeat] = size(X);
 X0 = X;
-
-cf = [];
 
 % Make sure labels come as column vector
 clabel = double(clabel(:));
@@ -131,6 +134,20 @@ I = eye(nfeat);
 
 % Initialise w with zeros 
 w0 = zeros(nfeat,1);
+
+%% Bias correction using weights
+if isempty(cfg.weights) 
+    cfg.weights = ones(N, 1);
+    
+    if cfg.correct_bias
+        % Assume the classes in the population occur each with equal probability 0.5,
+        % then use Eq (8) in King & Zeng (2001)
+        tau = 0.5;
+        ybar = sum(clabel==1)/N;
+        cfg.weights(clabel==1) = tau/ybar;
+        cfg.weights(clabel==-1) = (1-tau)/(1-ybar);
+    end
+end
 
 %% Regularisation
 if strcmp(cfg.reg, 'l2')
@@ -273,6 +290,8 @@ elseif strcmp(cfg.reg, 'logf')
     % - each added instance has the value 1 for a given feature, and 0's
     %   for all other features and intercept
     % - each such instance occurs twice, once with y=-1 and once y=1
+    % This assures that the data is not linearly separable and 
+    % constitutes a form of regularisation.
     % see also 
     % http://prema.mf.uni-lj.si/files/2015-11%20Bordeaux%20Penalized%20likelihood%20Logreg%20rare%20events_e19.pdf
     % http://prema.mf.uni-lj.si/files/FLICFLAC_final_9e6.pdf
@@ -280,16 +299,16 @@ elseif strcmp(cfg.reg, 'logf')
     nadd = nfeat - (cfg.bias > 0); % need to ignore the bias term if there is one
     augment = cat(1, eye(nadd), eye(nadd));
     if cfg.bias > 0
-        X0 = cat(1, X0, [augment, zeros(size(augment,1))]);
+        X0 = cat(1, X0, [augment, zeros(2*nadd, 1)]);
     else
         X0 = cat(1, X0, augment);
     end
     
     % each augmented observation has a weight of 0.5
-    %% TODO + add weights
+    cfg.weights(end+1:end+2*nadd) = 0.5;
     
     % add class labels for augmented instances
-    clabel = [clabel(:); ones(nadd); -1*ones(nadd)];
+    clabel = [clabel(:); ones(nadd, 1); -1*ones(nadd, 1)];
     
     % Stack labels in diagonal matrix for matrix multiplication during
     % optimisation
@@ -297,14 +316,15 @@ elseif strcmp(cfg.reg, 'logf')
     
 end
 
-%% Train classifier on the full training data (using the best lambda)
+%% Train classifier on the full training data
 YX = Y*X0;
-sumyxN = sum(YX)'/N;
+sumyxN = sum(cfg.weights .* YX)'/N;
 X = X0;
 
 w = TrustRegionDoglegGN(logfun, w0, cfg.tolerance, cfg.max_iter, 1);
 
 %% Set up classifier struct
+cf = [];
 if cfg.bias > 0
     cf.w = w(1:end-1);
     cf.b = w(end);
@@ -312,11 +332,11 @@ if cfg.bias > 0
     % Bias term needs correct scaling 
     cf.b = cf.b * cfg.bias;
 
-    if cfg.correct_bias
-        % Correct the bias term such that it is in between the class means
-        o = X(:, 1:end-1) * cf.w;
-        cf.b = - ( mean(o(clabel==1)) + mean(o(clabel==-1)) )/2;
-    end
+%     if cfg.correct_bias
+%         % Correct the bias term such that it is in between the class means
+%         o = X(:, 1:end-1) * cf.w;
+%         cf.b = - ( mean(o(clabel==1)) + mean(o(clabel==-1)) )/2;
+%     end
 else
     cf.w = w;
     cf.b = 0;
@@ -395,11 +415,11 @@ end
         sigma = 0.5 + 0.5 * tanh(YX*w/2);
         
         % Gradient
-        g = (sigma' * YX)'/N - sumyxN;
+        g = ((cfg.weights .* sigma)' * YX)'/N - sumyxN;
         
         % Hessian
         if nargout>1
-            h = bsxfun(@times, X, sigma .* (1 - sigma))' * X/N;  % faster to first multiply X by sigma(1-sigma)
+            h = bsxfun(@times, X, cfg.weights .* sigma .* (1 - sigma))' * X/N;  % faster to first multiply X by sigma(1-sigma)
         end
     end
 
@@ -410,11 +430,11 @@ end
         sigma = 0.5 + 0.5 * tanh(YX*w/2);
         
         % Gradient
-        g = (sigma' * YX)'/N - sumyxN + lambda * w;
+        g = ((cfg.weights .* sigma)' * YX)'/N - sumyxN + lambda * w;
         
         % Hessian
         if nargout>1
-            h = lambda * I + bsxfun(@times, X, sigma .* (1 - sigma))' * X/N;  % faster to first multiply X by sigma(1-sigma)
+            h = lambda * I + bsxfun(@times, X, cfg.weights .* sigma .* (1 - sigma))' * X/N;  % faster to first multiply X by sigma(1-sigma)
         end
     end
 
@@ -427,13 +447,13 @@ end
 %         xo(x<0)  = log(1+exp(x(x<0))) - x(x<0);
 %     end
 
-    function xo = logreg_fix(x)
-        % This is a fix to the logistic loss function found on
-        % http://fa.bianp.net/blog/2013/numerical-optimizers-for-logistic-regression/
-        % and used in the LIBLINEAR code. It prevents exp from overflowing.
-        % Logistic loss: 1./1+exp(-YX*w);
-        xo = x;
-        xo(x>=0) = 1./(1+exp(-x(x>=0)));
-        xo(x<0)  = exp(x(x<0))./(1+exp(x(x<0)));
-    end
+%     function xo = logreg_fix(x)
+%         % This is a fix to the logistic loss function found on
+%         % http://fa.bianp.net/blog/2013/numerical-optimizers-for-logistic-regression/
+%         % and used in the LIBLINEAR code. It prevents exp from overflowing.
+%         % Logistic loss: 1./1+exp(-YX*w);
+%         xo = x;
+%         xo(x>=0) = 1./(1+exp(-x(x>=0)));
+%         xo(x<0)  = exp(x(x<0))./(1+exp(x(x<0)));
+%     end
 end

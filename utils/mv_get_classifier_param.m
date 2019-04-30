@@ -31,10 +31,11 @@ switch(classifier)
         mv_set_default(param,'evtol',10^8);
     
     case 'logreg'
+        mv_set_default(param,'reg','logf');
         mv_set_default(param,'bias',100);
         mv_set_default(param,'correct_bias', true);
+        mv_set_default(param,'weights', []);
         mv_set_default(param,'lambda',1);
-        mv_set_default(param,'reg','l2');
         mv_set_default(param,'max_iter',400);
         mv_set_default(param,'tolerance',1e-6);
         mv_set_default(param,'k',5);
