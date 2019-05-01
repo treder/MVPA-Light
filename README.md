@@ -3,6 +3,7 @@ Light-weight Matlab toolbox for multivariate pattern analysis (MVPA)
 
 ### News
 
+* (May 2019) interface added for [LIBSVM](#libsvm) and [LIBLINEAR](#liblinear)
 * (Mar 2019) MVPA-Light has been integrated with FieldTrip (see [tutorial](http://www.fieldtriptoolbox.org/tutorial/mvpa_light/))
 * (Feb 2019) added [kernel Fisher Discriminant Analysis](classifier/train_kernel_fda.m) and new metrics `precision`, `recall`, and `f1`
 
@@ -70,9 +71,13 @@ Classifier performance is evaluated on a dataset called *test data*. To this end
 
 #### Multi-class classifiers (two or more classes)
 
-* [`multiclass_lda`](classifier/train_multiclass_lda.m) : Regularised Multi-class Linear Discriminant Analysis (LDA). The data is first projected onto a (C-1)-dimensional discriminative subspace, where C is the number of classes. A new sample is assigned to the class with the closest centroid in this subspace. See [`train_multiclass_lda`](classifier/train_multiclass_lda.m) for a full description of the parameters.
+* [`multiclass_lda`](classifier/train_multiclass_lda.m) : Regularised multi-class Linear Discriminant Analysis (LDA). The data is first projected onto a (C-1)-dimensional discriminative subspace, where C is the number of classes. A new sample is assigned to the class with the closest centroid in this subspace. See [`train_multiclass_lda`](classifier/train_multiclass_lda.m) for a full description of the parameters.
 
 * [`kernel_fda`](classifier/train_kernel_fda.m) : Regularised [kernel Fisher Discriminant Analysis (KFDA)](https://en.wikipedia.org/wiki/Kernel_Fisher_discriminant_analysis). This is the kernelized version of LDA. By setting the `.kernel` parameter (e.g. to 'polynomial' or 'rbf'), non-linear classifiers can be trained. See [`train_kernel_fda`](classifier/train_kernel_fda.m) for a full description of the parameters.
+
+* [`libsvm`](classifier/train_libsvm.m)<a name="libsvm"></a> : interface for the [LIBSVM](https://www.csie.ntu.edu.tw/~cjlin/libsvm) toolbox for Support Vector Machines (SVM). It is a state-of-the-art implementation of SVM that is fast due to usage of compiled C code. Follow the installation and compilation instructions on the [LIBSVM website](https://www.csie.ntu.edu.tw/~cjlin/libsvm) and the [GitHub repository](https://github.com/cjlin1/libsvm). Refer to [`train_libsvm`](classifier/train_libsvm.m) to see how to call LIBSVM in `MVPA-Light`. (*note*: LIBSVM provides a function called `svmtrain` which is overshadowed by a Matlab function of the same name in some Matlab versions. This can lead to execution errors.)
+
+* [`liblinear`](classifier/train_liblinear.m)<a name="liblinear"></a>  : interface for the excellent [LIBLINEAR](https://www.csie.ntu.edu.tw/~cjlin/liblinear/) toolbox for linear SVM and logistic regression. Just as LIBSVM, it is fast due to usage of compiled C code. Follow the installation and compilation instructions on the [LIBLINEAR website](https://www.csie.ntu.edu.tw/~cjlin/liblinear/) and the [GitHub repository](https://github.com/cjlin1/liblinear). Refer to [`train_liblinear`](classifier/train_liblinear.m) to see how to call LIBLINEAR in `MVPA-Light`.
 
 #### Cross-validation
 
