@@ -8,8 +8,8 @@ function cf = train_libsvm(cfg,X,clabel)
 % cf = train_libsvm(cfg,X,clabel)
 % 
 %Parameters:
-% X              - [samples x features] matrix of training samples
-% clabel         - [samples x 1] vector of class labels
+% X              - [instances x features] matrix of training instances
+% clabel         - [instances x 1] vector of class labels
 %
 % cfg          - struct with hyperparameters passed on to the svmtrain
 %                  function
