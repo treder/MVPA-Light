@@ -1,15 +1,15 @@
 function cf = train_liblinear(cfg,X,clabel)
-% Trains a linear support vector machine of logistic regression using
+% Trains a linear support vector machine or logistic regression using
 % LIBLINEAR. For installation details and further information see
 % https://github.com/cjlin1/liblinear and 
 % https://www.csie.ntu.edu.tw/~cjlin/liblinear/
 %
 % Usage:
-% cfy = train_liblinear(cfg,X,clabel)
+% cf = train_liblinear(cfg,X,clabel)
 % 
 %Parameters:
-% X              - [samples x features] matrix of training samples
-% clabel         - [samples x 1] vector of class labels
+% X              - [instances x features] matrix of training instances
+% clabel         - [instances x 1] vector of class labels
 %
 % cfg          - struct with hyperparameters passed on to the train 
 %                  function of LIBLINEAR
