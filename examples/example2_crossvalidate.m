@@ -44,8 +44,6 @@ cfg_LDA.param.lambda    = 'auto';
 % cross-validation settings.
 cfg_LR = cfg_LDA;
 cfg_LR.classifier       = 'logreg';
-cfg_LR.param            = [];       % sub-struct with hyperparameters for classifier
-cfg_LR.param.lambda     = 10^-3; 'auto';
 
 [acc_LR, result_LR] = mv_crossvalidate(cfg_LR, X, clabel);
 
