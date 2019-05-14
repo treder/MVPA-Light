@@ -1,7 +1,8 @@
 function cf = train_logreg(cfg,X,clabel)
-% Trains a logistic regression classifier with L2 regularisation. 
+% Trains a logistic regression classifier with logF or L2 
+% regularisation. 
 %
-% NOTE: Due to the exponential term in the cost function, it is recommended 
+% Note: Due to the exponential term in the cost function, it is recommended 
 % that X (the data) is z-scored to reduce the probability of numerical
 % issues due to round-off errors.
 %
@@ -14,10 +15,11 @@ function cf = train_logreg(cfg,X,clabel)
 %
 % cfg          - struct with hyperparameters:
 % .reg           - regularisation approach
+%                 'logf': log-F(1,1) regularisation via data augmentation
+%                 (default)
 %                  'l2': an L2 regularisation term is added to the cost
 %                  function. The magnitude of regularisation is controlled
 %                  by the lambda hyperparameter
-%                 'logf': log-F(1,1) regularisation via data augmentation.
 %                 No additional hyperparameter required (default 'logf')
 % .lambda        - regularisation hyperparameter controlling the magnitude
 %                  of L2 regularisation. If a single value is given, it is
@@ -27,15 +29,12 @@ function cf = train_logreg(cfg,X,clabel)
 %                  Note: lambda is reciprocally related to the cost
 %                  parameter C used in LIBSVM/LIBLINEAR, ie C = 1/lambda
 %                  roughly
-% .prob          - if 1, decision values are returned as probabilities. If
-%                  0, the decision values are simply the distance to the
-%                  hyperplane (default 0)
 % .correct_bias  - if the number of instances in the two classes is not
 %                  equal, logistic regression is biased towards the majority
 %                  class. If correct_bias is 1, this is corrected for by
-%                  adjusting the weights (note that if the weights have
-%                  already been set by the user, bias correction is not
-%                  applied)
+%                  adjusting the weights (note: if the weights have
+%                  already been set by the user, bias correction is applied
+%                  to the user weights)
 % .weights       - [instances x 1] vector of instance weights. This
 %                  allows for up/down weighting of instances such that they
 %                  contribute more/less to the loss function. By default,
@@ -72,7 +71,7 @@ function cf = train_logreg(cfg,X,clabel)
 %
 % If the regularisation is 'logf', then a log-F(1,1) prior is imposed. This
 % is realised by augmenting the data rather than applying a penalty to the ML
-% estimate.
+% estimate. A weight of 0.5 is applied to the augmented instances.
 %
 % IMPLEMENTATION DETAILS:
 % A Trust Region Dogleg algorithm (TrustRegionDoglegGN.m) is used to
@@ -135,18 +134,61 @@ I = eye(nfeat);
 % Initialise w with zeros 
 w0 = zeros(nfeat,1);
 
-%% Bias correction using weights
+% Initialise weights if none given
 if isempty(cfg.weights) 
     cfg.weights = ones(N, 1);
+end
+
+%% log-F(1,1) regularisation
+if strcmp(cfg.reg, 'logf')
+    logfun = @(w) lr_gradient_and_hessian_tanh(w);
     
-    if cfg.correct_bias
-        % Assume the classes in the population occur each with equal probability 0.5,
-        % then use Eq (8) in King & Zeng (2001)
-        tau = 0.5;
-        ybar = sum(clabel==1)/N;
-        cfg.weights(clabel==1) = tau/ybar;
-        cfg.weights(clabel==-1) = (1-tau)/(1-ybar);
+    % log-F(1,1) regularisation can be implemented by using the standard ML
+    % estimation and instead augmenting the data in the following way:
+    % - add 2*nfeatures new instances
+    % - each added instance has the value 1 for a given feature, and 0's
+    %   for all other features and intercept
+    % - each such instance occurs twice, once with y=-1 and once y=1
+    % This assures that the data is not linearly separable and 
+    % constitutes a form of regularisation.
+    % see also 
+    % http://prema.mf.uni-lj.si/files/2015-11%20Bordeaux%20Penalized%20likelihood%20Logreg%20rare%20events_e19.pdf
+    % http://prema.mf.uni-lj.si/files/FLICFLAC_final_9e6.pdf
+    
+    nadd = nfeat - (cfg.bias > 0); % need to ignore the bias term if there is one
+    augment = cat(1, eye(nadd), eye(nadd));
+    if cfg.bias > 0
+        X0 = cat(1, X0, [augment, zeros(2*nadd, 1)]);
+    else
+        X0 = cat(1, X0, augment);
     end
+    
+    % each augmented observation has a weight of 0.5
+    cfg.weights(end+1:end+2*nadd) = 0.5;
+    
+    % add class labels for augmented instances
+    clabel = [clabel(:); ones(nadd, 1); -1*ones(nadd, 1)];
+    
+    % Stack labels in diagonal matrix for matrix multiplication during
+    % optimisation
+    Y = diag(clabel);
+    
+    % Adjust N for the additional instances
+    N = numel(clabel);
+end
+
+%% Bias correction using weights
+% The bias correction must come after logf regularisation
+% (because extra instances with their own weights have to be added in first) 
+% but before l2 regularisation (because the final weights are required
+% for the hyperparameter tuning)
+if cfg.correct_bias
+    % Assume the classes in the population occur each with equal probability 0.5,
+    % then use Eq (8) in King & Zeng (2001)
+    tau = 0.5;
+    ybar = sum(clabel==1)/N;
+    cfg.weights(clabel== 1) = cfg.weights(clabel== 1) * tau/ybar;
+    cfg.weights(clabel==-1) = cfg.weights(clabel==-1) * (1-tau)/(1-ybar);
 end
 
 %% Regularisation
@@ -154,7 +196,10 @@ if strcmp(cfg.reg, 'l2')
 
     %% L2 regularisation 
     logfun = @(w) lr_gradient_and_hessian_tanh_L2(w);
-
+    
+    % We must subselect the weights for each training iteration
+    all_weights = cfg.weights;
+    
     % Stack labels in diagonal matrix for matrix multiplication during
     % optimisation
     Y = diag(clabel);
@@ -199,7 +244,8 @@ if strcmp(cfg.reg, 'l2')
             % Training data
             X = X0(CV.training(ff),:);
             YX = Y(CV.training(ff),CV.training(ff))*X;
-            
+            cfg.weights = all_weights(CV.training(ff));
+             
             % Sum of instances needed for the gradient
             sumyxN = sum(YX)'/N;
             
@@ -279,41 +325,7 @@ if strcmp(cfg.reg, 'l2')
     end
     
     lambda = cfg.lambda(best_idx);
-
-elseif strcmp(cfg.reg, 'logf')
-    %% log-F(1,1) regularisation
-    logfun = @(w) lr_gradient_and_hessian_tanh(w);
-    
-    % log-F(1,1) regularisation can be implemented by using the standard ML
-    % estimation and instead augmenting the data in the following way:
-    % - add 2*nfeatures new instances
-    % - each added instance has the value 1 for a given feature, and 0's
-    %   for all other features and intercept
-    % - each such instance occurs twice, once with y=-1 and once y=1
-    % This assures that the data is not linearly separable and 
-    % constitutes a form of regularisation.
-    % see also 
-    % http://prema.mf.uni-lj.si/files/2015-11%20Bordeaux%20Penalized%20likelihood%20Logreg%20rare%20events_e19.pdf
-    % http://prema.mf.uni-lj.si/files/FLICFLAC_final_9e6.pdf
-    
-    nadd = nfeat - (cfg.bias > 0); % need to ignore the bias term if there is one
-    augment = cat(1, eye(nadd), eye(nadd));
-    if cfg.bias > 0
-        X0 = cat(1, X0, [augment, zeros(2*nadd, 1)]);
-    else
-        X0 = cat(1, X0, augment);
-    end
-    
-    % each augmented observation has a weight of 0.5
-    cfg.weights(end+1:end+2*nadd) = 0.5;
-    
-    % add class labels for augmented instances
-    clabel = [clabel(:); ones(nadd, 1); -1*ones(nadd, 1)];
-    
-    % Stack labels in diagonal matrix for matrix multiplication during
-    % optimisation
-    Y = diag(clabel);
-    
+    cfg.weights = all_weights;    
 end
 
 %% Train classifier on the full training data
@@ -324,19 +336,14 @@ X = X0;
 w = TrustRegionDoglegGN(logfun, w0, cfg.tolerance, cfg.max_iter, 1);
 
 %% Set up classifier struct
-cf = [];
+cf = struct();
+
 if cfg.bias > 0
     cf.w = w(1:end-1);
     cf.b = w(end);
     
     % Bias term needs correct scaling 
     cf.b = cf.b * cfg.bias;
-
-%     if cfg.correct_bias
-%         % Correct the bias term such that it is in between the class means
-%         o = X(:, 1:end-1) * cf.w;
-%         cf.b = - ( mean(o(clabel==1)) + mean(o(clabel==-1)) )/2;
-%     end
 else
     cf.w = w;
     cf.b = 0;
@@ -345,7 +352,6 @@ end
 if strcmp(cfg.reg,'l2')
     cf.lambda = lambda;
 end
-
 
 %%
 %%% Logistic regression objective function. Given w, data X and
@@ -419,7 +425,7 @@ end
         
         % Hessian
         if nargout>1
-            h = bsxfun(@times, X, cfg.weights .* sigma .* (1 - sigma))' * X/N;  % faster to first multiply X by sigma(1-sigma)
+            h = bsxfun(@times, X, (cfg.weights .* sigma) .* (1 - sigma))' * X/N;  % faster to first multiply X by sigma(1-sigma)
         end
     end
 
@@ -434,7 +440,7 @@ end
         
         % Hessian
         if nargout>1
-            h = lambda * I + bsxfun(@times, X, cfg.weights .* sigma .* (1 - sigma))' * X/N;  % faster to first multiply X by sigma(1-sigma)
+            h = lambda * I + bsxfun(@times, X, (cfg.weights .* sigma) .* (1 - sigma))' * X/N;  % faster to first multiply X by sigma(1-sigma)
         end
     end
 
