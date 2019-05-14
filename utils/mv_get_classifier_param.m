@@ -33,6 +33,7 @@ switch(classifier)
     case 'logreg'
         mv_set_default(param,'reg','logf');
         mv_set_default(param,'bias',100);
+        mv_set_default(param,'prob',0);
         mv_set_default(param,'correct_bias', true);
         mv_set_default(param,'weights', []);
         mv_set_default(param,'lambda',1);
