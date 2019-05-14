@@ -20,7 +20,7 @@ function [clabel,dval,prob] = test_logreg(cf,X)
 dval = X*cf.w + cf.b;
 clabel= double(dval >= 0) + 2*double(dval < 0);
 
-if nargout>2    
+if nargout>2
     prob = 0.5 + 0.5 * tanh(0.5 * dval);
 end
 
