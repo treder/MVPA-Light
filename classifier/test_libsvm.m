@@ -12,13 +12,13 @@ function [clabel,dval] = test_libsvm(cf,X)
 % clabel        - predicted class labels
 % dval          - decision values
 
-[clabel, ~, dval] = svmpredict(zeros(size(X,1),1), X, cf,'-q');
+[clabel, ~, dval] = svmpredict(zeros(size(X,1),1), X, cf.model,'-q');
 
 % Note that dvals might be sign-reversed in some cases,
 % see http://www.csie.ntu.edu.tw/~cjlin/libsvm/faq.html#f430
 % To fix this behavior, we inspect cf.Labels: Label(1) denotes the positive 
 % class (should be 1)
-if cf.Label(1) ~= 1
+if cf.model.Label(1) ~= 1
     % 1 is negative class, hence we need to flip dvals
     dval = -dval;
 end
