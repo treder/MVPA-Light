@@ -1,5 +1,7 @@
 function [cfg, clabel, nclasses] = mv_check_inputs(cfg, X, clabel)
-% Performs some sanity checks on input parameters cfg, X, and y
+% Performs some sanity checks on input parameters cfg, X, and y.
+% Also checks whether external toolboxes (LIBSVM and LIBLINEAR) are
+% available if required.
 
 if ~iscell(cfg.metric)
     cfg.metric = {cfg.metric};
@@ -11,7 +13,7 @@ u = unique(clabel);
 nclasses = length(u);
 
 if ~all(ismember(clabel,1:nclasses))
-    warning('Class labels should consist of integers 1 (class 1), 2 (class 2), 3 (class 3) and so on.\nRelabelling them accordingly\n');
+    warning('Class labels should consist of integers 1 (class 1), 2 (class 2), 3 (class 3) and so on. Relabelling them accordingly.');
     newlabel = nan(numel(clabel), 1);
     for i = 1:nclasses
         newlabel(clabel==u(i)) = i; % set to 1:nth classes
@@ -116,3 +118,70 @@ if numel(clabel) ~= size(X,1)
     error('Number of class labels (%d) does not match number of instances (%d) in data', numel(clabel), size(X,1))
 end
 
+%% check whether train and test functions are available for the classifier
+if isempty(which(['train_' cfg.classifier]))
+    error('Classifier %s not found: there is no train function called train_%s', cfg.classifier, cfg.classifier)
+end
+if isempty(which(['test_' cfg.classifier]))
+    error('Classifier %s not found: there is no test function called test_%s', cfg.classifier, cfg.classifier)
+end
+
+%% libsvm: if cfg.classifier = 'libsvm', check whether it's available
+if strcmp(cfg.classifier, 'libsvm')
+    % We must perform sanity checks for multiple cases failure cases here:
+    % (1) no svmtrain function available
+    % (2) an svmtrain function is available, but it is the one by Matlab
+    % (3) two svmtrain function are available (Matlab's one and libsvm's one)
+    %     but the libsvm one is overshadowed by Matlab's one
+    check = which('svmtrain','-all');
+    msg = ' Did you install LIBSVM and add its Matlab folder to your path? Type "which(''svmtrain'',''-all'')" to check for the availability of svmtrain().';
+    if isempty(check)
+        error(['LIBSVM''s svmtrain() is not available or not in the path.' msg])
+    else
+        try
+            % this should work fine with libsvm but crash for Matlab's 
+            % svmtrain
+            svmtrain(0,0,'-q');
+        catch
+            if numel(check)==1
+                % there is an svmtrain but it seems to be Matlab's one
+                error(['Found an svmtrain() function but it does not seem to be LIBSVM''s one.' msg])
+            else
+                % there is multiple svmtrain functions
+                error(['Found multiple functions called svmtrain: LIBSVM''s svmtrain() is either not available or overshadowed by another svmtrain function.' msg])
+            end
+        end
+    end
+end
+
+
+%% liblinear: if cfg.classifier = 'liblinear', check whether it's available
+if strcmp(cfg.classifier, 'liblinear')
+    % The Matlab version of liblinear uses a function called train() for
+    % training. Matlab's nnet toolbox has a function of the same name.
+    % We must perform sanity checks for multiple cases failure cases here:
+    % (1) no train() function available
+    % (2) a train() function is available, but it is the one by Matlab
+    % (3) multiple train() function are available (Matlab's one and 
+    %     liblinear's one but the latter one is overshadowed by Matlab's
+    %     one)
+    check = which('train','-all');
+    msg = ' Did you install LIBLINEAR and add its Matlab folder to your path? Type "which(''train'',''-all'')" to check for the availability of train()."';
+    if isempty(check)
+        error(['LIBLINEAR''s train() is not available or not in the path.' msg])
+    else
+        try
+            % this should work fine with liblinear but crash for Matlab's
+            % train
+            train(0,0,'-q');
+        catch
+            if numel(check)==1
+                % there is an train but it seems to be Matlab's one
+                error(['Found a train() function but it does not seem to be LIBLINEAR''s one.' msg])
+            else
+                % there is multiple svmtrain functions
+                error(['Found multiple functions called train: LIBLINEAR''s svmtrain() is either not available or overshadowed by another svmtrain function.' msg])
+            end
+        end
+    end
+end
