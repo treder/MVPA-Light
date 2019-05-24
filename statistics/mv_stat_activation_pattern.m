@@ -23,14 +23,14 @@ function pattern = mv_stat_activation_pattern(cf, X, clabel)
 % clabel         - [samples x 1] vector of corresponding class labels 
 %
 % References:
-% Blankertz, B., Lemm, S., Treder, M., Haufe, S., & Müller, K. R. (2011). 
+% Blankertz, B., Lemm, S., Treder, M., Haufe, S., & MÃ¼ller, K. R. (2011). 
 % Single-trial analysis and classification of ERP components - A tutorial. 
-% NeuroImage, 56(2), 814–825.
+% NeuroImage, 56(2), 814â€“825.
 %
-% Haufe, S., Meinecke, F., Görgen, K., Dähne, S., Haynes, J. D., 
-% Blankertz, B., & Bießmann, F. (2014). On the interpretation of weight 
+% Haufe, S., Meinecke, F., GÃ¶rgen, K., DÃ¤hne, S., Haynes, J. D., 
+% Blankertz, B., & BieÃŸmann, F. (2014). On the interpretation of weight 
 % vectors of linear models in multivariate neuroimaging. NeuroImage, 87, 
-% 96–110. https://doi.org/10.1016/j.neuroimage.2013.10.067
+% 96â€“110. https://doi.org/10.1016/j.neuroimage.2013.10.067
 
 % (c) Matthias Treder 2018
 
@@ -40,7 +40,7 @@ end
 
 [N,P] = size(X);
 
-mv_check_clabel(clabel);
+% mv_check_clabel(clabel);
 nclasses = max(clabel);
 
 idx = cell(nclasses,1);
@@ -62,5 +62,5 @@ end
 C = C / N;
 
 % Activation pattern
-pattern = C * cf.w;
+pattern = C * cf.W;
 
