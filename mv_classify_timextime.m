@@ -91,33 +91,10 @@ mv_set_default(cfg,'time1',1:size(X,3));
 mv_set_default(cfg,'normalise','zscore');
 mv_set_default(cfg,'feedback',1);
 
-% Cross-validation settings
-mv_set_default(cfg,'cv','kfold');
-mv_set_default(cfg,'repeat',5);
-mv_set_default(cfg,'k',5);
-mv_set_default(cfg,'p',0.1);
-mv_set_default(cfg,'stratify',1);
-
-switch(cfg.cv)
-    case 'leaveout', cfg.k = size(X,1);
-    case 'holdout', cfg.k = 1;
-end
-
 hasX2 = (nargin==5);
 if hasX2, mv_set_default(cfg,'time2',1:size(X2,3));
 else,     mv_set_default(cfg,'time2',1:size(X,3));
 end
-
-if any(ismember({'dval','auc','roc','tval'},cfg.metric))
-    mv_set_default(cfg,'output_type','dval');
-else
-    mv_set_default(cfg,'output_type','clabel');
-end
-
-if ~iscell(cfg.metric)
-    cfg.metric = {cfg.metric};
-end
-nmetrics = numel(cfg.metric);
 
 % Balance the data using oversampling or undersampling
 mv_set_default(cfg,'balance','none');
@@ -126,7 +103,7 @@ mv_set_default(cfg,'replace',1);
 % Set non-specified classifier parameters to default
 cfg.param = mv_get_classifier_param(cfg.classifier, cfg.param);
 
-[cfg, clabel, nclasses] = mv_check_inputs(cfg, X, clabel);
+[cfg, clabel, nclasses, nmetrics] = mv_check_inputs(cfg, X, clabel);
 
 nTime1 = numel(cfg.time1);
 nTime2 = numel(cfg.time2);
