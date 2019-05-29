@@ -1,11 +1,13 @@
-function [cfg, clabel, nclasses] = mv_check_inputs(cfg, X, clabel)
-% Performs some sanity checks on input parameters cfg, X, and y.
+function [cfg, clabel, nclasses,nmetrics] = mv_check_inputs(cfg, X, clabel)
+% Performs some sanity checks and sets some defaults for input parameters 
+% cfg, X, and y.
 % Also checks whether external toolboxes (LIBSVM and LIBLINEAR) are
 % available if required.
 
 if ~iscell(cfg.metric)
     cfg.metric = {cfg.metric};
 end
+nmetrics = numel(cfg.metric);
 
 %% clabel: check class labels
 clabel = clabel(:);
@@ -49,6 +51,25 @@ if isfield(cfg,'param') && isstruct(cfg.param)
     if any(not_lowercase)
         error('For consistency, all parameters must be given in lowercase: please replace param.%s by param.%s', pfn{not_lowercase(1)},lower(pfn{not_lowercase(1)}) )
     end
+end
+
+%% cfg: set defaults for cross-validation
+mv_set_default(cfg,'cv','kfold');
+mv_set_default(cfg,'repeat',5);
+mv_set_default(cfg,'k',5);
+mv_set_default(cfg,'p',0.1);
+mv_set_default(cfg,'stratify',1);
+
+switch(cfg.cv)
+    case 'leaveout', cfg.k = size(X,1);
+    case 'holdout', cfg.k = 1;
+end
+
+%% cfg: given a metric, set default for output_type
+if any(ismember({'dval','auc','roc','tval'},cfg.metric))
+    mv_set_default(cfg,'output_type','dval');
+else
+    mv_set_default(cfg,'output_type','clabel');
 end
 
 %% cfg: check whether different metrics are compatible with each other 

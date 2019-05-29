@@ -86,36 +86,12 @@ mv_set_default(cfg,'size',1);
 mv_set_default(cfg,'average',0);
 mv_set_default(cfg,'feedback',1);
 
-% Cross-validation settings
-mv_set_default(cfg,'cv','kfold');
-mv_set_default(cfg,'repeat',5);
-mv_set_default(cfg,'k',5);
-mv_set_default(cfg,'p',0.1);
-mv_set_default(cfg,'stratify',1);
-
-switch(cfg.cv)
-    case 'leaveout', cfg.k = size(X,1);
-    case 'holdout', cfg.k = 1;
-end
-
 if cfg.average && ~ismatrix(X)
     X = mean(X,3);
 end
 
-if any(ismember({'dval','auc','roc','tval'},cfg.metric))
-    mv_set_default(cfg,'output_type','dval');
-else
-    mv_set_default(cfg,'output_type','clabel');
-end
-
-if ~iscell(cfg.metric)
-    cfg.metric = {cfg.metric};
-end
-nmetrics = numel(cfg.metric);
-
 [n, nfeatures, ~] = size(X);
-
-[cfg, clabel, nclasses] = mv_check_inputs(cfg, X, clabel);
+[cfg, clabel, nclasses, nmetrics] = mv_check_inputs(cfg, X, clabel);
 
 perf = cell(nfeatures,1);
 perf_std = cell(nfeatures,1);
