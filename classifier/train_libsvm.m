@@ -11,7 +11,7 @@ function cf = train_libsvm(cfg,X,clabel)
 % X              - [instances x features] matrix of training instances
 % clabel         - [instances x 1] vector of class labels
 %
-% cfg          - struct with hyperparameters passed on to the svmtrain
+% cfg          - struct with hyperparameters passed on to LIBSVM's svmtrain
 %                  function
 %
 % %libsvm_options:
@@ -70,6 +70,9 @@ end
 % Call LIBSVM training function
 cf = [];
 cf.model = svmtrain(double(clabel(:)), double(X), libsvm_options);
+% note: if svmtrain crashes for you make sure that it is not being
+% overshadowed by at Matlab function of the same name ('svmtrain' was a
+% Matlab function that was later replaced by 'fitcsvm').
 
 % Save parameters needed for testing
 cf.kernel_type      = cfg.kernel_type;
