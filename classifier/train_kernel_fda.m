@@ -1,16 +1,16 @@
-function cf = train_kernel_fda(cfg,X,clabel)
+function cf = train_kernel_fda(param,X,clabel)
 % Trains a kernel Fisher Discriminant Analysis (KFDA). Works with an
 % arbitrary number of classes. For a linear kernel, it is equivalent to
-% LDA (for two classes) or multi-class LDA.
+% LDA.
 %
 % Usage:
-% cf = train_kernel_fda(cfg,X,clabel)
+% cf = train_kernel_fda(param,X,clabel)
 %
 %Parameters:
 % X              - [samples x features] matrix of training samples
 % clabel         - [samples x 1] vector of class labels
 %
-% cfg          - struct with hyperparameters:
+% param          - struct with hyperparameters:
 % .reg          - type of regularisation
 %                 'shrink': shrinkage regularisation using (1-lambda)*N +
 %                          lambda*nu*I, where nu = trace(N)/P and P =
@@ -71,24 +71,24 @@ nclasses = max(clabel);
 l = arrayfun(@(c) sum(clabel == c), 1:nclasses);
 
 %% Set kernel hyperparameter defaults
-if ischar(cfg.gamma) && strcmp(cfg.gamma,'auto')
-    cfg.gamma = 1/ nfeatures;
+if ischar(param.gamma) && strcmp(param.gamma,'auto')
+    param.gamma = 1/ nfeatures;
 end
 
 %% Precompute kernel
-if isempty(cfg.kernel_matrix)
+if isempty(param.kernel_matrix)
     
     has_kernel_matrix = 0;
     
     % Kernel function
-    kernelfun = eval(['@' cfg.kernel '_kernel']);
+    kernelfun = eval(['@' param.kernel '_kernel']);
     
     % Compute kernel matrix
-    kernel_matrix = kernelfun(cfg, X);
+    kernel_matrix = kernelfun(param, X);
 
 else
     has_kernel_matrix = 1;
-    kernel_matrix = cfg.kernel_matrix;
+    kernel_matrix = param.kernel_matrix;
 end
 
 %% N: "Dual" of within-class scatter matrix
@@ -98,9 +98,9 @@ for c=1:nclasses
 end
 
 %% Regularisation of N
-lambda = cfg.lambda;
+lambda = param.lambda;
 
-if strcmp(cfg.reg,'shrink')
+if strcmp(param.reg,'shrink')
     % SHRINKAGE REGULARISATION
     % We write the regularised scatter matrix as a convex combination of
     % the N and an identity matrix scaled to have the same trace as N
@@ -137,7 +137,7 @@ end
 
 %% Set up classifier struct
 cf              = [];
-cf.kernel       = cfg.kernel;
+cf.kernel       = param.kernel;
 cf.A            = A;
 cf.nclasses     = nclasses;
 
@@ -153,8 +153,8 @@ cf.Xtrain       = X;
 cf.class_means  = Mj'*A;
 
 % Hyperparameters
-cf.gamma        = cfg.gamma;
-cf.coef0        = cfg.coef0;
-cf.degree       = cfg.degree;
+cf.gamma        = param.gamma;
+cf.coef0        = param.coef0;
+cf.degree       = param.degree;
     
 end

@@ -1,28 +1,26 @@
-function cf = train_svm(cfg,X,clabel)
-% Trains a support vector machine (SVM). The avoid overfitting, the
-% classifier weights are penalised using L2-regularisation.
+function cf = train_svm(param,X,clabel)
+% Trains a support vector machine (SVM). 
 %
 % Note: It is recommended to demean (X = demean(X,'constant')) or z-score 
 % (X = zscore(X)) the data first to speed up the optimisation.
 %
 % Usage:
-% cf = train_svm(cfg,X,clabel)
+% cf = train_svm(param,X,clabel)
 %
 %Parameters:
 % X              - [samples x features] matrix of training samples
-% clabel         - [samples x 1] vector of class labels containing
-%                  1's (class 1) and 2's (class 2)
+% clabel         - [samples x 1] vector of class labels
 %
-% cfg          - struct with hyperparameters:
+% param          - struct with hyperparameters:
 % .c            - regularisation hyperparameter controlling the magnitude
 %                  of regularisation. If a single value is given, it is
 %                  used for regularisation. If a vector of values is given,
 %                  cross-validation is used to test all the values
 %                  in the vector and the best one is selected.
 %                  If set to 'auto', a default search grid is used to
-%                  automatically determine the best lambda (default
+%                  automatically determine the best c (default
 %                  'auto').
-% kernel         - kernel function:
+% .kernel        - kernel function:
 %                  'linear'     - linear kernel, trains a linear SVM
 %                                 ker(x,y) = x' * y
 %                  'rbf'        - radial basis function or Gaussian kernel
@@ -32,7 +30,7 @@ function cf = train_svm(cfg,X,clabel)
 %                  Alternatively, a custom kernel can be provided if there
 %                  is a function called *_kernel is in the MATLAB path, 
 %                  where "*" is the name of the kernel (e.g. rbf_kernel).
-% kernel_matrix  - optional kernel matrix. If provided, the .kernel 
+% .kernel_matrix - optional kernel matrix. If provided, the .kernel 
 %                  parameter is ignored. (Default [])
 % .prob          - if 1, decision values are returned as probabilities. If
 %                  0, the decision values are simply the distance to the
@@ -58,7 +56,7 @@ function cf = train_svm(cfg,X,clabel)
 %                 high degree makes overfitting likely (default 2)
 %
 % TUNING: Hyperparameters can be tuned by setting a range instead of a
-% single value. For instance, if cfg.gamma = [10e-1, 1, 10e1] a
+% single value. For instance, if param.gamma = [10e-1, 1, 10e1] a
 % cross-validation is performed where each of the parameters is tested and
 % the best parameter is chosen. If multiple parameters are set for tuning,
 % a multi-dimensional search grid is set up where all combinations of
@@ -122,40 +120,40 @@ clabel = double(clabel(:));
 clabel(clabel == 2) = -1;
 
 %% Set kernel hyperparameter defaults
-if ischar(cfg.gamma) && strcmp(cfg.gamma,'auto')
-    cfg.gamma = 1/nFeat;
+if ischar(param.gamma) && strcmp(param.gamma,'auto')
+    param.gamma = 1/nFeat;
 end
 
 %% Bias
-if ischar(cfg.bias) && strcmp(cfg.bias,'auto')
-    if strcmp(cfg.kernel,'linear')
-        cfg.bias = 1;
+if ischar(param.bias) && strcmp(param.bias,'auto')
+    if strcmp(param.kernel,'linear')
+        param.bias = 1;
     else
-        cfg.bias = 0;
+        param.bias = 0;
     end
 end
 
 % Augment X with bias
-if cfg.bias > 0
-    X = cat(2,X, ones(N,1) * cfg.bias );
+if param.bias > 0
+    X = cat(2,X, ones(N,1) * param.bias );
     nFeat = nFeat + 1;
 end
 
 %% Check if hyperparmeters need to be tuned
-has_kernel_matrix = ~isempty(cfg.kernel_matrix);
+has_kernel_matrix = ~isempty(param.kernel_matrix);
 
 % need to tune hyperparameters?
 tune_hyperparameters = {};
 if ~has_kernel_matrix
 
     tmp = {};
-    switch(cfg.kernel)
+    switch(param.kernel)
         case 'rbf'
-            if numel(cfg.gamma)>1, tmp = {'gamma' cfg.gamma}; end
+            if numel(param.gamma)>1, tmp = {'gamma' param.gamma}; end
         case 'polynomial'
-            if numel(cfg.gamma)>1, tmp = {'gamma' cfg.gamma}; end
-            if numel(cfg.coef0)>1, tmp = {tmp{:}; 'coef0' cfg.coef0}; end
-            if numel(cfg.degree)>1, tmp = {rmp{:}; 'degree' cfg.degree}; end
+            if numel(param.gamma)>1, tmp = {'gamma' param.gamma}; end
+            if numel(param.coef0)>1, tmp = {tmp{:}; 'coef0' param.coef0}; end
+            if numel(param.degree)>1, tmp = {tmp{:}; 'degree' param.degree}; end
     end
     tune_hyperparameters = tmp;
 end
@@ -167,20 +165,20 @@ if ~has_kernel_matrix && isempty(tune_hyperparameters)
     % kernel matrix
 
     % Kernel function
-    kernelfun = eval(['@' cfg.kernel '_kernel']);
+    kernelfun = eval(['@' param.kernel '_kernel']);
     
     % Compute kernel matrix
-    kernel_matrix = kernelfun(cfg, X);
+    kernel_matrix = kernelfun(param, X);
     
     % Regularise
-    if cfg.regularise_kernel > 0
-        kernel_matrix = kernel_matrix + cfg.regularise_kernel * eye(size(X,1));
+    if param.regularise_kernel > 0
+        kernel_matrix = kernel_matrix + param.regularise_kernel * eye(size(X,1));
     end
     
 else
     % kernel matrix has been provided by the user, so we take it from 
-    % the cfg struct
-    kernel_matrix = cfg.kernel_matrix;
+    % the param struct
+    kernel_matrix = param.kernel_matrix;
 end
 
 % Create a copy of kernel_matrix wherein class labels 1 and -1 are absorbed in the
@@ -188,12 +186,12 @@ end
 Q_cl = kernel_matrix .* (clabel * clabel');
 
 % %% Automatically set the search grid for c
-if ischar(cfg.c) && strcmp(cfg.c,'auto')
-    cfg.c = logspace(-4,4,10);
+if ischar(param.c) && strcmp(param.c,'auto')
+    param.c = logspace(-4,4,10);
 end
 
 %% Optimise hyperparameters using nested cross-validation
-if numel(cfg.c)>1 || ~isempty(tune_hyperparameters)
+if numel(param.c)>1 || ~isempty(tune_hyperparameters)
     
    tune_hyperparameter_svm
    
@@ -203,29 +201,29 @@ else
 end
 
 %% Train classifier on the full training data (using the best lambda)
-c = cfg.c(best_c_idx);
+c = param.c(best_c_idx);
 
 % Solve the dual problem and obtain alpha
-alpha = DualCoordinateDescent(Q_cl, c, ONE, cfg.tolerance, cfg.shrinkage_multiplier);
+alpha = DualCoordinateDescent(Q_cl, c, ONE, param.tolerance, param.shrinkage_multiplier);
 
 %% Set up classifier struct
 cf= [];
-cf.kernel = cfg.kernel;
+cf.kernel = param.kernel;
 cf.alpha  = alpha;
-cf.gamma  = cfg.gamma;
-cf.bias   = cfg.bias;
-cf.prob   = cfg.prob;
+cf.gamma  = param.gamma;
+cf.bias   = param.bias;
+cf.prob   = param.prob;
 
-if strcmp(cfg.kernel,'linear')
+if strcmp(param.kernel,'linear')
     % Calculate linear weights w and bias b from alpha
     cf.w = X' * (cf.alpha .* clabel(:));
     
-    if cfg.bias > 0
+    if param.bias > 0
         cf.b = cf.w(end);
         cf.w = cf.w(1:end-1);
         
         % Bias term needs correct scaling 
-        cf.b = cf.b * cfg.bias;
+        cf.b = cf.b * param.bias;
     else
         cf.b = 0;
     end
@@ -240,7 +238,7 @@ else
     % For convenience we save the product alpha * y for the support vectors
     cf.alpha_y = cf.alpha(cf.support_vector_indices) .* cf.y(:);
     
-    if cfg.bias > 0
+    if param.bias > 0
         %%% TODO: this part might need fixing
         cf.b = 0;
         
@@ -256,9 +254,9 @@ else
     end
     
     % Save hyperparameters
-    cf.gamma    = cfg.gamma;
-    cf.coef0    = cfg.coef0;
-    cf.degree   = cfg.degree;
+    cf.gamma    = param.gamma;
+    cf.coef0    = param.coef0;
+    cf.degree   = param.degree;
     
 end
 
