@@ -1,13 +1,13 @@
-function [alpha,iter] = DualCoordinateDescent(Q,C,ONE,tolerance, shrinkage_multiplier)
+function [alpha,iter] = DualCoordinateDescent(Q,c,ONE,tolerance, shrinkage_multiplier)
 % Implementation of a dual coordinate descent algorithm for optimising 
 % linear and non-linear SVMs with L1 loss.
 %
 % The dual optimisation problem for L1-SVM is
 %
 %    arg min a     f(a) = 1/2 a' * Q * a - e' * a
-%    subject to    0 <= a <= C
+%    subject to    0 <= a <= c
 %
-% where e is a vector of 1's, C is the cost hyperparameter, and Q is the
+% where e is a vector of 1's, c is the cost hyperparameter, and Q is the
 % kernel matrix with class labels absorbed, i.e. 
 % Q(i,j) = y_i  y_j kernel(x_i,y_i)   
 %             
@@ -17,10 +17,10 @@ function [alpha,iter] = DualCoordinateDescent(Q,C,ONE,tolerance, shrinkage_multi
 % min_d   f(a + d e_i) = 1/2 Q_ii d^2 + grad_f_i d + constant
 % 
 %
-% Usage: [w,iter] = DualCoordinateDescent(Q,C,ONE,tolerance,shrinkage_multiplier)
+% Usage: [w,iter] = DualCoordinateDescent(Q,c,ONE,tolerance,shrinkage_multiplier)
 %
 % Q         - kernel matrix with class labels absorbed
-% C         - cost hyperparameter
+% c         - cost hyperparameter
 % ONE       - column vectors of 1's, same size as a 
 % tolerance - stopping criterion. When the relative change in function
 %             value is below tolerance, iteration stops
@@ -91,7 +91,7 @@ while iter < max_iter
                 PG = g(o(ii));
             end
             
-        elseif alpha(o(ii)) == C
+        elseif alpha(o(ii)) == c
             
             if (g(o(ii)) < PGmin_old * shrinkage_multiplier)
                 % Shrink (=remove) this item from the active set and restart
@@ -117,7 +117,7 @@ while iter < max_iter
 
             alpha_old = alpha(o(ii));
             % update coordinate
-            alpha(o(ii)) = min( C, ...
+            alpha(o(ii)) = min( c, ...
                 max( alpha(o(ii)) - g(o(ii))/Q(o(ii),o(ii)), 0 ) ...
                 );
 
