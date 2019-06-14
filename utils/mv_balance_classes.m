@@ -1,6 +1,6 @@
 function [X,clabel,labelidx] = mv_balance_classes(X,clabel,method,replace)
-%Balances data with imbalanced classes by oversampling the minority class
-%or undersampling the majority class.
+%Balances data with imbalanced classes by oversampling the minority
+%class(es) or undersampling the majority class(es).
 %
 %Usage:
 % [X,labels] = mv_balance_classes(X,clabel,method,replace)

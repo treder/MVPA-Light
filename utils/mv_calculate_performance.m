@@ -21,9 +21,11 @@ function [perf, perf_std] = mv_calculate_performance(metric, output_type, cf_out
 %                     distribution of dvals for two classes
 %                     'auc': area under the ROC curve
 %                     'confusion': confusion matrix (needs class labels) as
-%                     classifier output. Note that the true labels are the
-%                     columns and the predicted labels are the rows
-%                     (sometimes it's the other way round)
+%                     classifier output.
+%                     'precision'
+%                     'recall'
+%                     'f1'
+%                     'none'
 % output_type       - type of classifier ('clabel', 'dval', or 'prob'). See
 %                     mv_get_classifier_output for details
 % cf_output         - vector of classifier outputs (labels or dvals). If
