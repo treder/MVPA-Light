@@ -1,4 +1,4 @@
-function cf = train_multiclass_lda(cfg,X,clabel)
+function cf = train_multiclass_lda(param,X,clabel)
 % Trains a multi-class linear discriminant analysis (LDA) classifier with 
 % shrinkage regularisation of the within-class scatter matrix. Multi-class
 % LDA can be seen as a prototype classifier: First, the data is mapped
@@ -10,14 +10,14 @@ function cf = train_multiclass_lda(cfg,X,clabel)
 % Note: Use for more than two classes. For two classes, use train_lda.
 %
 % Usage:
-% cf = train_lda_multi(cfg,X,clabel)
+% cf = train_lda_multi(param,X,clabel)
 %
 %Parameters:
 % X              - [samples x features] matrix of training samples
 % clabel         - [samples x 1] vector of class labels containing
 %                  1's (class 1), 2's (class 2), 3's (class 3) and so on
 %
-% cfg          - struct with hyperparameters:
+% param          - struct with hyperparameters:
 % .reg          - type of regularisation
 %                 'shrink': shrinkage regularisation using (1-lambda)*C +
 %                          lambda*nu*I, where nu = trace(C)/P and P =
@@ -71,9 +71,9 @@ for c=1:nclasses
 end
 
 %% Regularisation
-lambda = cfg.lambda;
+lambda = param.lambda;
 
-if strcmp(cfg.reg,'shrink')
+if strcmp(param.reg,'shrink')
     % SHRINKAGE REGULARISATION
     if (ischar(lambda)&&strcmp(lambda,'auto'))
         % Here we use the Ledoit-Wolf method to estimate the regularisation
