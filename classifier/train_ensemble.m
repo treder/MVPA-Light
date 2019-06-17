@@ -97,7 +97,7 @@ if param.stratify > 0
 end
 
 %% Get learner hyperparameters
-param = mv_get_classifier_param(param.learner, param.learner_param);
+param.learner_param = mv_get_classifier_param(param.learner, param.learner_param);
 
 %% Select random features for the learners
 random_features = sparse(false(F,param.nlearners));
