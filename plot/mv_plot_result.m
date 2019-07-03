@@ -215,9 +215,9 @@ switch(fun)
         end
         
         if opt.new_figure, figure; end
-        if any(strcmp(metric,{'auc', 'acc','accuracy'}))
+        if any(strcmp(metric,{'auc', 'acc','accuracy','precision','recall','f1'}))
             hor = 1 / nclasses;
-        elseif any(strcmp(metric,{'dval', 'tval','precision','recall','f1'}))
+        elseif any(strcmp(metric,{'dval', 'tval'}))
             hor = 0;
         end
             
@@ -263,9 +263,9 @@ switch(fun)
         cfg= [];
         if isfield(opt,'x'), cfg.x = opt.x; end
         if isfield(opt,'y'), cfg.y = opt.y; end
-        if any(strcmp(metric,{'auc', 'acc','accuracy'}))
+        if any(strcmp(metric,{'auc', 'acc','accuracy','f1'}))
             cfg.climzero = 1 / nclasses;
-        elseif any(strcmp(metric,{'dval', 'tval','predicion','recall','f1'}))
+        elseif any(strcmp(metric,{'dval', 'tval','precision','recall'}))
             cfg.climzero = 0;
         end
         
@@ -303,7 +303,7 @@ switch(fun)
             
             if any(strcmp(metric,{'auc', 'acc','accuracy'}))
                 cfg.climzero = 0.5;
-            elseif any(strcmp(metric,{'dval', 'tval','predicion','recall','f1'}))
+            elseif any(strcmp(metric,{'dval', 'tval','precision','recall','f1'}))
                 cfg.climzero = 0;
             end
 

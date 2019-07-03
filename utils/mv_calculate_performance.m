@@ -21,9 +21,11 @@ function [perf, perf_std] = mv_calculate_performance(metric, output_type, cf_out
 %                     distribution of dvals for two classes
 %                     'auc': area under the ROC curve
 %                     'confusion': confusion matrix (needs class labels) as
-%                     classifier output. Note that the true labels are the
-%                     columns and the predicted labels are the rows
-%                     (sometimes it's the other way round)
+%                     classifier output.
+%                     'precision'
+%                     'recall'
+%                     'f1'
+%                     'none'
 % output_type       - type of classifier ('clabel', 'dval', or 'prob'). See
 %                     mv_get_classifier_output for details
 % cf_output         - vector of classifier outputs (labels or dvals). If
@@ -72,7 +74,7 @@ function [perf, perf_std] = mv_calculate_performance(metric, output_type, cf_out
 % perf_std - standard deviation of the performance metric across folds 
 %            and repetitions, indicating the variability of the metric.
 
-% (c) Matthias Treder 2017
+% (c) Matthias Treder
 
 if nargin<5
     dim=[];
@@ -173,7 +175,7 @@ switch(metric)
             % Pooled standard deviation
             SP = cellfun( @(v1,v2,n1,n2) sqrt( ((n1-1)*v1 + (n2-1)*v2) / (n1+n2-2)  ), V1,V2,N1,N2, 'Un',0);
             % T-value
-            perf = cellfun( @(m1,m2,n1,n2,sp) (m1-m2)/(sp*sqrt(1/n1 + 1/n2)) , M1,M2,N1,N2,SP,'Un',0);
+            perf = cellfun( @(m1,m2,n1,n2,sp) (m1-m2)./(sp.*sqrt(1/n1 + 1/n2)) , M1,M2,N1,N2,SP,'Un',0);
         else
             for xx=1:nextra % Looping across the extra dimensions if cf_output is multi-dimensional
                 % Get means
@@ -294,7 +296,7 @@ switch(metric)
         recall = calculate_recall(conf);
         
         % F1 =  2*(Precision*Recall ) / (Precision + Recall)
-        perf = cellfun( @(p, r) 2* (p*r) ./ (p+r) , precision, recall, 'Un', 0);
+        perf = cellfun( @(p, r) 2* (p.*r) ./ (p+r) , precision, recall, 'Un', 0);
         
     otherwise, error('Unknown metric: %s',cfg.metric)
 end
@@ -377,7 +379,7 @@ for nn=1:numel(dim)
     perf = nansum(perf, dim(nn));
     num_samples = nansum(num_samples, dim(nn));
     
-    % Finished - we need to normalise again by the number of samples to get
+    % Finished - we need to normalize again by the number of samples to get
     % back to the original scale
     if nn==numel(dim)
         perf = perf ./ num_samples;
@@ -391,16 +393,16 @@ if isvector(perf), perf = perf(:); end
 if isvector(perf_std), perf_std = perf_std(:); end
 
     %% ---- Helper functions ----
-    function conf = calculate_confusion_matrix(normalise)
-        % calculates the confusion matrix. if normalise = 1, the absolute
-        % counts are normalised to fractions by dividing each row by the
+    function conf = calculate_confusion_matrix(normalize)
+        % calculates the confusion matrix. if normalize = 1, the absolute
+        % counts are normalized to fractions by dividing each row by the
         % row total
         
         conf = cell(sz_cf_output);
 
         % Must compare each class with each other class, therefore create
         % all combinations of pairs of class labels
-        comb = combvec(1:nclasses,1:nclasses);
+        comb = allcomb(1:nclasses,1:nclasses)';
         
         % The confusion matrix is a nclasses x nclasses matrix where each
         % row corresponds to the true label and each column corresponds to 
@@ -439,10 +441,10 @@ if isvector(perf_std), perf_std = perf_std(:); end
             % Now we're ready to transform each cell of tmp into a matrix 
             tmp = cellfun( @cell2mat, tmp, 'Un',0);
             
-            if normalise 
+            if normalize 
                 % confusion_fun gives us the absolute counts 
                 % for each combination of classes. 
-                % It is useful to normalise the confusion matrix such that the
+                % It is useful to normalize the confusion matrix such that the
                 % cells represent proportions instead of absolute counts. To 
                 % this end, each row is divided by the number of
                 % samples in that row. As a result every row sums to 1.
@@ -474,7 +476,7 @@ if isvector(perf_std), perf_std = perf_std(:); end
         else
             % for more than two classes, we use the generalisation from
             % Sokolava and Lapalme (2009) precision_i = c_ii / (sum_j c_ji) 
-            % where c_ij = (i,j)-th entry of the unnormalised confusion matrix
+            % where c_ij = (i,j)-th entry of the unnormalized confusion matrix
             if nextra==1
                 precision(dim_skip_token{:},:) = cellfun( @(c) diag(c)./sum(c,1)', conf(dim_skip_token{:},xx), 'Un',0);
             else
@@ -496,7 +498,7 @@ if isvector(perf_std), perf_std = perf_std(:); end
         else
             % for more than two classes, we use the generalisation from
             % Sokolava and Lapalme (2009) recall_i = c_ii / (sum_j c_ij) 
-            % where c_ij = (i,j)-th entry of the unnormalised confusion matrix
+            % where c_ij = (i,j)-th entry of the unnormalized confusion matrix
             if nextra==1
                 recall(dim_skip_token{:},:) = cellfun( @(c) diag(c)./sum(c,2), conf(dim_skip_token{:},xx), 'Un',0);
             else

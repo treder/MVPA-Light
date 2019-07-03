@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 function cf = train_kernel_fda(param,X,clabel)
 % Trains a kernel Fisher Discriminant Analysis (KFDA). Works with an
 % arbitrary number of classes. For a linear kernel, it is equivalent to
@@ -5,12 +6,25 @@ function cf = train_kernel_fda(param,X,clabel)
 %
 % Usage:
 % cf = train_kernel_fda(param,X,clabel)
+=======
+function cf = train_kernel_fda(cfg,X,clabel)
+% Trains a kernel Fisher Discriminant Analysis (KFDA). Works with an
+% arbitrary number of classes. For a linear kernel, it is equivalent to
+% LDA (for two classes) or multi-class LDA.
+%
+% Usage:
+% cf = train_kernel_fda(cfg,X,clabel)
+>>>>>>> preprocess
 %
 %Parameters:
 % X              - [samples x features] matrix of training samples
 % clabel         - [samples x 1] vector of class labels
 %
+<<<<<<< HEAD
 % param          - struct with hyperparameters:
+=======
+% cfg          - struct with hyperparameters:
+>>>>>>> preprocess
 % .reg          - type of regularisation
 %                 'shrink': shrinkage regularisation using (1-lambda)*N +
 %                          lambda*nu*I, where nu = trace(N)/P and P =
@@ -71,16 +85,26 @@ nclasses = max(clabel);
 l = arrayfun(@(c) sum(clabel == c), 1:nclasses);
 
 %% Set kernel hyperparameter defaults
+<<<<<<< HEAD
 if ischar(param.gamma) && strcmp(param.gamma,'auto')
     param.gamma = 1/ nfeatures;
 end
 
 %% Precompute kernel
 if isempty(param.kernel_matrix)
+=======
+if ischar(cfg.gamma) && strcmp(cfg.gamma,'auto')
+    cfg.gamma = 1/ nfeatures;
+end
+
+%% Precompute kernel
+if isempty(cfg.kernel_matrix)
+>>>>>>> preprocess
     
     has_kernel_matrix = 0;
     
     % Kernel function
+<<<<<<< HEAD
     kernelfun = eval(['@' param.kernel '_kernel']);
     
     % Compute kernel matrix
@@ -89,6 +113,16 @@ if isempty(param.kernel_matrix)
 else
     has_kernel_matrix = 1;
     kernel_matrix = param.kernel_matrix;
+=======
+    kernelfun = eval(['@' cfg.kernel '_kernel']);
+    
+    % Compute kernel matrix
+    kernel_matrix = kernelfun(cfg, X);
+
+else
+    has_kernel_matrix = 1;
+    kernel_matrix = cfg.kernel_matrix;
+>>>>>>> preprocess
 end
 
 %% N: "Dual" of within-class scatter matrix
@@ -98,9 +132,15 @@ for c=1:nclasses
 end
 
 %% Regularisation of N
+<<<<<<< HEAD
 lambda = param.lambda;
 
 if strcmp(param.reg,'shrink')
+=======
+lambda = cfg.lambda;
+
+if strcmp(cfg.reg,'shrink')
+>>>>>>> preprocess
     % SHRINKAGE REGULARISATION
     % We write the regularised scatter matrix as a convex combination of
     % the N and an identity matrix scaled to have the same trace as N
@@ -137,7 +177,11 @@ end
 
 %% Set up classifier struct
 cf              = [];
+<<<<<<< HEAD
 cf.kernel       = param.kernel;
+=======
+cf.kernel       = cfg.kernel;
+>>>>>>> preprocess
 cf.A            = A;
 cf.nclasses     = nclasses;
 
@@ -153,8 +197,14 @@ cf.Xtrain       = X;
 cf.class_means  = Mj'*A;
 
 % Hyperparameters
+<<<<<<< HEAD
 cf.gamma        = param.gamma;
 cf.coef0        = param.coef0;
 cf.degree       = param.degree;
+=======
+cf.gamma        = cfg.gamma;
+cf.coef0        = cfg.coef0;
+cf.degree       = cfg.degree;
+>>>>>>> preprocess
     
 end

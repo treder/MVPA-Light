@@ -6,14 +6,14 @@ function param = mv_get_classifier_param(classifier,param)
 % param = mv_get_classifier_param(classifier, <param>)
 % 
 %Parameters:
-% classifier     - string specifying the classifier (e.g. 'lda')
-% param          - [optional] struct containing hyperparameters. The struct
+% classifier     - [string] specifying the classifier (e.g. 'lda')
+% param          - [struct] (optional) containing hyperparameters. The struct
 %                  is filled up with default values for non-existing
 %                  fields, but existing values are not overwritten. If
 %                  param is not provided, all values are set to default
 %
 %Output:
-% param  - struct with default parameter values
+% param  - [struct] with default parameters
 
 if nargin < 2 || ~isstruct(param)
     param = struct();

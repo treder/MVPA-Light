@@ -116,6 +116,9 @@ for ii=1:numel(idx)
     end
 end
 
+%% cfg: set defaults for classifier param
+cfg.param = mv_get_classifier_param(cfg.classifier, cfg.param);
+
 %% cfg: check for parameter names that have been changed
 changed_fields = { 'nb'      'neighbours';
                       };
@@ -127,11 +130,52 @@ for ii=1:size(changed_fields, 1)
     end
 end
 
+if any(ismember(fn, {'balance', 'replace', 'normalise'}))
+    error('The fieldnames .balance / .replace  .normalise do not exist any more. Over/undersampling is now performed using the preprocessing options ''undersample'', ''oversample'', ''demean'', ''zscore''. See example7_preprocessing.m for example code.')
+end
+
 %% cfg: translate feedback specified as 'yes' or 'no' into boolean
 if ischar(cfg.feedback)
     if strcmp(cfg.feedback, 'yes'),     cfg.feedback = 1;
     elseif strcmp(cfg.feedback, 'no'),  cfg.feedback = 0;
     end
+end
+
+%% cfg.preprocess: set to empty array if does not exist, and turn into cell array if it isn't yet
+if ~isfield(cfg,'preprocess')
+    cfg.preprocess = {};
+elseif ~iscell(cfg.preprocess)
+    cfg.preprocess = {cfg.preprocess};
+end
+
+if ~isfield(cfg,'preprocess_param') || isempty(cfg.preprocess_param)
+    cfg.preprocess_param = {};
+elseif ~iscell(cfg.preprocess_param)
+    cfg.preprocess_param = {cfg.preprocess_param};
+end
+
+%% cfg.preprocess_param: if it has less elements than .preprocess, add empty structs
+if numel(cfg.preprocess_param) < numel(cfg.preprocess)
+    cfg.preprocess_param(numel(cfg.preprocess_param)+1:numel(cfg.preprocess)) = {struct()};
+end
+
+%% cfg.preprocess_param: fill structs up with default parameters
+for ii=1:numel(cfg.preprocess_param)
+    if ischar(cfg.preprocess{ii})
+        cfg.preprocess_param{ii} = mv_get_preprocess_param(cfg.preprocess{ii}, cfg.preprocess_param{ii});
+    end
+end
+
+%% cfg.preprocess: convert preprocessing function to function handle
+for ii=1:numel(cfg.preprocess)
+    if ~isa(cfg.preprocess{ii}, 'function_handle')
+        cfg.preprocess{ii} = eval(['@mv_preprocess_' cfg.preprocess{ii}]);
+    end
+end
+
+%% cfg.preprocess: raise error if number of arguments in preprocess and preprocess_param does not match
+if numel(cfg.preprocess) ~= numel(cfg.preprocess_param)
+    error('The number of elements in cfg.preprocess and cfg.preprocess_param does not match')
 end
 
 %% X and clabel: check whether the number of instances matches the number of class labels
