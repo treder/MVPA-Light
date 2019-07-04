@@ -19,7 +19,7 @@ function [preprocess_param, X, clabel] = mv_preprocess_average_samples(preproces
 % [preprocess_param, X, clabel] = mv_preprocess_average_samples(preprocess_param, X, clabel)
 %
 %Parameters:
-% X              - [samples x ... x ...] data matrix
+% X              - [... x ... x ...] data matrix
 % clabel         - [samples x 1] vector of class labels
 %
 % preprocess_param - [struct] with preprocessing parameters

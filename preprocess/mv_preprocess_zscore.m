@@ -26,7 +26,7 @@ if preprocess_param.is_train_set
 
     % calculate mean and standard deviation on the (train) data
     preprocess_param.mean = mean(X, preprocess_param.dimension);
-    preprocess_param.standard_deviation = std(X, preprocess_param.dimension);
+    preprocess_param.standard_deviation = std(X, [], preprocess_param.dimension);
     
 end
 

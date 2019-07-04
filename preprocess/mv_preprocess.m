@@ -5,7 +5,7 @@ function [cfg, X, clabel] = mv_preprocess(cfg, X, clabel)
 % functions such as mv_classify_across_time.
 %
 % Usage:
-% [cfg, X, clabel] = mv_preprocess_zscore(cfg, X, clabel)
+% [cfg, X, clabel] = mv_preprocess(cfg, X, clabel)
 %
 %Parameters:
 % X              - [... x ... x ... x ] data matrix
@@ -17,7 +17,6 @@ function [cfg, X, clabel] = mv_preprocess(cfg, X, clabel)
 % .preprocess_param   - cell array of preprocessing parameter structs for each
 %                       function. Length of preprocess_param must match length
 %                       of preprocess
-% .param              - struct with classifier hyperparameters
 
 for pp=1:numel(cfg.preprocess)   % -- loop over preprocessing pipeline
     

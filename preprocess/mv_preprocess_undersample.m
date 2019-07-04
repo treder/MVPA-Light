@@ -32,7 +32,7 @@ if preprocess_param.is_train_set || preprocess_param.undersample_test_set
     % position and number of sample dimensions
     s = repmat({':'},[1, ndims(X)]);
     
-    % undersample the majority class
+    % undersample the majority class(es)
     rm_samples = abs(N - min(N));
     for cc=1:nclasses
         if rm_samples(cc)>0
