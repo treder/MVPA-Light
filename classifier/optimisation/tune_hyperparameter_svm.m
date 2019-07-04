@@ -48,7 +48,7 @@ for ff=1:param.k
         % Exploit the fact that we already pre-calculated the kernel matrix
         % for all samples. Simply extract the values corresponding to
         % the test samples and the support vectors in the training set.
-        dval = kernel_matrix(test_idx, train_idx(support_vector_indices)) * alpha_y;
+        dval = K(test_idx, train_idx(support_vector_indices)) * alpha_y;
 
         % accuracy
         acc(ll) = acc(ll) + sum( clabel(CV.test(ff)) == double(sign(dval(:)))  );
