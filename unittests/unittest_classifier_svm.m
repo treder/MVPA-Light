@@ -9,19 +9,19 @@ mf = mfilename;
 %% check classifier on multi-class spiral data: linear classifier should near chance, RBF kernel should be near 100%
 
 % Create spiral data
-N = 100;
-nrevolutions = 1;       % how often each class spins around the zero point
+N = 500;
+nrevolutions = 2;       % how often each class spins around the zero point
 nclasses = 2;
 prop = 'equal';
-scale = 0;
-[X,clabel] = simulate_spiral_data(N, nrevolutions, nclasses, prop, scale, 0);
+scale = 0.001;
+[X,clabel] = simulate_spiral_data(N, nrevolutions, nclasses, prop, scale, 1);
 
 %%% LINEAR kernel: cross-validation
 cfg                 = [];
 cfg.classifier      = 'svm';
 cfg.param           = [];
 cfg.param.kernel    = 'linear';
-cfg.param.c         = 10e2;
+cfg.param.c         = 10e0;
 cfg.feedback        = 0;
 
 acc_linear = mv_crossvalidate(cfg,X,clabel);
@@ -32,7 +32,7 @@ cfg.param.gamma     = 10e1;
 acc_rbf = mv_crossvalidate(cfg,X,clabel);
 
 % Since CV is a bit chance-dependent: tolerance of 2%
-tol = 0.03;
+tol = 0.05;
 
 % For linear kernel: close to chance?
 print_unittest_result('classif spiral data (linear kernel)',1/nclasses, acc_linear, tol);

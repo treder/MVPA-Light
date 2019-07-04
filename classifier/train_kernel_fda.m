@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 function cf = train_kernel_fda(param,X,clabel)
 % Trains a kernel Fisher Discriminant Analysis (KFDA). Works with an
 % arbitrary number of classes. For a linear kernel, it is equivalent to
@@ -6,38 +5,25 @@ function cf = train_kernel_fda(param,X,clabel)
 %
 % Usage:
 % cf = train_kernel_fda(param,X,clabel)
-=======
-function cf = train_kernel_fda(cfg,X,clabel)
-% Trains a kernel Fisher Discriminant Analysis (KFDA). Works with an
-% arbitrary number of classes. For a linear kernel, it is equivalent to
-% LDA (for two classes) or multi-class LDA.
-%
-% Usage:
-% cf = train_kernel_fda(cfg,X,clabel)
->>>>>>> preprocess
 %
 %Parameters:
 % X              - [samples x features] matrix of training samples
 % clabel         - [samples x 1] vector of class labels
 %
-<<<<<<< HEAD
 % param          - struct with hyperparameters:
-=======
-% cfg          - struct with hyperparameters:
->>>>>>> preprocess
-% .reg          - type of regularisation
-%                 'shrink': shrinkage regularisation using (1-lambda)*N +
+% .reg          - type of regularization
+%                 'shrink': shrinkage regularization using (1-lambda)*N +
 %                          lambda*nu*I, where nu = trace(N)/P and P =
 %                          number of samples. nu assures that the trace of
-%                          N is equal to the trace of the regularisation
+%                          N is equal to the trace of the regularization
 %                          term. 
-%                 'ridge': ridge-type regularisation of N + lambda*I,
+%                 'ridge': ridge-type regularization of N + lambda*I,
 %                          where N is the dual within-class scatter matrix 
 %                          and I is the identity matrix
 %                  (default 'shrink')
-% .lambda        - if reg='shrink', the regularisation parameter ranges 
-%                  from 0 to 1 (where 0=no regularisation and 1=maximum
-%                  regularisation). (default 10^-5)
+% .lambda        - if reg='shrink', the regularization parameter ranges 
+%                  from 0 to 1 (where 0=no regularization and 1=maximum
+%                  regularization). (default 10^-5)
 % .kernel        - kernel function:
 %                  'linear'     - linear kernel ker(x,y) = x' y
 %                  'rbf'        - radial basis function or Gaussian kernel
@@ -73,9 +59,9 @@ function cf = train_kernel_fda(cfg,X,clabel)
 
 % (c) Matthias Treder 2018
 
-% not currently used (since we regularise N):
-% kernel_regularisation     - regularisation parameter for the kernel matrix. The
-%                  kernel matrix K is replaced by K + kernel_regularisation*I where I
+% not currently used (since we regularize N):
+% kernel_regularization     - regularization parameter for the kernel matrix. The
+%                  kernel matrix K is replaced by K + kernel_regularization*I where I
 %                  is the identity matrix (default 10e-10)
 
 nclasses = max(clabel);
@@ -85,26 +71,16 @@ nclasses = max(clabel);
 l = arrayfun(@(c) sum(clabel == c), 1:nclasses);
 
 %% Set kernel hyperparameter defaults
-<<<<<<< HEAD
 if ischar(param.gamma) && strcmp(param.gamma,'auto')
     param.gamma = 1/ nfeatures;
 end
 
 %% Precompute kernel
 if isempty(param.kernel_matrix)
-=======
-if ischar(cfg.gamma) && strcmp(cfg.gamma,'auto')
-    cfg.gamma = 1/ nfeatures;
-end
-
-%% Precompute kernel
-if isempty(cfg.kernel_matrix)
->>>>>>> preprocess
     
     has_kernel_matrix = 0;
     
     % Kernel function
-<<<<<<< HEAD
     kernelfun = eval(['@' param.kernel '_kernel']);
     
     % Compute kernel matrix
@@ -113,16 +89,6 @@ if isempty(cfg.kernel_matrix)
 else
     has_kernel_matrix = 1;
     kernel_matrix = param.kernel_matrix;
-=======
-    kernelfun = eval(['@' cfg.kernel '_kernel']);
-    
-    % Compute kernel matrix
-    kernel_matrix = kernelfun(cfg, X);
-
-else
-    has_kernel_matrix = 1;
-    kernel_matrix = cfg.kernel_matrix;
->>>>>>> preprocess
 end
 
 %% N: "Dual" of within-class scatter matrix
@@ -131,24 +97,18 @@ for c=1:nclasses
     N = N + kernel_matrix(:,clabel==c) * (eye(l(c)) - 1/l(c)) * kernel_matrix(clabel==c,:);
 end
 
-%% Regularisation of N
-<<<<<<< HEAD
+%% Regularization of N
 lambda = param.lambda;
 
 if strcmp(param.reg,'shrink')
-=======
-lambda = cfg.lambda;
-
-if strcmp(cfg.reg,'shrink')
->>>>>>> preprocess
-    % SHRINKAGE REGULARISATION
-    % We write the regularised scatter matrix as a convex combination of
+    % SHRINKAGE REGULARIZATION
+    % We write the regularized scatter matrix as a convex combination of
     % the N and an identity matrix scaled to have the same trace as N
     N = (1-lambda)* N + lambda * eye(nsamples) * trace(N)/nsamples;
 
 else
-    % RIDGE REGULARISATION
-    % The ridge lambda must be provided directly as a number
+    % RIDGE REGULARIZATION
+    % The ridge lambda must be provided directly as a positive number
     N = N + lambda * eye(nsamples);
 end
 
@@ -177,11 +137,7 @@ end
 
 %% Set up classifier struct
 cf              = [];
-<<<<<<< HEAD
 cf.kernel       = param.kernel;
-=======
-cf.kernel       = cfg.kernel;
->>>>>>> preprocess
 cf.A            = A;
 cf.nclasses     = nclasses;
 
@@ -197,14 +153,8 @@ cf.Xtrain       = X;
 cf.class_means  = Mj'*A;
 
 % Hyperparameters
-<<<<<<< HEAD
 cf.gamma        = param.gamma;
 cf.coef0        = param.coef0;
 cf.degree       = param.degree;
-=======
-cf.gamma        = cfg.gamma;
-cf.coef0        = cfg.coef0;
-cf.degree       = cfg.degree;
->>>>>>> preprocess
     
 end

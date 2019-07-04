@@ -18,10 +18,10 @@ cfg = [];
 cfg.cv          = 'kfold';
 cfg.feedback    = 0;
 
-acc_kfold = mv_classify_timextime(cfg, X, clabel);
+acc_kfold = mv_crossvalidate(cfg, X, clabel);
 
 cfg.cv          = 'none';
-acc_none = mv_classify_timextime(cfg, X, clabel);
+acc_none = mv_crossvalidate(cfg, X, clabel);
 
 tol = 0.03;
 print_unittest_result('CV < no CV', 1, acc_kfold < acc_none, tol);

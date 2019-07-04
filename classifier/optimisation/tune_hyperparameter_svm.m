@@ -1,21 +1,21 @@
 % Perform hyperparameter tuning for SVM. To this end, a nested
 % cross-validation is performed by splitting the training data into folds.
 %
-% Accuracy is calculated for each possible hyperparameter value; the value
-% leading to the best overall performance is then selected.
+% Accuracy is calculated for each possible hyperparameter values; the
+% values leading to the best overall performance are selected.
 
 % Init variables
-CV = cvpartition(N,'KFold',cfg.k);
-acc = zeros(numel(cfg.c),1);
+CV = cvpartition(N,'KFold',param.k);
+acc = zeros(numel(param.c),1);
 
-if cfg.plot
-    c = zeros(numel(cfg.c));
+if param.plot
+    c = zeros(numel(param.c));
 end
 
 LABEL = (clabel * clabel');
 
 % --- Start cross-validation loop ---
-for ff=1:cfg.k
+for ff=1:param.k
     
     %%% TODO: consider adding tuning loop for other hyperparameters like gamma
     
@@ -35,10 +35,10 @@ for ff=1:cfg.k
     ONEtrain = ones(CV.TrainSize(ff),1);
     
     % --- Loop through c's ---
-    for ll=1:numel(cfg.c)
+    for ll=1:numel(param.c)
         
         % Solve the dual problem and obtain alpha
-        [alpha,iter] = DualCoordinateDescent(Qtrain, cfg.c(ll), ONEtrain, cfg.tolerance, cfg.shrinkage_multiplier);
+        [alpha,iter] = DualCoordinateDescent(Qtrain, param.c(ll), ONEtrain, param.tolerance, param.shrinkage_multiplier);
         
         support_vector_indices = find(alpha>0);
         
@@ -54,7 +54,7 @@ for ff=1:cfg.k
         acc(ll) = acc(ll) + sum( clabel(CV.test(ff)) == double(sign(dval(:)))  );
     end
     
-    if cfg.plot
+    if param.plot
         c = c + corr(alpha);
     end
 end
@@ -66,14 +66,14 @@ acc = acc / N;
 [~, best_c_idx] = max(acc);
 
 % Diagnostic plots if requested
-if cfg.plot
+if param.plot
     
     % Plot cross-validated classification performance
     figure
-    semilogx(cfg.c, acc)
-    title([num2str(cfg.k) '-fold cross-validation performance'])
+    semilogx(param.c, acc)
+    title([num2str(param.k) '-fold cross-validation performance'])
     hold all
-    plot([cfg.c(best_c_idx), cfg.c(best_c_idx)],ylim,'r--'),plot(cfg.c(best_c_idx), acc(best_c_idx),'ro')
+    plot([param.c(best_c_idx), param.c(best_c_idx)],ylim,'r--'),plot(param.c(best_c_idx), acc(best_c_idx),'ro')
     xlabel('Lambda'),ylabel('Accuracy'),grid on
 
 end

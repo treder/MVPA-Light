@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 function [cf,Sw,lambda,mu1,mu2] = train_lda(param,X,clabel)
 % Trains a linear discriminant analysis with regularisation of the 
 % covariance matrix.
@@ -19,30 +18,6 @@ function [cf,Sw,lambda,mu1,mu2] = train_lda(param,X,clabel)
 %                          Sw is equal to the trace of the regularisation
 %                          term. 
 %                 'ridge': ridge-type regularisation using Sw + lambda*I
-=======
-function [cf,Sw,lambda,mu1,mu2] = train_lda(cfg,X,clabel)
-% Trains a linear discriminant analysis with (optional) 
-% regularisation of the covariance matrix.
-%
-% Usage:
-% cf = train_lda(cfg,X,clabel)
-%
-%Parameters:
-% X              - [samples x features] matrix of training samples
-% clabel         - [samples x 1] vector of class labels containing
-%                  1's (class 1) and 2's (class 2)
-%
-% cfg          - struct with hyperparameters:
-% .reg          - type of regularisation
-%                 'shrink': shrinkage regularisation using (1-lambda)*C +
-%                          lambda*nu*I, where nu = trace(C)/P and P =
-%                          number of features. nu assures that the trace of
-%                          C is equal to the trace of the regularisation
-%                          term. 
-%                 'ridge': ridge-type regularisation of C + lambda*I,
-%                          where C is the covariance matrix and I is the
-%                          identity matrix
->>>>>>> preprocess
 %                  (default 'shrink')
 % .lambda        - if reg='shrink', the regularisation parameter ranges 
 %                  from 0 to 1 (where 0=no regularisation and 1=maximum
@@ -68,11 +43,7 @@ function [cf,Sw,lambda,mu1,mu2] = train_lda(cfg,X,clabel)
 % w            - projection vector (normal to the hyperplane)
 % b            - bias term, setting the threshold
 %
-<<<<<<< HEAD
 % The following output arguments can be returned optionally:
-=======
-% The following fields can be returned optionally:
->>>>>>> preprocess
 % Sw           - covariance matrix (possibly regularised)
 % mu1,mu2      - class means
 % N            - total number of samples
@@ -95,17 +66,10 @@ Sw= N1 * cov(X(idx1,:),1) + N2 * cov(X(idx2,:),1);
 mu1= mean(X(idx1,:))';
 mu2= mean(X(idx2,:))';
 
-<<<<<<< HEAD
 lambda = param.lambda;
     
 %% Regularisation
 if strcmp(param.reg,'shrink')
-=======
-lambda = cfg.lambda;
-    
-%% Regularisation
-if strcmp(cfg.reg,'shrink')
->>>>>>> preprocess
     % SHRINKAGE REGULARISATION
     if ischar(lambda) && strcmp(lambda,'auto')
         % Here we use the Ledoit-Wolf method to estimate the regularisation
@@ -136,11 +100,7 @@ end
 w = Sw\(mu1-mu2);
 
 % Scale w such that the class means are projected onto +1 and -1
-<<<<<<< HEAD
 if param.scale
-=======
-if cfg.scale
->>>>>>> preprocess
     w = w / ((mu1-mu2)'*w) * 2;
 end
 
@@ -148,19 +108,11 @@ end
 b= -w'*(mu1+mu2)/2;
 
 %% Set up classifier struct
-<<<<<<< HEAD
 cf= struct('w',w,'b',b,'prob',param.prob,'lambda',lambda);
 
 if param.prob == 1
     % If probabilities are to be returned as decision values, we need to
     % determine the priors and also save the covariance matrix and the class
-=======
-cf= struct('w',w,'b',b,'prob',cfg.prob,'lambda',lambda);
-
-if cfg.prob == 1
-    % If probabilities are to be returned as decision values, we need to
-    % determine the priors and also save the covariance matrix and the cleass
->>>>>>> preprocess
     % means. This consumes extra time and memory so keep prob = 0 unless 
     % you need it.
     % The goal is to calculate posterior probabilities (probability for a 

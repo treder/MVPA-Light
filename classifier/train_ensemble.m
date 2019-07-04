@@ -169,11 +169,11 @@ if param.simplify
     cf.b = cf.b / param.nlearners;
 else
     % Initialise struct array of learners
-    cf.classifier(param.nlearners) = cf.train(param, X(random_samples(:,param.nlearners),random_features(:,param.nlearners)),clabel(random_samples(:,param.nlearners)));
+    cf.classifier(param.nlearners) = cf.train(param.learner_param, X(random_samples(:,param.nlearners),random_features(:,param.nlearners)),clabel(random_samples(:,param.nlearners)));
     
     % Train all the other learners
     for ll=1:param.nlearners-1
-        cf.classifier(ll) = cf.train(param, X(random_samples(:,ll),random_features(:,ll)),clabel(random_samples(:,ll)));
+        cf.classifier(ll) = cf.train(param.learner_param, X(random_samples(:,ll),random_features(:,ll)),clabel(random_samples(:,ll)));
     end
 end
 

@@ -131,7 +131,7 @@ for ii=1:size(changed_fields, 1)
 end
 
 if any(ismember(fn, {'balance', 'replace', 'normalise'}))
-    error('The fieldnames .balance / .replace  .normalise do not exist any more. Over/undersampling is now performed using the preprocessing options ''undersample'', ''oversample'', ''demean'', ''zscore''. See example7_preprocessing.m for example code.')
+    error('The fieldnames .balance / .replace / .normalise do not exist any more. Over/undersampling is now performed using the preprocessing options ''undersample'', ''oversample'', ''demean'', ''zscore''. See example7_preprocessing.m for example code.')
 end
 
 %% cfg: translate feedback specified as 'yes' or 'no' into boolean
