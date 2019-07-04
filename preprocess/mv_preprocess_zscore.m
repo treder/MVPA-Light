@@ -14,8 +14,8 @@ function [preprocess_param, X, clabel] = mv_preprocess_zscore(preprocess_param, 
 % preprocess_param - [struct] with preprocessing parameters
 %                    function (not required here since zscore has not parameters)
 % .dimension        - which dimension(s) of the data matrix will be used
-%                     for z-scoring. Typically it should be the dimension
-%                     representing the samples (default 1)
+%                     for z-scoring. Typically the dimension representing
+%                     the samples (default 1)
 %
 % Nested preprocessing: For train data, preprocess_param.mean and 
 % preprocess_param.standard_deviation are calculated
@@ -23,18 +23,11 @@ function [preprocess_param, X, clabel] = mv_preprocess_zscore(preprocess_param, 
 % obtained from the train data are used to scale the test data.
 
 if preprocess_param.is_train_set
-
-    % calculate mean and standard deviation on the (train) data
     preprocess_param.mean = mean(X, preprocess_param.dimension);
-    preprocess_param.standard_deviation = std(X, [], preprocess_param.dimension);
-    
+    preprocess_param.standard_deviation = std(X, [], preprocess_param.dimension);    
 end
 
-% Set array size for repmat
-rep = ones(1, ndims(X));
-rep(preprocess_param.dimension) = size(X, preprocess_param.dimension);
-
 % Remove mean from data and divide by standard deviation
-X = X - repmat(preprocess_param.mean, rep);
-X = X ./ repmat(preprocess_param.standard_deviation, rep);
+X = bsxfun(@minus, X, preprocess_param.mean);
+X = bsxfun(@(x,y) x ./ y, X, preprocess_param.standard_deviation);
 
