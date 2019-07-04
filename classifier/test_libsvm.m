@@ -6,8 +6,8 @@ function [clabel,dval] = test_libsvm(cf,X)
 % 
 %Parameters:
 % cf             - classifier. See train_libsvm
-% X              - [number of samples x number of features] matrix of
-%                  test samples
+% X              - [samples x features] data matrix  -OR-
+%                  [train samples x test samples] kernel matrix
 %Output:
 % clabel        - predicted class labels
 % dval          - decision values
@@ -15,8 +15,9 @@ function [clabel,dval] = test_libsvm(cf,X)
 if cf.kernel_type == 4
     % kernel has been precomputed - we only pass on the kernel matrix, not
     % the data
+    error('dealing with precomputed kernel matrix needs some attention here')
     nK = size(cf.kernel_matrix,1);
-    [clabel, ~, dval] = svmpredict(zeros(nK,1), [(1:nK)', cf.kernel_matrix], cf.model,'-q');
+    [clabel, ~, dval] = svmpredict(zeros(nK,1), [(1:nK)', X], cf.model,'-q');
 else
     % kernel is compute in svmtrain, pass on data
     [clabel, ~, dval] = svmpredict(zeros(size(X,1),1), X, cf.model,'-q');

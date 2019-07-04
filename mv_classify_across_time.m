@@ -7,7 +7,8 @@ function [perf, result, testlabel] = mv_classify_across_time(cfg, X, clabel)
 % [perf, res] = mv_classify_across_time(cfg,X,clabel)
 %
 %Parameters:
-% X              - [samples x features x time points] data matrix
+% X              - [samples x features x time points] data matrix -OR-
+%                  [samples x samples  x time points] kernel matrices
 % clabel         - [samples x 1] vector of class labels
 %
 % cfg          - struct with hyperparameters:
@@ -24,6 +25,7 @@ function [perf, result, testlabel] = mv_classify_across_time(cfg, X, clabel)
 % .time         - indices of time points (by default all time
 %                 points in X are used)
 % .feedback     - print feedback on the console (default 1)
+% .kernel_matrix - set to 1 if X represents a kernel matrix (default 0)
 %
 % CROSS-VALIDATION parameters:
 % .cv           - perform cross-validation, can be set to 'kfold',
@@ -38,10 +40,10 @@ function [perf, result, testlabel] = mv_classify_across_time(cfg, X, clabel)
 %
 % PREPROCESSING parameters:
 % .preprocess         - cell array containing the preprocessing pipeline. The
-%                       pipeline is applied in chronological order
+%                       pipeline is applied in chronological order (default {})
 % .preprocess_param   - cell array of preprocessing parameter structs for each
 %                       function. Length of preprocess_param must match length
-%                       of preprocess
+%                       of preprocess (default {})
 %
 % Returns:
 % perf          - [time x 1] vector of classifier performances. If
@@ -79,6 +81,9 @@ ntime = numel(cfg.time);
 % Number of samples in the classes
 n = arrayfun( @(c) sum(clabel==c) , 1:nclasses);
 
+% indicates whether the data represents kernel matrices
+is_kernel_matrix = isfield(cfg.param,'kernel') && strcmp(cfg.param.kernel,'precomputed');
+
 %% Get train and test functions
 train_fun = eval(['@train_' cfg.classifier]);
 test_fun = eval(['@test_' cfg.classifier]);
@@ -101,7 +106,7 @@ if ~strcmp(cfg.cv,'none')
             if cfg.feedback, fprintf('%d ',kk), end
 
             % Get train and test data
-            [Xtrain, trainlabel, Xtest, testlabel{rr,kk}] = mv_select_train_and_test_data(cfg, X, clabel, CV.training(kk), CV.test(kk));
+            [Xtrain, trainlabel, Xtest, testlabel{rr,kk}] = mv_select_train_and_test_data(X, clabel, CV.training(kk), CV.test(kk), is_kernel_matrix);
 
             if ~isempty(cfg.preprocess)
                 % Preprocess train data
