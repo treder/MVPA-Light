@@ -33,7 +33,7 @@ function cf = train_svm(param,X,clabel)
 %                  where "*" is the name of the kernel (e.g. rbf_kernel).
 %
 %                  If a precomputed kernel matrix is provided as X, set
-%                  cfg.kernel = 'precomputed'.
+%                  param.kernel = 'precomputed'.
 %
 % .prob          - if 1, decision values are returned as probabilities. If
 %                  0, the decision values are simply the distance to the
@@ -125,7 +125,7 @@ clabel = double(clabel(:));
 clabel(clabel == 2) = -1;
 
 %% Set kernel hyperparameter defaults
-if ischar(param.gamma) && strcmp(param.gamma,'auto') && ~strcmp(cfg.kernel,'precomputed')
+if ischar(param.gamma) && strcmp(param.gamma,'auto') && ~strcmp(param.kernel,'precomputed')
     param.gamma = 1/size(X,2);
 end
 
@@ -151,7 +151,7 @@ end
 %% Check if hyperparameters need to be tuned
 tune_kernel_parameters = {};
 
-if ~strcmp(cfg.kernel,'precomputed')
+if ~strcmp(param.kernel,'precomputed')
     tmp = {};
     switch(param.kernel)
         case 'rbf'
@@ -166,7 +166,7 @@ end
 
 %% Precompute and regularize kernel
 
-if ~strcmp(cfg.kernel,'precomputed') && isempty(tune_kernel_parameters)
+if ~strcmp(param.kernel,'precomputed') && isempty(tune_kernel_parameters)
     % If we do not need to tune hyperparameters, we can now compute the
     % kernel matrix
 

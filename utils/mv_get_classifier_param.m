@@ -138,7 +138,7 @@ switch(classifier)
         
     case 'libsvm'
         mv_set_default(param,'svm_type',0);
-        mv_set_default(param,'kernel_type',2);
+        mv_set_default(param,'kernel','rbf');
         mv_set_default(param,'degree',3);
         mv_set_default(param,'gamma',[]); % default is 1/numFeatures but since we don't know the features we set it to empty here [it's taken care of in LIBSVM then]
         mv_set_default(param,'coef0',0);

@@ -1,17 +1,17 @@
-function cf = train_liblinear(cfg,X,clabel)
+function cf = train_liblinear(param,X,clabel)
 % Trains a linear support vector machine or logistic regression using
 % LIBLINEAR. For installation details and further information see
 % https://github.com/cjlin1/liblinear and 
 % https://www.csie.ntu.edu.tw/~cjlin/liblinear/
 %
 % Usage:
-% cf = train_liblinear(cfg,X,clabel)
+% cf = train_liblinear(param,X,clabel)
 % 
 %Parameters:
-% X              - [instances x features] matrix of training instances
-% clabel         - [instances x 1] vector of class labels
+% X              - [samples x features] matrix of training samples
+% clabel         - [samples x 1] vector of class labels
 %
-% cfg          - struct with hyperparameters passed on to the train 
+% param          - struct with hyperparameters passed on to the train 
 %                  function of LIBLINEAR
 %
 % .type : set type of solver (default 1)
@@ -45,7 +45,7 @@ function cf = train_liblinear(cfg,X,clabel)
 % 	-s 12 and 13\n"
 % 		|f'(alpha)|_1 <= eps |f'(alpha0)|,
 % 		where f is the dual function (default 0.1)
-% .bias : if bias >= 0, instance x becomes [x; bias]; if < 0, no bias term added (default -1)
+% .bias : if bias >= 0, sample x becomes [x; bias]; if < 0, no bias term added (default -1)
 % .weight: weights adjust the parameter C of different classes (see README for details)
 % .cv: n-fold cross validation mode
 % .c : find parameter C (only for -s 0 and 2)
@@ -61,36 +61,36 @@ function cf = train_liblinear(cfg,X,clabel)
 % http://www.csie.ntu.edu.tw/~cjlin/liblinear
 %
 
-if ~any(cfg.type == [0,2]) && any(cfg.c==1)
+if ~any(param.type == [0,2]) && any(param.c==1)
     error('Warm-start parameter search only available for type 0 and type 2')
 end
 
 % convert params struct to LIBLINEAR style name-value pairs
 liblinear_options = sprintf('-s %d -p %d -B %d', ...
-    cfg.type, cfg.epsilon, cfg.bias);
+    param.type, param.epsilon, param.bias);
 
-if ~isempty(cfg.eps)
-    liblinear_options= [liblinear_options ' -e ' num2str(cfg.eps)];
+if ~isempty(param.eps)
+    liblinear_options= [liblinear_options ' -e ' num2str(param.eps)];
 end
-if ~isempty(cfg.weight)
-    liblinear_options= [liblinear_options ' -wi ' num2str(cfg.weight)];
+if ~isempty(param.weight)
+    liblinear_options= [liblinear_options ' -wi ' num2str(param.weight)];
 end
-if ~isempty(cfg.cv)
-    liblinear_options= [liblinear_options ' -v ' num2str(cfg.cv)];
+if ~isempty(param.cv)
+    liblinear_options= [liblinear_options ' -v ' num2str(param.cv)];
 end
-if cfg.quiet
+if param.quiet
     liblinear_options= [liblinear_options ' -q' ];
 end
 
-if ~isempty(cfg.c)
+if ~isempty(param.c)
     % First run cross-validation to find best cost parameter C
-    cfg.cost = train(double(clabel(:)), sparse(X), [liblinear_options ' -C']);
+    param.cost = train(double(clabel(:)), sparse(X), [liblinear_options ' -C']);
 end
 
-if ~isempty(cfg.cost)
+if ~isempty(param.cost)
     % Set cost parameter to either default or to the cross-validated
     % version
-    liblinear_options= [liblinear_options ' -c ' num2str(cfg.cost(1))];
+    liblinear_options= [liblinear_options ' -c ' num2str(param.cost(1))];
 end
 
 % Call LIBLINEAR training function

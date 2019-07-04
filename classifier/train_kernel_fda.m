@@ -33,9 +33,9 @@ function cf = train_kernel_fda(param,X,clabel)
 %                  Alternatively, a custom kernel can be provided if there
 %                  is a function called *_kernel is in the MATLAB path, 
 %                  where "*" is the name of the kernel (e.g. rbf_kernel).
-% .kernel_matrix - optional kernel matrix. If provided, the .kernel 
-%                  parameter is ignored. (Default [])
 %
+%                  If a precomputed kernel matrix is provided as X, set
+%                  param.kernel = 'precomputed'.
 %
 % Hyperparameters for specific kernels:
 %
