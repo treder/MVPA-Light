@@ -238,7 +238,7 @@ if strcmp(cfg.classifier, 'liblinear')
         try
             % this should work fine with liblinear but crash for Matlab's
             % train
-            train(0,0,'-q');
+            train(0,sparse(0),'-q');
         catch
             if numel(check)==1
                 % there is an train but it seems to be Matlab's one
