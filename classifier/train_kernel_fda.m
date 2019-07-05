@@ -7,7 +7,8 @@ function cf = train_kernel_fda(param,X,clabel)
 % cf = train_kernel_fda(param,X,clabel)
 %
 %Parameters:
-% X              - [samples x features] matrix of training samples
+% X              - [samples x features] matrix of training samples -OR-
+%                  [samples x samples] kernel matrix
 % clabel         - [samples x 1] vector of class labels
 %
 % param          - struct with hyperparameters:
@@ -37,7 +38,7 @@ function cf = train_kernel_fda(param,X,clabel)
 %                  If a precomputed kernel matrix is provided as X, set
 %                  param.kernel = 'precomputed'.
 %
-% Hyperparameters for specific kernels:
+% HYPERPARAMETERS for specific kernels:
 %
 % gamma         - (kernel: rbf, polynomial) controls the 'width' of the
 %                  kernel. If set to 'auto', gamma is set to 1/(nr of features)
@@ -57,7 +58,7 @@ function cf = train_kernel_fda(param,X,clabel)
 % Fisher discriminant analysis with kernels. Neural Networks for Signal
 % Processing. IX: 41–48.
 
-% (c) Matthias Treder 2018
+% (c) Matthias Treder
 
 % not currently used (since we regularize N):
 % kernel_regularization     - regularization parameter for the kernel matrix. The
@@ -65,36 +66,36 @@ function cf = train_kernel_fda(param,X,clabel)
 %                  is the identity matrix (default 10e-10)
 
 nclasses = max(clabel);
-[nsamples, nfeatures] = size(X);
+nsamples = size(X,1);
 
 % Number of samples per class
 l = arrayfun(@(c) sum(clabel == c), 1:nclasses);
 
+% indicates whether kernel matrix has been precomputed
+is_precomputed = strcmp(param.kernel,'precomputed');
+
 %% Set kernel hyperparameter defaults
-if ischar(param.gamma) && strcmp(param.gamma,'auto')
-    param.gamma = 1/ nfeatures;
+if ischar(param.gamma) && strcmp(param.gamma,'auto') && ~is_precomputed
+    param.gamma = 1/size(X,2);
 end
 
-%% Precompute kernel
-if isempty(param.kernel_matrix)
-    
-    has_kernel_matrix = 0;
-    
-    % Kernel function
-    kernelfun = eval(['@' param.kernel '_kernel']);
-    
-    % Compute kernel matrix
-    kernel_matrix = kernelfun(param, X);
-
+%% Compute kernel
+if is_precomputed
+    K = X;
 else
-    has_kernel_matrix = 1;
-    kernel_matrix = param.kernel_matrix;
+    kernelfun = eval(['@' param.kernel '_kernel']);     % Kernel function
+    K = kernelfun(param, X);                            % Compute kernel matrix
+
+%     % Regularize
+%     if param.regularize_kernel > 0
+%         K = K + param.regularize_kernel * eye(size(X,1));
+%     end
 end
 
 %% N: "Dual" of within-class scatter matrix
 N = zeros(nsamples);
 for c=1:nclasses
-    N = N + kernel_matrix(:,clabel==c) * (eye(l(c)) - 1/l(c)) * kernel_matrix(clabel==c,:);
+    N = N + K(:,clabel==c) * (eye(l(c)) - 1/l(c)) * K(clabel==c,:);
 end
 
 %% Regularization of N
@@ -112,7 +113,7 @@ else
     N = N + lambda * eye(nsamples);
 end
 
-%% "Dual" of between-classes scatter matrix
+%% M: "Dual" of between-classes scatter matrix
 
 % Get indices of samples for each class
 cidx = arrayfun( @(c) clabel==c, 1:nclasses,'Un',0);
@@ -120,11 +121,11 @@ cidx = arrayfun( @(c) clabel==c, 1:nclasses,'Un',0);
 % Get class-wise means
 Mj = zeros(nsamples,nclasses);
 for c=1:nclasses
-    Mj(:,c) = mean( kernel_matrix(:, cidx{c}), 2);
+    Mj(:,c) = mean( K(:, cidx{c}), 2);
 end
 
 % Sample mean
-Ms = mean(kernel_matrix,2);
+Ms = mean(K,2);
 
 % Calculate M
 M = zeros(nsamples);
@@ -141,13 +142,10 @@ cf.kernel       = param.kernel;
 cf.A            = A;
 cf.nclasses     = nclasses;
 
-cf.has_kernel_matrix = has_kernel_matrix;
-if ~has_kernel_matrix
+if ~is_precomputed
     cf.kernelfun    = kernelfun;
+    cf.Xtrain       = X;
 end
-
-% Save training data
-cf.Xtrain       = X;
 
 % Save projected class centroids
 cf.class_means  = Mj'*A;

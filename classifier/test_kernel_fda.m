@@ -11,10 +11,10 @@ function clabel = test_kernel_fda(cf,X)
 %Output:
 % clabel     - predicted class labels
 
-if isfield(cf,'kernel_matrix')
+if strcmp(cf.kernel,'precomputed')
     % If kernel matrix between test samples and training samples is provided
     % already, it does not need to be calculated
-    y = cf.kernel_matrix * cf.A;
+    y = X * cf.A;
 else
     
     % Evaluate kernel for test samples using the kernel function

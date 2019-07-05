@@ -25,22 +25,16 @@ function cf = train_libsvm(param,X,clabel)
 %
 %                  If a precomputed kernel matrix is provided as X, set
 %                  param.kernel = 'precomputed'.
+% .quiet         - if 1, the classifier is trained in quiet mode (no
+%                  outputs) (default 1)
 %
-% %libsvm_options:
+% further libsvm_options:
 % .svm_type : set type of SVM (default 0)
 % 	0 -- C-SVC		(multi-class classification)
 % 	1 -- nu-SVC		(multi-class classification)
 % 	2 -- one-class SVM
 % 	3 -- epsilon-SVR	(regression)
 % 	4 -- nu-SVR		(regression)
-% .kernel_type : set type of kernel function (default 2)
-% NOTE: MVPA-Light automatically translates the .kernel parameter into
-% .kernel_type, so it does not need to be specified
-% 	0 -- linear: u'*v
-% 	1 -- polynomial: (gamma*u'*v + coef0)^degree
-% 	2 -- radial basis function: exp(-gamma*|u-v|^2)
-% 	3 -- sigmoid: tanh(gamma*u'*v + coef0)
-% 	4 -- precomputed kernel (kernel values in training_instance_matrix)
 % .degree : set degree in kernel function (default 3)
 % .gamma : set gamma in kernel function (default 1/num_features)
 % .coef0 : set coef0 in kernel function (default 0)
@@ -52,11 +46,11 @@ function cf = train_libsvm(param,X,clabel)
 % .shrinking : whether to use the shrinking heuristics, 0 or 1 (default 1)
 % .probability_estimates : whether to train a SVC or SVR model for probability estimates, 0 or 1 (default 0)
 % .weight : set the parameter C of class i to weight*C, for C-SVC (default 1)
-% .cv : n-fold cross validation mode
-% .q : quiet mode (no outputs)
+% .cv : n-fold cross validation mode (default [] = no cross-validation)
 %
 %Output:
-% cf - struct specifying the classifier
+% cf - [struct] specifying the classifier. The result of svmtrain is stored
+%      in cf.model
 %
 % Reference:
 % Chih-Chung Chang and Chih-Jen Lin, LIBSVM : a library for support
@@ -92,7 +86,15 @@ end
 
 % Call LIBSVM training function
 cf = [];
-cf.model = svmtrain(double(clabel(:)), double(X), libsvm_options);
+
+if strcmp(param.kernel,'precomputed')
+    % for precomputed kernels we must provide the sample number as an
+    % additional column
+    cf.model = svmtrain(double(clabel(:)), [(1:size(X,1))' double(X)], libsvm_options);
+
+else
+    cf.model = svmtrain(double(clabel(:)), double(X), libsvm_options);
+end
 % note: if svmtrain crashes for you make sure that it is not being
 % overshadowed by at Matlab function of the same name ('svmtrain' was a
 % Matlab function that was later replaced by 'fitcsvm').
@@ -100,5 +102,4 @@ cf.model = svmtrain(double(clabel(:)), double(X), libsvm_options);
 % Save parameters needed for testing
 cf.kernel           = param.kernel;
 cf.kernel_type      = param.kernel_type;
-cf.kernel_matrix    = param.kernel_matrix;
 

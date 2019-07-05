@@ -14,10 +14,9 @@ function [clabel,dval] = test_libsvm(cf,X)
 
 if cf.kernel_type == 4
     % kernel has been precomputed - we only pass on the kernel matrix, not
-    % the data
-    error('dealing with precomputed kernel matrix needs some attention here')
-    nK = size(cf.kernel_matrix,1);
-    [clabel, ~, dval] = svmpredict(zeros(nK,1), [(1:nK)', X], cf.model,'-q');
+    % the data. We need to add a leading column of sample numbers
+    n_te = size(X,1);
+    [clabel, ~, dval] = svmpredict(zeros(n_te,1), [(1:n_te)', X], cf.model,'-q');
 else
     % kernel is compute in svmtrain, pass on data
     [clabel, ~, dval] = svmpredict(zeros(size(X,1),1), X, cf.model,'-q');
