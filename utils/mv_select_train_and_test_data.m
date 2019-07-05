@@ -3,10 +3,10 @@ function [Xtrain, trainlabel, Xtest, testlabel] = mv_select_train_and_test_data(
 %
 %Usage:
 %[Xtrain, trainlabel, Xtest, testlabel] = 
-%    mv_select_train_and_test_data(cfg, X, clabel, train_indices, test_indices)
+%    mv_select_train_and_test_data(X, clabel, train_indices, test_indices, is_kernel_matrix)
 %
 %Parameters:
-% X              - [samples x features x ... ] data matrix -OR-
+% X              - [samples x ... x ... ] data matrix -OR-
 %                  [samples x samples  x ... ] kernel matrix
 % clabel         - [samples x 1] vector of class labels
 % train_indices  - vector of indices of train samples
@@ -25,11 +25,11 @@ if ~is_kernel_matrix
     Xtest= X(test_indices,:,:,:,:,:,:,:,:,:,:,:,:,:,:);
     
 else
-    % kernel matrix is provided: we need a [train samples x train samples]
-    % kernel matrix for training and a [train samples x test samples]
-    % matrix for testing
-    Xtrain = X(train_indices,train_indices,:,:,:,:,:,:,:,:,:,:,:,:,:);
-    Xtest= X(train_indices,test_indices,:,:,:,:,:,:,:,:,:,:,:,:,:,:);
+    % kernel matrix is provided: we need to select a 
+    % [train samples x train samples] matrix for training and a 
+    % [test samples x train samples]  matrix for testing
+    Xtrain = X(train_indices, train_indices,:,:,:,:,:,:,:,:,:,:,:,:,:);
+    Xtest= X(test_indices, train_indices,:,:,:,:,:,:,:,:,:,:,:,:,:,:);
     
 %     % Non-standard case: sample dimension is not 1, or there is multiple
 %     % sample dimensions.
