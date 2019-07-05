@@ -51,7 +51,7 @@ switch(classifier)
         mv_set_default(param,'regularize_kernel',10e-10);
         mv_set_default(param,'plot',0);
         mv_set_default(param,'k',3);
-        mv_set_default(param,'tolerance',0.1);
+        mv_set_default(param,'tolerance',0.01);
         mv_set_default(param,'shrinkage_multiplier',1);
         mv_set_default(param,'q',[]);
         
@@ -152,10 +152,9 @@ switch(classifier)
         mv_set_default(param,'weight',1);
         mv_set_default(param,'cv',[]);
         mv_set_default(param,'quiet',1);
-        mv_set_default(param,'kernel_matrix',[]);
         
     case 'liblinear'
-        mv_set_default(param,'type',1);
+        mv_set_default(param,'type',0);
         mv_set_default(param,'cost',1);
         mv_set_default(param,'epsilon',0.1);
         mv_set_default(param,'eps',[]);  % use the defaults in LIBLINEAR
@@ -190,8 +189,7 @@ switch(classifier)
         mv_set_default(param,'reg','shrink');
         mv_set_default(param,'lambda',10e-5);
         mv_set_default(param,'kernel','linear');
-%         mv_set_default(param,'kernel_regularization',10e-10);
-        mv_set_default(param,'kernel_matrix',[]);
+%         mv_set_default(param,'regularize_kernel',10e-10);
         
         % parameters for specific kernels
         mv_set_default(param,'gamma','auto'); % RBF and polynomial kernel regularization parameter
