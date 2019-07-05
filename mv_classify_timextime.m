@@ -96,6 +96,9 @@ nTime2 = numel(cfg.time2);
 % Number of samples in the classes
 n = arrayfun( @(c) sum(clabel==c) , 1:nclasses);
 
+% indicates whether the data represents kernel matrices
+is_kernel_matrix = isfield(cfg.param,'kernel') && strcmp(cfg.param.kernel,'precomputed');
+
 %% Reduce data to selected time points
 X = X(:,:,cfg.time1);
 
@@ -129,7 +132,7 @@ if ~strcmp(cfg.cv,'none') && ~hasX2
             if cfg.feedback, fprintf('%d ',kk), end
 
             % Get train and test data
-            [Xtrain, trainlabel, Xtest, testlabel{rr,kk}] = mv_select_train_and_test_data(cfg, X, clabel, CV.training(kk), CV.test(kk));
+            [Xtrain, trainlabel, Xtest, testlabel{rr,kk}] = mv_select_train_and_test_data(X, clabel, CV.training(kk), CV.test(kk), is_kernel_matrix);
 
             if ~isempty(cfg.preprocess)
                 % Preprocess train data

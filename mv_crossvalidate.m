@@ -11,7 +11,8 @@ function [perf, result, testlabel] = mv_crossvalidate(cfg, X, clabel)
 % [perf, res] = mv_crossvalidate(cfg,X,clabel)
 %
 %Parameters:
-% X              - [samples x features] data matrix
+% X              - [samples x features] data matrix -OR-
+%                  [samples x samples] kernel matrix
 % clabel         - [samples x 1] vector of class labels
 %
 % cfg          - struct with hyperparameters:
@@ -70,6 +71,9 @@ mv_set_default(cfg,'preprocess_param',{});
 % Number of samples in the classes
 n = arrayfun( @(c) sum(clabel==c) , 1:nclasses);
 
+% indicates whether the data represents kernel matrices
+is_kernel_matrix = isfield(cfg.param,'kernel') && strcmp(cfg.param.kernel,'precomputed');
+
 %% Get train and test functions
 train_fun = eval(['@train_' cfg.classifier]);
 test_fun = eval(['@test_' cfg.classifier]);
@@ -93,7 +97,7 @@ if ~strcmp(cfg.cv,'none')
             if cfg.feedback, fprintf('%d ',kk), end
 
             % Get train and test data
-            [Xtrain, trainlabel, Xtest, testlabel{rr,kk}] = mv_select_train_and_test_data(cfg, X, clabel, CV.training(kk), CV.test(kk));
+            [Xtrain, trainlabel, Xtest, testlabel{rr,kk}] = mv_select_train_and_test_data(X, clabel, CV.training(kk), CV.test(kk), is_kernel_matrix);
 
             if ~isempty(cfg.preprocess)
                 % Preprocess train data

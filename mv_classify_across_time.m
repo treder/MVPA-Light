@@ -25,7 +25,6 @@ function [perf, result, testlabel] = mv_classify_across_time(cfg, X, clabel)
 % .time         - indices of time points (by default all time
 %                 points in X are used)
 % .feedback     - print feedback on the console (default 1)
-% .kernel_matrix - set to 1 if X represents a kernel matrix (default 0)
 %
 % CROSS-VALIDATION parameters:
 % .cv           - perform cross-validation, can be set to 'kfold',
@@ -70,7 +69,6 @@ mv_set_default(cfg,'metric','accuracy');
 mv_set_default(cfg,'time',1:size(X,3));
 mv_set_default(cfg,'feedback',1);
 
-mv_set_default(cfg,'sample_dimension',1);
 mv_set_default(cfg,'preprocess',{});
 mv_set_default(cfg,'preprocess_param',{});
 
