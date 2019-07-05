@@ -402,7 +402,11 @@ if isvector(perf_std), perf_std = perf_std(:); end
 
         % Must compare each class with each other class, therefore create
         % all combinations of pairs of class labels
-        comb = allcomb(1:nclasses,1:nclasses)';
+        comb = zeros(2, nclasses*2);
+        for jj=1:nclasses
+            comb(1,(jj-1)*nclasses+1:jj*nclasses) = 1:nclasses;
+            comb(2,(jj-1)*nclasses+1:jj*nclasses) = jj;
+        end
         
         % The confusion matrix is a nclasses x nclasses matrix where each
         % row corresponds to the true label and each column corresponds to 
