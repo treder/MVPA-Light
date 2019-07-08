@@ -72,7 +72,7 @@ mv_set_default(cfg,'preprocess_param',{});
 n = arrayfun( @(c) sum(clabel==c) , 1:nclasses);
 
 % indicates whether the data represents kernel matrices
-is_kernel_matrix = isfield(cfg.param,'kernel') && strcmp(cfg.param.kernel,'precomputed');
+mv_set_default(cfg,'is_kernel_matrix', isfield(cfg.param,'kernel') && strcmp(cfg.param.kernel,'precomputed'));
 
 %% Get train and test functions
 train_fun = eval(['@train_' cfg.classifier]);
@@ -97,7 +97,7 @@ if ~strcmp(cfg.cv,'none')
             if cfg.feedback, fprintf('%d ',kk), end
 
             % Get train and test data
-            [Xtrain, trainlabel, Xtest, testlabel{rr,kk}] = mv_select_train_and_test_data(X, clabel, CV.training(kk), CV.test(kk), is_kernel_matrix);
+            [Xtrain, trainlabel, Xtest, testlabel{rr,kk}] = mv_select_train_and_test_data(X, clabel, CV.training(kk), CV.test(kk), cfg.is_kernel_matrix);
 
             if ~isempty(cfg.preprocess)
                 % Preprocess train data
