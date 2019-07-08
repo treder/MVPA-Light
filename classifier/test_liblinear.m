@@ -14,7 +14,7 @@ function [clabel,dval] = test_liblinear(cf,X)
 % clabel        - predicted class labels
 % dval          - decision values
 
-[clabel, ~, dval] = predict(ones(size(X,1),1), sparse(X), cf, '-q');
+[clabel, ~, dval] = predict(ones(size(X,1),1), sparse(X), cf.model, '-q');
 
 % LIBLINEAR outputs 0 and 1, need to recode as 1 and 2
 clabel(clabel==0) = 2;
@@ -24,7 +24,7 @@ clabel(clabel==0) = 2;
 % and https://www.csie.ntu.edu.tw/~cjlin/liblinear/FAQ.html
 % To fix this behavior, we inspect cf.Labels: Label(1) denotes the positive 
 % class (should be 1)
-if cf.Label(1) ~= 1
+if cf.model.Label(1) ~= 1
     % 1 is negative class, hence we need to flip dvals
     dval = -dval;
 end

@@ -14,7 +14,7 @@ function cf = train_liblinear(param,X,clabel)
 % param          - struct with hyperparameters passed on to the train 
 %                  function of LIBLINEAR
 %
-% .type : set type of solver (default 1)
+% .type : set type of solver (default 0)
 %   for multi-class classification
 % 	 0 -- L2-regularized logistic regression (primal)
 % 	 1 -- L2-regularized L2-loss support vector classification (dual)
@@ -48,11 +48,12 @@ function cf = train_liblinear(param,X,clabel)
 % .bias : if bias >= 0, sample x becomes [x; bias]; if < 0, no bias term added (default -1)
 % .weight: weights adjust the parameter C of different classes (see README for details)
 % .cv: n-fold cross validation mode
-% .c : find parameter C (only for -s 0 and 2)
+% .c : find parameter C using grid search (only for -s 0 and 2)
 % .quiet : quiet mode (no outputs)
 %
 %Output:
-% cf - struct specifying the classifier
+% cf - [struct] specifying the classifier. The result of train is stored
+%      in cf.model
 %
 % Reference:
 % R.-E. Fan, K.-W. Chang, C.-J. Hsieh, X.-R. Wang, and C.-J. Lin.
@@ -94,4 +95,4 @@ if ~isempty(param.cost)
 end
 
 % Call LIBLINEAR training function
-cf = train(double(clabel(:)==1), sparse(X), liblinear_options);
+cf.model = train(double(clabel(:)==1), sparse(X), liblinear_options);
