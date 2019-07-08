@@ -19,7 +19,6 @@ end
 % Print number of fails
 if FAIL_COUNT > 0
     fprintf('\n[\bUnit testing failed (%d fails).]\b\n', FAIL_COUNT)
-
 else
-    fprintf('\nUnit testing succeeded (no fails).\n')
+    fprintf('\n[\bUnit testing succeeded (no fails).]\b\n')
 end

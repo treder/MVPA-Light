@@ -42,14 +42,14 @@ param.group_size = 1;
 print_unittest_result('[.group_size=1] clabel should have equal size', numel(clabel), numel(clabel2), tol);
 print_unittest_result('[.group_size=1] X should have equal number of elements', numel(X), numel(X2), tol);
 
-%% .sample_dimension should determine which dimension is averaged
-clabel = round(rand(N,1) * 2 + 1);
-X = randn(numel(clabel), numel(clabel), 1, numel(clabel));
-
-param.group_size       = 3;
-param.sample_dimension = [1,2,4];
-[~, X, clabel] = mv_preprocess_average_samples(param, X, clabel);
-
-print_unittest_result('[sample_dimension 1] length of X and clabel match', size(X,1), numel(clabel), tol);
-print_unittest_result('[sample_dimension 2] length of X and clabel match', size(X,2), numel(clabel), tol);
-print_unittest_result('[sample_dimension 4] length of X and clabel match', size(X,4), numel(clabel), tol);
+%% .sample_dimension should determine which dimension is averaged >> sample_dimension has been removed
+% clabel = round(rand(N,1) * 2 + 1);
+% X = randn(numel(clabel), numel(clabel), 1, numel(clabel));
+% 
+% param.group_size       = 3;
+% param.sample_dimension = [1,2,4];
+% [~, X, clabel] = mv_preprocess_average_samples(param, X, clabel);
+% 
+% print_unittest_result('[sample_dimension 1] length of X and clabel match', size(X,1), numel(clabel), tol);
+% print_unittest_result('[sample_dimension 2] length of X and clabel match', size(X,2), numel(clabel), tol);
+% print_unittest_result('[sample_dimension 4] length of X and clabel match', size(X,4), numel(clabel), tol);

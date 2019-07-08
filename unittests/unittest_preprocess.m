@@ -13,13 +13,15 @@ cfg = [];
 cfg.preprocess = {};
 cfg.preprocess_param = {};
 
+oversample_param = mv_get_preprocess_param('oversample');
+undersample_param = mv_get_preprocess_param('undersample');
 zscore_param = mv_get_preprocess_param('zscore');
 demean_param = mv_get_preprocess_param('demean');
 average_param = mv_get_preprocess_param('average_samples');
 
-%% .is_train_set should be 1 after calling mv_preprocess once
-cfg.preprocess = {@mv_preprocess_zscore @mv_preprocess_demean @mv_preprocess_average_samples};
-cfg.preprocess_param = {zscore_param, demean_param, average_param};
+%% try all preprocessing routeins + .is_train_set should be 1 after calling mv_preprocess once
+cfg.preprocess = {@mv_preprocess_oversample @mv_preprocess_undersample @mv_preprocess_zscore @mv_preprocess_demean @mv_preprocess_average_samples};
+cfg.preprocess_param = {oversample_param, undersample_param, zscore_param, demean_param, average_param};
 
 [cfg, X2, clabel2] = mv_preprocess(cfg, X, clabel);
 
