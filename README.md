@@ -125,7 +125,7 @@ There is usually no need to call [`mv_calculate_performance`](utils/mv_calculate
 
 #### Preprocessing <a name="preprocessing"></a>
 
-In some cases, preprocessing operations such as z-scoring, PCA, or Common Spatial Patterns (CSP) need to be performed as nested operations within a cross-validation analysis. In nested preprocessing, parameters are estimated on the train data and then applied to the test data. This avoids possible information flow from test set to train set. A prepocessing pipeline can be added by setting the `cfg.preprocess` and `cfg.preprocess_param` fields. Currently implemented preprocessing functions are collected in the [`preprocess subfolder`](preprocess/) subfolder. See code snippet below and [`examples/example7_preprocessing.m`](examples/example7_preprocessing.m) for examples.
+In some cases, preprocessing operations such as z-scoring, PCA, or Common Spatial Patterns (CSP) need to be performed as nested operations within a cross-validation analysis. In nested preprocessing, parameters are estimated on the train data and then applied to the test data. This avoids possible information flow from test set to train set. A prepocessing pipeline can be added by setting the `cfg.preprocess` and `cfg.preprocess_param` fields. Currently implemented preprocessing functions are collected in the [`preprocess subfolder`](preprocess/). See code snippet below and [`examples/example7_preprocessing.m`](examples/example7_preprocessing.m) for examples.
 
 
 ## Examples<a name="examples"></a>
