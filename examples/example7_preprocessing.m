@@ -136,16 +136,16 @@ legend(strcat({'Group size: '}, arrayfun(@(c) {num2str(c)}, group_sizes)), ...
 % Precompute a kernel matrix for every time point
 kparam = [];
 kparam.kernel = 'rbf';
-kparam.gamma  = 1/10;
-kparam.regularize_kernel = 10e-10;
+kparam.gamma  = 1/30;
+kparam.regularize_kernel = 10e-1;
 K = compute_kernel_matrix(kparam, dat2.trial);
 
 cfg = [];
-cfg.metric          = 'acc';
+cfg.metric          = 'auc';
 cfg.classifier      = 'svm'; % 'kernel_fda'
 cfg.param           = [];
 cfg.param.kernel    = 'precomputed'; % indicate that the kernel matrix is precomputed
-cfg.preprocess      = {'undersample' 'average_kernel'};
+cfg.preprocess      = 'average_kernel';
 
 group_sizes = [1, 5];
 res = cell(1, numel(group_sizes));
