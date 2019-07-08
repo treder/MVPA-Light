@@ -33,9 +33,12 @@ end
 
 switch(preprocess)
     
+    case 'average_kernel'
+        mv_set_default(preprocess_param,'is_train_set',1);
+        mv_set_default(preprocess_param,'group_size',5);
+    
     case 'average_samples'
         mv_set_default(preprocess_param,'is_train_set',1);
-        mv_set_default(preprocess_param,'sample_dimension',1);
         mv_set_default(preprocess_param,'group_size',5);
         
     case 'demean'
