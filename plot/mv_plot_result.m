@@ -164,6 +164,9 @@ if ~isfield(opt,'title')
     opt.title = metric;
 end
 
+% Plotting options 
+leg_opt = {'Interpreter','none'};
+
 %% Plot
 switch(fun)
     %% --------------- MV_CROSSVALIDATE ---------------
@@ -234,7 +237,7 @@ switch(fun)
             for ii=1:N
                 subplot(nr,nc,ii)
                 tmp = mv_plot_1D(x, squeeze(perf(:,:,ii)), squeeze(perf_std(:,:,ii)), opt_1D{:});
-                legend(tmp.plt, classes)
+                legend(tmp.plt, classes,leg_opt{:})
                 h.ax = [h.ax; tmp.ax];
                 h.plt = [h.plt; tmp.plt];
                 h.fig = gcf;
@@ -246,7 +249,7 @@ switch(fun)
             end
         else
             tmp = mv_plot_1D(x, perf, perf_std,opt_1D{:});
-            legend(opt.label)
+            legend(opt.label,leg_opt{:})
             h.ax = tmp.ax;
             h.plt = tmp.plt;
             h.fig = gcf;
