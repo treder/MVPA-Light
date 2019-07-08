@@ -36,12 +36,12 @@ clear all
 
 % First, we need to obtain the default preprocessing parameters
 % using the function mv_get_preprocess_param.
-preprocess_param = mv_get_preprocess_param('average_samples');
+pparam = mv_get_preprocess_param('average_samples');
 
 % Now we call the preprocessing function by hand. All preprocessing
 % functions take preprocess_param, X, and clabel as inputs, and they return
 % the same set of parameters.
-[preprocess_param, dat.trial_av, clabel_av] = mv_preprocess_average_samples(preprocess_param, dat.trial, clabel);
+[pparam, dat.trial_av, clabel_av] = mv_preprocess_average_samples(pparam, dat.trial, clabel);
 
 % we can now take the averaged data and new class labels forward and
 % perform classification
@@ -57,14 +57,14 @@ perf = mv_classify_across_time(cfg, dat.trial_av, clabel_av);
 % reasons. Furthermore, z-scoring brings all features on the same footing,
 % irrespective of the units they were measured in originally.
 
-preprocess_param = mv_get_preprocess_param('zscore');
-[~, dat.trial] = mv_preprocess_zscore(preprocess_param, dat.trial);
+pparam = mv_get_preprocess_param('zscore');
+[~, dat.trial] = mv_preprocess_zscore(pparam, dat.trial);
 
 
 %% Undersampling
-preprocess_param = mv_get_preprocess_param('undersample');
+pparam = mv_get_preprocess_param('undersample');
 fprintf('Number of samples in each class before undersampling: %d %d\n', arrayfun(@(c) sum(clabel==c), 1:max(clabel)))
-[~, dat.trial, clabel] = mv_preprocess_undersample(preprocess_param, dat.trial, clabel);
+[~, dat.trial, clabel] = mv_preprocess_undersample(pparam, dat.trial, clabel);
 fprintf('Number of samples in each class after undersampling: %d %d\n', arrayfun(@(c) sum(clabel==c), 1:max(clabel)))
 
 %% --- Nested preprocessing ---
@@ -105,9 +105,8 @@ cfg.metric          = 'acc';
 cfg.classifier      = 'lda';
 cfg.preprocess      = 'average_samples';
 
-res = cell(1,3);
-
 group_sizes = [1, 3, 8];
+res = cell(1, numel(group_sizes));
 
 for ii=1:3
     cfg.preprocess_param = [];
@@ -127,6 +126,42 @@ mv_plot_result(res, dat.time)
 legend(strcat({'Group size: '}, arrayfun(@(c) {num2str(c)}, group_sizes)), ...
     'location', 'southeast')
 
+%% Kernel averaging for non-linear classification problems
+% Kernel averaging is the generalization of sample averaging to non-linear
+% kernels. Instead of averaging in input space, the averages are formed in
+% Reproducing Kernel Hilbert Space (RKHS). This can be done efficiently
+% using the kernel trick. In order to use kernel averaging, the kernels
+% need to be precomputed and the kernel matrix provided as input.
+
+% Precompute a kernel matrix for every time point
+kparam = [];
+kparam.kernel = 'rbf';
+kparam.gamma  = 1/10;
+kparam.regularize_kernel = 10e-10;
+K = compute_kernel_matrix(kparam, dat2.trial);
+
+cfg = [];
+cfg.metric          = 'acc';
+cfg.classifier      = 'svm'; % 'kernel_fda'
+cfg.param           = [];
+cfg.param.kernel    = 'precomputed'; % indicate that the kernel matrix is precomputed
+cfg.preprocess      = {'undersample' 'average_kernel'};
+
+group_sizes = [1, 5];
+res = cell(1, numel(group_sizes));
+
+for ii=1:2
+    cfg.preprocess_param = [];
+    cfg.preprocess_param.group_size = group_sizes(ii);
+    
+    % kernel matrix K serves as input
+    [~, res{ii}] = mv_classify_across_time(cfg, K, clabel2);
+end
+
+mv_plot_result(res, dat.time)
+legend(strcat({'Group size: '}, arrayfun(@(c) {num2str(c)}, group_sizes)), ...
+    'location', 'southeast')
+
 %% Preprocessing pipelines: concatenating preprocessing steps
 % Multiple preprocessing steps can be concatenated by providing cell arrays
 % for .preprocess and .preproces_param
@@ -138,7 +173,7 @@ legend(strcat({'Group size: '}, arrayfun(@(c) {num2str(c)}, group_sizes)), ...
 cfg = [];
 cfg.metric          = 'acc';
 cfg.classifier      = 'lda';
-cfg.preprocess      = {'zscore' 'average_samples'};
+cfg.preprocess      = {'zscore' 'average_samples' 'demean'};
 
 [perf, res] = mv_classify_across_time(cfg, dat2.trial, clabel2);
 
@@ -146,7 +181,7 @@ cfg.preprocess      = {'zscore' 'average_samples'};
 % building on the previous example, let's now change the group size 
 % for the average_samples operation. It is the second operation in the
 % preprocessing pipeline, hence we need to make sure that .preprocess_param
-% is a cell array and that we set the group size in the second element.
+% is a cell array and that we set the group size in the second cell:
 
 cfg.preprocess_param = {};
 cfg.preprocess_param{2} = [];
@@ -157,7 +192,7 @@ cfg.preprocess_param{2}.group_size = 2;
 cfg.preprocess_param
 
 mv_plot_result({res, res2}, dat.time)
-legend(strcat({'Group size: '}, {'default' '2'}))
+legend(strcat({'Group size: '}, {'5' '2'}))
 
 %% Preprocessing pipelines with searchlight
 % The pipelines work the same way with all high-level functions. Here, we
