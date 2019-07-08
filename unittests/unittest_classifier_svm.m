@@ -41,31 +41,26 @@ print_unittest_result('classif spiral data (linear kernel)',1/nclasses, acc_line
 print_unittest_result('classif spiral data (RBF kernel)',1, acc_rbf, tol);
 
 %% providing kernel matrix directly VS calculating it from scratch should give same result
-gamma = 10e1;
 
 % Get classifier params
 param = mv_get_classifier_param('svm');
-param.gamma  = gamma;
-param.kernel = 'rbf';
+param.c      = 1;
+param.bias   = 0;
+param.gamma  = 1;
+param.tolerance = 10e-10;
+param.regularize_kernel = 0;
 
-% 1 -provide kernel matrix directly
-K = rbf_kernel(struct('gamma',gamma),X);
-param.kernel_matrix = K;
-cf_kernel = train_svm(param, X, clabel);
+% 1 -provide precomputed kernel matrix
+K = rbf_kernel(struct('gamma',1),X);
+param.kernel = 'precomputed';
+cf_kernel = train_svm(param, K, clabel);
 
 % 2 - do not provide kernel matrix (it is calculated in train_kernel_fda)
-param.kernel_matrix = [];
+param.kernel = 'rbf';
 cf_nokernel = train_svm(param, X, clabel);
 
-% Compare solutions - the discriminant
-% axes can be in different order, so we look whether there's (nclasses-1)
-% 1's in the cross-correlation matrix
-C = abs(cf_kernel.alpha' * cf_nokernel.alpha); % cross-correlation since all axes have norm = 1
-C = sort(C(:),'descend'); % find the largest correlation values
-d = all(C(1:nclasses-1) - 1 < 10e-4);
-
 % Are all returned values between 0 and 1?
-print_unittest_result('providing kernel matrix vs calculating it from scratch should be equal',1, d, tol);
+print_unittest_result('providing kernel matrix vs calculating it from scratch should be equal',0, norm(cf_kernel.alpha - cf_nokernel.alpha), tol);
 
 
 %% Check probabilities

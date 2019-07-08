@@ -32,7 +32,7 @@ cfg             = [];
 cfg.classifier  = 'kernel_fda';
 cfg.feedback    = 0;
 
-acc_linear = mv_crossvalidate(cfg,X_spiral,clabel_spiral);
+acc_linear = mv_crossvalidate(cfg, X_spiral, clabel_spiral);
 
 %%% RBF kernel: cross-validation
 cfg.param.kernel    = 'rbf';
@@ -54,15 +54,14 @@ gamma = 10e1;
 % Get classifier params
 param = mv_get_classifier_param('kernel_fda');
 param.gamma  = gamma;
-param.kernel = 'rbf';
 
-% 1 -provide kernel matrix directly
-K = rbf_kernel(struct('gamma',gamma),X_spiral);
-param.kernel_matrix = K;
-cf_kernel = train_kernel_fda(param, X_spiral, clabel_spiral);
+% 1 -provide precomputed kernel matrix
+K = rbf_kernel(struct('gamma',gamma), X_spiral);
+param.kernel = 'precomputed';
+cf_kernel = train_kernel_fda(param, K, clabel_spiral);
 
 % 2 - do not provide kernel matrix (it is calculated in train_kernel_fda)
-param.kernel_matrix = [];
+param.kernel = 'rbf';
 cf_nokernel = train_kernel_fda(param, X_spiral, clabel_spiral);
 
 % Compare solutions - the discriminant
