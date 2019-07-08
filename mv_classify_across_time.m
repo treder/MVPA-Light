@@ -7,9 +7,9 @@ function [perf, result, testlabel] = mv_classify_across_time(cfg, X, clabel)
 % [perf, res] = mv_classify_across_time(cfg,X,clabel)
 %
 %Parameters:
-% X              - [samples x features x time points] data matrix
-% clabel         - [samples x 1] vector of class labels containing
-%                  1's (class 1) and 2's (class 2)
+% X              - [samples x features x time points] data matrix -OR-
+%                  [samples x samples  x time points] kernel matrices
+% clabel         - [samples x 1] vector of class labels
 %
 % cfg          - struct with hyperparameters:
 % .classifier   - name of classifier, needs to have according train_ and test_
@@ -24,27 +24,7 @@ function [perf, result, testlabel] = mv_classify_across_time(cfg, X, clabel)
 %                 {'accuracy' 'auc'}
 % .time         - indices of time points (by default all time
 %                 points in X are used)
-% .balance      - for imbalanced data that does not have
-%                 the same number of instances in each class
-%                 'oversample'          oversamples the minority classes
-%                 'undersample'         undersamples the minority classes
-%                 such that all classes have the same number of samples
-%                 (default 'none'). Note that undersample occurs at the
-%                 level of the repeats, whereas oversample occurs within each
-%                 training set (for an explanation see mv_balance_classes).
-%                 You can also give an integer number for undersampling.
-%                 The samples will be reduced to this number. Note that
-%                 concurrent over/undersampling (oversampling of the
-%                 smaller class, undersampling of the larger class) is not
-%                 supported at the moment
-% .replace      - if balance is set to 'oversample' or 'undersample',
-%                 replace determines whether data is drawn with
-%                 replacement (default 1)
-% .normalise    - normalises the data across samples, for each time point 
-%                 and each feature separately, using 'zscore' or 'demean' 
-%                 (default 'zscore'). Set to 'none' or [] to avoid normalisation.
 % .feedback     - print feedback on the console (default 1)
-%
 %
 % CROSS-VALIDATION parameters:
 % .cv           - perform cross-validation, can be set to 'kfold',
@@ -56,6 +36,13 @@ function [perf, result, testlabel] = mv_classify_across_time(cfg, X, clabel)
 %                 in each fold (default 1)
 % .repeat       - number of times the cross-validation is repeated with new
 %                 randomly assigned folds (default 1)
+%
+% PREPROCESSING parameters:
+% .preprocess         - cell array containing the preprocessing pipeline. The
+%                       pipeline is applied in chronological order (default {})
+% .preprocess_param   - cell array of preprocessing parameter structs for each
+%                       function. Length of preprocess_param must match length
+%                       of preprocess (default {})
 %
 % Returns:
 % perf          - [time x 1] vector of classifier performances. If
@@ -74,20 +61,16 @@ function [perf, result, testlabel] = mv_classify_across_time(cfg, X, clabel)
 % (c) Matthias Treder
 
 X = double(X);
+if ndims(X)~= 3, error('X must be 3-dimensional'), end
 
 mv_set_default(cfg,'classifier','lda');
 mv_set_default(cfg,'param',[]);
 mv_set_default(cfg,'metric','accuracy');
-mv_set_default(cfg,'normalise','zscore');
 mv_set_default(cfg,'time',1:size(X,3));
 mv_set_default(cfg,'feedback',1);
 
-% Balance the data using oversampling or undersampling
-mv_set_default(cfg,'balance','none');
-mv_set_default(cfg,'replace',1);
-
-% Set non-specified classifier parameters to default
-cfg.param = mv_get_classifier_param(cfg.classifier, cfg.param);
+mv_set_default(cfg,'preprocess',{});
+mv_set_default(cfg,'preprocess_param',{});
 
 [cfg, clabel, nclasses, nmetrics] = mv_check_inputs(cfg, X, clabel);
 
@@ -96,18 +79,14 @@ ntime = numel(cfg.time);
 % Number of samples in the classes
 n = arrayfun( @(c) sum(clabel==c) , 1:nclasses);
 
+% indicates whether the data represents kernel matrices
+mv_set_default(cfg,'is_kernel_matrix', isfield(cfg.param,'kernel') && strcmp(cfg.param.kernel,'precomputed'));
+
 %% Get train and test functions
 train_fun = eval(['@train_' cfg.classifier]);
 test_fun = eval(['@test_' cfg.classifier]);
 
-%% Normalise
-X = mv_normalise(cfg.normalise, X);
-
 %% Classify across time
-
-% Save original data and class labels in case we do over-/undersampling
-X_orig = X;
-label_orig = clabel;
 
 if ~strcmp(cfg.cv,'none')
     if cfg.feedback, mv_print_classification_info(cfg,X,clabel); end
@@ -119,52 +98,32 @@ if ~strcmp(cfg.cv,'none')
     for rr=1:cfg.repeat                 % ---- CV repetitions ----
         if cfg.feedback, fprintf('Repetition #%d. Fold ',rr), end
 
-        % Undersample data if requested. We undersample the classes within the
-        % loop since it involves chance (samples are randomly over-/under-
-        % sampled) so randomly repeating the process reduces the variance
-        % of the result
-        if strcmp(cfg.balance,'undersample')
-            [X,clabel] = mv_balance_classes(X_orig,label_orig,cfg.balance,cfg.replace);
-        elseif isnumeric(cfg.balance)
-            if numel(unique(sign(n - cfg.balance)))==2
-                error(['cfg.balance [%d] is in between the sample sizes in the classes %s. ' ...
-                    'Concurrent over- and undersampling is currently not supported.'],cfg.balance,mat2str(n))
-            end
-            % Sometimes we want to undersample to a specific
-            % number (e.g. to match the number of samples across
-            % subconditions)
-            [X,clabel] = mv_balance_classes(X_orig,label_orig,cfg.balance,cfg.replace);
-        end
-
         CV = mv_get_crossvalidation_folds(cfg.cv, clabel, cfg.k, cfg.stratify, cfg.p);
 
         for kk=1:CV.NumTestSets                     % ---- CV folds ----
             if cfg.feedback, fprintf('%d ',kk), end
 
-            % Train data
-            Xtrain = X(CV.training(kk),:,:,:);
+            % Get train and test data
+            [Xtrain, trainlabel, Xtest, testlabel{rr,kk}] = mv_select_train_and_test_data(X, clabel, CV.training(kk), CV.test(kk), cfg.is_kernel_matrix);
 
-            % Get train and test class labels
-            trainlabel= clabel(CV.training(kk));
-            testlabel{rr,kk} = clabel(CV.test(kk));
-
-            % Oversample data if requested. It is important to oversample
-            % only the *training* set to prevent overfitting (see
-            % mv_balance_classes for an explanation)
-            if strcmp(cfg.balance,'oversample')
-                [Xtrain,trainlabel] = mv_balance_classes(Xtrain,trainlabel,cfg.balance,cfg.replace);
+            if ~isempty(cfg.preprocess)
+                % Preprocess train data
+                [tmp_cfg, Xtrain, trainlabel] = mv_preprocess(cfg, Xtrain, trainlabel);
+                
+                % Preprocess test data
+                [~, Xtest, testlabel{rr,kk}] = mv_preprocess(tmp_cfg, Xtest, testlabel{rr,kk});
             end
-
+            
             for tt=1:ntime           % ---- Train and test time ----
                 % Train and test data for time point tt
                 Xtrain_tt= squeeze(Xtrain(:,:,cfg.time(tt)));
-                Xtest= squeeze(X(CV.test(kk),:,cfg.time(tt)));
+                Xtest_tt= squeeze(Xtest(:,:,cfg.time(tt)));
 
                 % Train classifier
                 cf= train_fun(cfg.param, Xtrain_tt, trainlabel);
 
                 % Obtain classifier output (class labels, dvals or probabilities)
-                cf_output{rr,kk,tt} = mv_get_classifier_output(cfg.output_type, cf, test_fun, Xtest);
+                cf_output{rr,kk,tt} = mv_get_classifier_output(cfg.output_type, cf, test_fun, Xtest_tt);
                 
             end
         end
@@ -185,12 +144,15 @@ else
     end
 
     % Initialise classifier outputs
-    cf_output = nan(numel(clabel), ntime);
+    cf_output = cell(1, 1, ntime);
 
     % Rebalance data using under-/over-sampling if requested
     if ~strcmp(cfg.balance,'none')
         [X,clabel] = mv_balance_classes(X_orig,label_orig,cfg.balance,cfg.replace);
     end
+    
+    % Preprocess train/test data
+    [~, X, clabel] = mv_preprocess(cfg, X, clabel);
 
     for tt=1:ntime          % ---- Train and test time ----
         % Train and test data
@@ -200,7 +162,8 @@ else
         cf= train_fun(cfg.param, Xtraintest, clabel);
         
         % Obtain classifier output (class labels or dvals)
-        cf_output(:,tt) = mv_get_classifier_output(cfg.output_type, cf, test_fun, Xtraintest);
+        cf_output{1,1,tt} = mv_get_classifier_output(cfg.output_type, cf, test_fun, Xtraintest);
+%         cf_output(:,tt) = mv_get_classifier_output(cfg.output_type, cf, test_fun, Xtraintest);
     end
 
     testlabel = clabel;
@@ -226,16 +189,6 @@ if nmetrics==1
     perf_std = perf_std{1};
     cfg.metric = cfg.metric{1};
 end
-
-% if isempty(cfg.metric) || strcmp(cfg.metric{1},'none')
-%     if cfg.feedback, fprintf('No performance metric requested, returning raw classifier output.\n'), end
-%     perf = cf_output;
-%     perf_std = [];
-% else
-%     if cfg.feedback, fprintf('Calculating classifier performance... '), end
-%     [perf, perf_std] = mv_calculate_performance(cfg.metric, cfg.output_type, cf_output, testlabel, avdim);
-%     if cfg.feedback, fprintf('finished\n'), end
-% end
 
 result = [];
 if nargout>1

@@ -1,4 +1,4 @@
-function pattern = mv_stat_activation_pattern(cf, X, clabel)
+function [pattern, C] = mv_stat_activation_pattern(cf, X, clabel)
 % Calculates the activation pattern (aka spatial pattern) for linear
 % classifiers (lda, logreg, svm with linear kernel). 
 %
@@ -13,7 +13,7 @@ function pattern = mv_stat_activation_pattern(cf, X, clabel)
 % spatial patterns and spatial filters.
 %
 % Usage:
-% stat = mv_statistics(cfg, result)
+% stat = mv_stat_activation_pattern(cf, X, clabel)
 %
 %Parameters:
 % cf             - struct describing the trained classifier. Must contain
@@ -23,14 +23,14 @@ function pattern = mv_stat_activation_pattern(cf, X, clabel)
 % clabel         - [samples x 1] vector of corresponding class labels 
 %
 % References:
-% Blankertz, B., Lemm, S., Treder, M., Haufe, S., & Müller, K. R. (2011). 
+% Blankertz, B., Lemm, S., Treder, M., Haufe, S., & M�ller, K. R. (2011). 
 % Single-trial analysis and classification of ERP components - A tutorial. 
-% NeuroImage, 56(2), 814–825.
+% NeuroImage, 56(2), 814�825.
 %
-% Haufe, S., Meinecke, F., Görgen, K., Dähne, S., Haynes, J. D., 
-% Blankertz, B., & Bießmann, F. (2014). On the interpretation of weight 
+% Haufe, S., Meinecke, F., G�rgen, K., D�hne, S., Haynes, J. D., 
+% Blankertz, B., & Bie�mann, F. (2014). On the interpretation of weight 
 % vectors of linear models in multivariate neuroimaging. NeuroImage, 87, 
-% 96–110. https://doi.org/10.1016/j.neuroimage.2013.10.067
+% 96�110. https://doi.org/10.1016/j.neuroimage.2013.10.067
 
 % (c) Matthias Treder 2018
 
@@ -39,28 +39,20 @@ if ~ismatrix(X)
 end
 
 [N,P] = size(X);
-
-% mv_check_clabel(clabel);
 nclasses = max(clabel);
 
-idx = cell(nclasses,1);
-N_per_class = zeros(nclasses,1);
-
-% Find:
-% - indices for samples of each class  [idx]
-% - number of samples per class [N_per_class]
-for cc=1:nclasses
-    idx{cc}= (clabel==cc);  % logical indices for samples in class cc
-    N_per_class(cc) = sum(idx{cc});
-end
+% Indices and number of samples in the classes
+idx = arrayfun( @(c) find(clabel==c) , 1:nclasses,'Un',0);
+n = cellfun(@numel, idx);
 
 % Pool weighted covariance matrix from each class
 C = zeros(P);
 for cc=1:nclasses
-    C = C + cov(X(idx{cc},:),1) * N_per_class(cc);
+    C = C + cov(X(idx{cc},:),1) * n(cc);
 end
+
 C = C / N;
 
 % Activation pattern
-pattern = C * cf.W;
+pattern = C * cf.w;
 

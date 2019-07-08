@@ -26,20 +26,20 @@ function h = mv_plot_result(result, varargin)
 % next:
 %
 % MV_CROSSVALIDATE:
-% Usage: h = mv_plot_result(result)
+% Usage: h = mv_plot_result(result,...)
 %
 % Plots the classification result as a barplot. Plots multiple bars and the
 % mean, if multiple result are provided. 
 %
 % MV_CLASSIFY_ACROSS_TIME:
-% Usage: h = mv_plot_result(result,x)
+% Usage: h = mv_plot_result(result,x,...)
 %
 % Plots the classification result as a line plot. Plots multiple lines and 
 % a mean, if multiple result are provided.  Optional in x is the values for
 % the x axis (eg time in sec).
 %
 % MV_CLASSIFY_TIMExTIME:
-% h = mv_plot_result(result,x,y)
+% h = mv_plot_result(result,x,y,...)
 %
 % Plots the classification result as an image. Plots multiple images and a
 % mean, if multiple result are provided.
@@ -47,7 +47,7 @@ function h = mv_plot_result(result, varargin)
 % specify the values for the x and y axes (eg time in sec).
 %
 % MV_SEARCHLIGHT:
-% h = mv_plot_result(result,chanlocs)
+% h = mv_plot_result(result,chanlocs,...)
 %
 % Plots classification performance for each feature. 
 % If the features correspond to EEG/MEG channels and channel locations are
@@ -164,6 +164,9 @@ if ~isfield(opt,'title')
     opt.title = metric;
 end
 
+% Plotting options 
+leg_opt = {'Interpreter','none'};
+
 %% Plot
 switch(fun)
     %% --------------- MV_CROSSVALIDATE ---------------
@@ -210,14 +213,16 @@ switch(fun)
     %% --------------- MV_CLASSIFY_ACROSS_TIME ---------------
     case 'mv_classify_across_time'
         
-        if nargin > 1,  x = varargin{1};
-        else,           x = 1:length(result{1}.perf);
+        if (nargin > 1) && ~ischar(varargin{1})
+            x = varargin{1};
+        else
+            x = 1:length(result{1}.perf);
         end
         
         if opt.new_figure, figure; end
-        if any(strcmp(metric,{'auc', 'acc','accuracy'}))
+        if any(strcmp(metric,{'auc', 'acc','accuracy','precision','recall','f1'}))
             hor = 1 / nclasses;
-        elseif any(strcmp(metric,{'dval', 'tval','precision','recall','f1'}))
+        elseif any(strcmp(metric,{'dval', 'tval'}))
             hor = 0;
         end
             
@@ -232,7 +237,7 @@ switch(fun)
             for ii=1:N
                 subplot(nr,nc,ii)
                 tmp = mv_plot_1D(x, squeeze(perf(:,:,ii)), squeeze(perf_std(:,:,ii)), opt_1D{:});
-                legend(tmp.plt, classes)
+                legend(tmp.plt, classes,leg_opt{:})
                 h.ax = [h.ax; tmp.ax];
                 h.plt = [h.plt; tmp.plt];
                 h.fig = gcf;
@@ -244,7 +249,7 @@ switch(fun)
             end
         else
             tmp = mv_plot_1D(x, perf, perf_std,opt_1D{:});
-            legend(opt.label)
+            legend(opt.label,leg_opt{:})
             h.ax = tmp.ax;
             h.plt = tmp.plt;
             h.fig = gcf;
@@ -261,11 +266,15 @@ switch(fun)
         
         % settings for 2d plot
         cfg= [];
-        if isfield(opt,'x'), cfg.x = opt.x; end
-        if isfield(opt,'y'), cfg.y = opt.y; end
-        if any(strcmp(metric,{'auc', 'acc','accuracy'}))
+        if (nargin > 1) && ~ischar(varargin{1}), cfg.x = varargin{1};
+        else, cfg.x = 1:size(result{1}.perf,1);
+        end
+        if (nargin > 2) && ~ischar(varargin{2}), cfg.y = varargin{2};
+        else, cfg.y = 1:size(result{1}.perf,2);
+        end
+        if any(strcmp(metric,{'auc', 'acc','accuracy','f1'}))
             cfg.climzero = 1 / nclasses;
-        elseif any(strcmp(metric,{'dval', 'tval','predicion','recall','f1'}))
+        elseif any(strcmp(metric,{'dval', 'tval','precision','recall'}))
             cfg.climzero = 0;
         end
         
@@ -303,7 +312,7 @@ switch(fun)
             
             if any(strcmp(metric,{'auc', 'acc','accuracy'}))
                 cfg.climzero = 0.5;
-            elseif any(strcmp(metric,{'dval', 'tval','predicion','recall','f1'}))
+            elseif any(strcmp(metric,{'dval', 'tval','precision','recall','f1'}))
                 cfg.climzero = 0;
             end
 

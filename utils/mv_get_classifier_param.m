@@ -6,14 +6,14 @@ function param = mv_get_classifier_param(classifier,param)
 % param = mv_get_classifier_param(classifier, <param>)
 % 
 %Parameters:
-% classifier     - string specifying the classifier (e.g. 'lda')
-% param          - [optional] struct containing hyperparameters. The struct
+% classifier     - [string] specifying the classifier (e.g. 'lda')
+% param          - [struct] (optional) containing hyperparameters. The struct
 %                  is filled up with default values for non-existing
 %                  fields, but existing values are not overwritten. If
 %                  param is not provided, all values are set to default
 %
 %Output:
-% param  - struct with default parameter values
+% param  - [struct] with default parameters
 
 if nargin < 2 || ~isstruct(param)
     param = struct();
@@ -40,39 +40,26 @@ switch(classifier)
         mv_set_default(param,'tolerance',1e-6);
         mv_set_default(param,'k',5);
         mv_set_default(param,'plot',0);
-        mv_set_default(param,'predict_regularisation_path',1);
+        mv_set_default(param,'predict_regularization_path',1);
         mv_set_default(param,'polyorder',3);
         
     case 'svm'
         mv_set_default(param,'bias','auto');
         mv_set_default(param,'c','auto');
         mv_set_default(param,'kernel','linear'); % 'poly' 'rbf'
-        mv_set_default(param,'kernel_matrix',[]); % 'poly' 'rbf'
         mv_set_default(param,'prob',0);
-        mv_set_default(param,'regularise_kernel',10e-10);
+        mv_set_default(param,'regularize_kernel',10e-10);
         mv_set_default(param,'plot',0);
         mv_set_default(param,'k',3);
-        mv_set_default(param,'tolerance',0.1);
+        mv_set_default(param,'tolerance',0.01);
         mv_set_default(param,'shrinkage_multiplier',1);
         mv_set_default(param,'q',[]);
         
         % parameters for specific kernels
-        mv_set_default(param,'gamma','auto'); % RBF and polynomial kernel regularisation parameter
+        mv_set_default(param,'gamma','auto'); % RBF and polynomial kernel regularization parameter
         mv_set_default(param,'coef0',1);    % polynomial kernel
         mv_set_default(param,'degree',2);   % degree of polynomial kernel
-        
-        
-    case 'svm_sgd'
-        mv_set_default(param,'bias',1);
-        mv_set_default(param,'lambda','auto');
-        mv_set_default(param,'kernel','linear');
-        mv_set_default(param,'n_epochs','auto');
-        mv_set_default(param,'plot',0);
-        mv_set_default(param,'k',5);
-        
-        % parameters for specific kernels
-        mv_set_default(param,'gamma',1); % RBF regularisation parameter
-        
+
     case 'linear_svm'
         mv_set_default(param,'zscore',0);
         mv_set_default(param,'bias',1);
@@ -81,7 +68,7 @@ switch(classifier)
         mv_set_default(param,'tolerance',1e-8);
         mv_set_default(param,'k',5);
         mv_set_default(param,'plot',0);
-        mv_set_default(param,'predict_regularisation_path',1);
+        mv_set_default(param,'predict_regularization_path',1);
         mv_set_default(param,'polyorder',2);
 
         mv_set_default(param,'z1',0.5);
@@ -151,7 +138,7 @@ switch(classifier)
         
     case 'libsvm'
         mv_set_default(param,'svm_type',0);
-        mv_set_default(param,'kernel_type',2);
+        mv_set_default(param,'kernel','rbf');
         mv_set_default(param,'degree',3);
         mv_set_default(param,'gamma',[]); % default is 1/numFeatures but since we don't know the features we set it to empty here [it's taken care of in LIBSVM then]
         mv_set_default(param,'coef0',0);
@@ -165,10 +152,9 @@ switch(classifier)
         mv_set_default(param,'weight',1);
         mv_set_default(param,'cv',[]);
         mv_set_default(param,'quiet',1);
-        mv_set_default(param,'kernel_matrix',[]);
         
     case 'liblinear'
-        mv_set_default(param,'type',1);
+        mv_set_default(param,'type',0);
         mv_set_default(param,'cost',1);
         mv_set_default(param,'epsilon',0.1);
         mv_set_default(param,'eps',[]);  % use the defaults in LIBLINEAR
@@ -186,7 +172,7 @@ switch(classifier)
 
     case 'ensemble'
         mv_set_default(param,'learner','lda');
-        mv_set_default(param,'learner_param',[]);
+        mv_set_default(param,'learner_param',mv_get_classifier_param(param.learner));
         mv_set_default(param,'nsamples', 0.5);
         mv_set_default(param,'nfeatures', 0.2);
         mv_set_default(param,'nlearners', 500);
@@ -203,11 +189,10 @@ switch(classifier)
         mv_set_default(param,'reg','shrink');
         mv_set_default(param,'lambda',10e-5);
         mv_set_default(param,'kernel','linear');
-%         mv_set_default(param,'kernel_regularisation',10e-10);
-        mv_set_default(param,'kernel_matrix',[]);
+%         mv_set_default(param,'regularize_kernel',10e-10);
         
         % parameters for specific kernels
-        mv_set_default(param,'gamma','auto'); % RBF and polynomial kernel regularisation parameter
+        mv_set_default(param,'gamma','auto'); % RBF and polynomial kernel regularization parameter
         mv_set_default(param,'coef0',1);    % polynomial kernel
         mv_set_default(param,'degree',3);   % degree of polynomial kernel
      

@@ -7,23 +7,24 @@ function cf = train_kernel_fda(param,X,clabel)
 % cf = train_kernel_fda(param,X,clabel)
 %
 %Parameters:
-% X              - [samples x features] matrix of training samples
+% X              - [samples x features] matrix of training samples -OR-
+%                  [samples x samples] kernel matrix
 % clabel         - [samples x 1] vector of class labels
 %
 % param          - struct with hyperparameters:
-% .reg          - type of regularisation
-%                 'shrink': shrinkage regularisation using (1-lambda)*N +
+% .reg          - type of regularization
+%                 'shrink': shrinkage regularization using (1-lambda)*N +
 %                          lambda*nu*I, where nu = trace(N)/P and P =
 %                          number of samples. nu assures that the trace of
-%                          N is equal to the trace of the regularisation
+%                          N is equal to the trace of the regularization
 %                          term. 
-%                 'ridge': ridge-type regularisation of N + lambda*I,
+%                 'ridge': ridge-type regularization of N + lambda*I,
 %                          where N is the dual within-class scatter matrix 
 %                          and I is the identity matrix
 %                  (default 'shrink')
-% .lambda        - if reg='shrink', the regularisation parameter ranges 
-%                  from 0 to 1 (where 0=no regularisation and 1=maximum
-%                  regularisation). (default 10^-5)
+% .lambda        - if reg='shrink', the regularization parameter ranges 
+%                  from 0 to 1 (where 0=no regularization and 1=maximum
+%                  regularization). (default 10^-5)
 % .kernel        - kernel function:
 %                  'linear'     - linear kernel ker(x,y) = x' y
 %                  'rbf'        - radial basis function or Gaussian kernel
@@ -33,11 +34,11 @@ function cf = train_kernel_fda(param,X,clabel)
 %                  Alternatively, a custom kernel can be provided if there
 %                  is a function called *_kernel is in the MATLAB path, 
 %                  where "*" is the name of the kernel (e.g. rbf_kernel).
-% .kernel_matrix - optional kernel matrix. If provided, the .kernel 
-%                  parameter is ignored. (Default [])
 %
+%                  If a precomputed kernel matrix is provided as X, set
+%                  param.kernel = 'precomputed'.
 %
-% Hyperparameters for specific kernels:
+% HYPERPARAMETERS for specific kernels:
 %
 % gamma         - (kernel: rbf, polynomial) controls the 'width' of the
 %                  kernel. If set to 'auto', gamma is set to 1/(nr of features)
@@ -57,62 +58,62 @@ function cf = train_kernel_fda(param,X,clabel)
 % Fisher discriminant analysis with kernels. Neural Networks for Signal
 % Processing. IX: 41–48.
 
-% (c) Matthias Treder 2018
+% (c) Matthias Treder
 
-% not currently used (since we regularise N):
-% kernel_regularisation     - regularisation parameter for the kernel matrix. The
-%                  kernel matrix K is replaced by K + kernel_regularisation*I where I
+% not currently used (since we regularize N):
+% kernel_regularization     - regularization parameter for the kernel matrix. The
+%                  kernel matrix K is replaced by K + kernel_regularization*I where I
 %                  is the identity matrix (default 10e-10)
 
 nclasses = max(clabel);
-[nsamples, nfeatures] = size(X);
+nsamples = size(X,1);
 
 % Number of samples per class
 l = arrayfun(@(c) sum(clabel == c), 1:nclasses);
 
+% indicates whether kernel matrix has been precomputed
+is_precomputed = strcmp(param.kernel,'precomputed');
+
 %% Set kernel hyperparameter defaults
-if ischar(param.gamma) && strcmp(param.gamma,'auto')
-    param.gamma = 1/ nfeatures;
+if ischar(param.gamma) && strcmp(param.gamma,'auto') && ~is_precomputed
+    param.gamma = 1/size(X,2);
 end
 
-%% Precompute kernel
-if isempty(param.kernel_matrix)
-    
-    has_kernel_matrix = 0;
-    
-    % Kernel function
-    kernelfun = eval(['@' param.kernel '_kernel']);
-    
-    % Compute kernel matrix
-    kernel_matrix = kernelfun(param, X);
-
+%% Compute kernel
+if is_precomputed
+    K = X;
 else
-    has_kernel_matrix = 1;
-    kernel_matrix = param.kernel_matrix;
+    kernelfun = eval(['@' param.kernel '_kernel']);     % Kernel function
+    K = kernelfun(param, X);                            % Compute kernel matrix
+
+%     % Regularize
+%     if param.regularize_kernel > 0
+%         K = K + param.regularize_kernel * eye(size(X,1));
+%     end
 end
 
 %% N: "Dual" of within-class scatter matrix
 N = zeros(nsamples);
 for c=1:nclasses
-    N = N + kernel_matrix(:,clabel==c) * (eye(l(c)) - 1/l(c)) * kernel_matrix(clabel==c,:);
+    N = N + K(:,clabel==c) * (eye(l(c)) - 1/l(c)) * K(clabel==c,:);
 end
 
-%% Regularisation of N
+%% Regularization of N
 lambda = param.lambda;
 
 if strcmp(param.reg,'shrink')
-    % SHRINKAGE REGULARISATION
-    % We write the regularised scatter matrix as a convex combination of
+    % SHRINKAGE REGULARIZATION
+    % We write the regularized scatter matrix as a convex combination of
     % the N and an identity matrix scaled to have the same trace as N
     N = (1-lambda)* N + lambda * eye(nsamples) * trace(N)/nsamples;
 
 else
-    % RIDGE REGULARISATION
-    % The ridge lambda must be provided directly as a number
+    % RIDGE REGULARIZATION
+    % The ridge lambda must be provided directly as a positive number
     N = N + lambda * eye(nsamples);
 end
 
-%% "Dual" of between-classes scatter matrix
+%% M: "Dual" of between-classes scatter matrix
 
 % Get indices of samples for each class
 cidx = arrayfun( @(c) clabel==c, 1:nclasses,'Un',0);
@@ -120,11 +121,11 @@ cidx = arrayfun( @(c) clabel==c, 1:nclasses,'Un',0);
 % Get class-wise means
 Mj = zeros(nsamples,nclasses);
 for c=1:nclasses
-    Mj(:,c) = mean( kernel_matrix(:, cidx{c}), 2);
+    Mj(:,c) = mean( K(:, cidx{c}), 2);
 end
 
 % Sample mean
-Ms = mean(kernel_matrix,2);
+Ms = mean(K,2);
 
 % Calculate M
 M = zeros(nsamples);
@@ -141,13 +142,10 @@ cf.kernel       = param.kernel;
 cf.A            = A;
 cf.nclasses     = nclasses;
 
-cf.has_kernel_matrix = has_kernel_matrix;
-if ~has_kernel_matrix
+if ~is_precomputed
     cf.kernelfun    = kernelfun;
+    cf.Xtrain       = X;
 end
-
-% Save training data
-cf.Xtrain       = X;
 
 % Save projected class centroids
 cf.class_means  = Mj'*A;

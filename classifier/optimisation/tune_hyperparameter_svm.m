@@ -1,79 +1,133 @@
-% Perform hyperparameter tuning for SVM. To this end, a nested
-% cross-validation is performed by splitting the training data into folds.
+% Hyperparameter tuning for SVM using nested cross-validation.
 %
-% Accuracy is calculated for each possible hyperparameter value; the value
-% leading to the best overall performance is then selected.
+% Accuracy is calculated for each possible hyperparameter values; the
+% values leading to the best overall performance are selected.
 
 % Init variables
-CV = cvpartition(N,'KFold',cfg.k);
-acc = zeros(numel(cfg.c),1);
+CV = cvpartition(N,'KFold', param.k);
 
-if cfg.plot
-    c = zeros(numel(cfg.c));
+if param.plot
+    c = zeros(numel(param.c));
 end
 
-LABEL = (clabel * clabel');
+if isempty(tune_kernel_parameters)
+    acc = zeros(numel(param.c), 1);
+    kernel_comb = 1;
+    ix = {};
+else
+    acc = zeros([cellfun(@numel, tune_kernel_parameters(2:2:end)), numel(param.c)]);
+    LABEL = (clabel * clabel');
+    
+    % Create search grid for kernel parameters
+    kernel_comb = allcomb(tune_kernel_parameters{2:2:end});
+    ixcomb = cellfun(@(x) 1:numel(x), tune_kernel_parameters(2:2:end), 'Un', 0);
+    kernel_comb_ix = allcomb(ixcomb{:});
+end
 
 % --- Start cross-validation loop ---
-for ff=1:cfg.k
-    
-    %%% TODO: consider adding tuning loop for other hyperparameters like gamma
-    
-    %%% TODO: consider implementing full regularisation path according to 
-    %%% Hastie et al
-    
-    train_idx = find(CV.training(ff));
-    test_idx = find(CV.test(ff));
-    
-    % Training data
-    Xtrain = X(train_idx,:);
-    Xtest= X(test_idx,:);
-    trainlabel = clabel(train_idx);
-    
-    % Kernel submatrix for training data
-    Qtrain = Q_cl(train_idx,train_idx);
-    ONEtrain = ones(CV.TrainSize(ff),1);
-    
-    % --- Loop through c's ---
-    for ll=1:numel(cfg.c)
-        
-        % Solve the dual problem and obtain alpha
-        [alpha,iter] = DualCoordinateDescent(Qtrain, cfg.c(ll), ONEtrain, cfg.tolerance, cfg.shrinkage_multiplier);
-        
-        support_vector_indices = find(alpha>0);
-        
-        % For convenience we save the product [alpha * class label] for the support vectors
-        alpha_y = alpha(support_vector_indices) .* trainlabel(support_vector_indices);
-        
-        % Exploit the fact that we already pre-calculated the kernel matrix
-        % for all samples. Simply extract the values corresponding to
-        % the test samples and the support vectors in the training set.
-        dval = kernel_matrix(test_idx, train_idx(support_vector_indices)) * alpha_y;
 
-        % accuracy
-        acc(ll) = acc(ll) + sum( clabel(CV.test(ff)) == double(sign(dval(:)))  );
+for kk=1:size(kernel_comb,1)       % -- kernel parameter search grid
+    
+    if ~isempty(tune_kernel_parameters)
+        ix = {};
+        % we tune the kernel parameters too, so need to recompute the
+        % kernel matrix
+        tmp_param = param;
+        for jj=1:numel(tune_kernel_parameters)/2
+            ix{jj} = kernel_comb_ix(kk,jj); % indices needed to access acc
+            tmp_param.(tune_kernel_parameters{jj*2-1}) = kernel_comb(kk,jj);
+        end
+        
+        % Compute kernel matrix
+        K = kernelfun(tmp_param, X);
+        
+        % Regularize
+        if param.regularize_kernel > 0
+            K = K + param.regularize_kernel * eye(size(X,1));
+        end
+        
+        Q = K .* LABEL;
     end
     
-    if cfg.plot
-        c = c + corr(alpha);
+    for ff=1:param.k        % --- CV folds
+        
+        %%% TODO: consider implementing full regularisation path according to
+        %%% Hastie et al
+        
+        train_idx = find(CV.training(ff));
+        test_idx = find(CV.test(ff));
+        
+        trainlabel = clabel(train_idx);
+        ONEtrain = ones(CV.TrainSize(ff),1);
+        
+        % --- Loop through c's ---
+        for ll=1:numel(param.c)
+            
+            % Solve the dual problem and obtain alpha
+            [alpha,iter] = DualCoordinateDescent(Q(train_idx, train_idx), param.c(ll), ONEtrain, param.tolerance, param.shrinkage_multiplier);
+            
+            support_vector_indices = find(alpha>0);
+            
+            % For convenience we save the product [alpha * class label] for the support vectors
+            alpha_y = alpha(support_vector_indices) .* trainlabel(support_vector_indices);
+            
+            % Exploit the fact that we already pre-calculated the kernel matrix
+            % for all samples. Simply extract the values corresponding to
+            % the test samples and the support vectors in the training set.
+            dval = K(test_idx, train_idx(support_vector_indices)) * alpha_y;
+            
+            % accuracy
+            acc(ix{:}, ll) = acc(ix{:}, ll) + sum( clabel(CV.test(ff)) == double(sign(dval(:)))  );
+        end
+        
+        if param.plot
+            c = c + corr(alpha);
+        end
     end
 end
 
 % Average performance
 acc = acc / N;
 
-% Best overall parameter
-[~, best_c_idx] = max(acc);
+% look for peak accuracy to determine best parameters
+if isempty(tune_kernel_parameters)
+    [~, ix] = max(acc);
+else
+    % find best parameters from multi-dimensional grid
+    [~, ind] = max(acc(:));
+    ix = cell(numel(tune_kernel_parameters)/2 + 1,1);
+    [ix{:}] = ind2sub(size(acc), ind);
+    ix = [ix{:}];
+    
+    % Best kernel parameters
+    for jj=1:numel(tune_kernel_parameters)/2
+        param.(tune_kernel_parameters{jj*2-1}) = tune_kernel_parameters{jj*2}(ix(jj));
+    end
 
-% Diagnostic plots if requested
-if cfg.plot
+    % Compute best kernel matrix
+    K = kernelfun(param, X);
+    
+    % Regularize
+    if param.regularize_kernel > 0
+        K = K + param.regularize_kernel * eye(size(X,1));
+    end
+
+    Q = K .* LABEL;
+end
+
+% Diagnostic plots if requested [only if kernel hyperparameters are not
+% tuned]
+if param.plot
     
     % Plot cross-validated classification performance
     figure
-    semilogx(cfg.c, acc)
-    title([num2str(cfg.k) '-fold cross-validation performance'])
+    semilogx(param.c, acc)
+    title([num2str(param.k) '-fold cross-validation performance'])
     hold all
-    plot([cfg.c(best_c_idx), cfg.c(best_c_idx)],ylim,'r--'),plot(cfg.c(best_c_idx), acc(best_c_idx),'ro')
+    plot([param.c(ix), param.c(ix)],ylim,'r--'),plot(param.c(ix), acc(ix),'ro')
     xlabel('Lambda'),ylabel('Accuracy'),grid on
 
 end
+
+% Select best c
+param.c = param.c(ix(end));

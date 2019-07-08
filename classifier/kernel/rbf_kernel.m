@@ -1,4 +1,4 @@
-function out = rbf_kernel(param, x,y)
+function out = rbf_kernel(param, x, y)
 % Radial basis function (RBF) kernel. 
 % 
 % Usage:

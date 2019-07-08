@@ -1,6 +1,7 @@
-%%% Train and test a classifier "by hand", i.e. without the
-%%% crossvalidation and classification across time functions provided by
-%%% MVPA-Light
+%%% Train and test a classifier "by hand". This is just done for
+%%% illustrative purposes. In most cases, the high-level functions
+%%% introduced in examples 2 through 6 can be used to perform
+%%% an integrated classification analysis with cross-validation.
 
 % Load data (in /examples folder)
 [dat, clabel] = load_example_data('epoched3');
@@ -37,7 +38,7 @@ X = squeeze(mean(dat.trial(:,:,ival_idx),3));
 param = mv_get_classifier_param('lda');
 
 % We also want to calculate class probabilities (prob variable) for each 
-% sample (do not use if not explicitly required since it slows down 
+% sample (do not use unless explicitly required since it slows down 
 % calculations a bit)
 param.prob  = 1;
 
@@ -63,11 +64,11 @@ auc = mv_calculate_performance('auc', 'dval', dval, clabel);
 figure(2)
 clf
 boxplot(dval, clabel)
-hold on
+hold on, grid on
 plot(xlim, [0 0],'k--')
 ylabel('Decision values')
 xlabel('Class')
-title('Distribution of decision values')
+title('Decision values per class')
 
 % Look at the distribution of the probabilities. prob should be higher
 % for clabel 1 (attended deviant) than clabel 2 (unattended
@@ -75,8 +76,8 @@ title('Distribution of decision values')
 figure(3)
 clf
 boxplot(prob, clabel)
-hold on
+hold on, grid on
 plot(xlim, [0.5 0.5],'k--')
 ylabel('Probability for class 1')
 xlabel('Class')
-title('Distribution of class probabilities')
+title('Class probabilities P(class=1) per class')

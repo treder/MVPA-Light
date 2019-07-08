@@ -29,7 +29,6 @@ cfg_LDA.metric          = 'accuracy';
 cfg_LDA.cv              = 'kfold';  % 'kfold' 'leaveout' 'holdout'
 cfg_LDA.k               = 5;
 cfg_LDA.repeat          = 10;
-cfg_LDA.balance         = 'undersample';
 
 % the param substruct contains the hyperparameters for the classifier.
 % Here, we only set lambda = 'auto'. This is the default, so in general

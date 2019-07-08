@@ -53,9 +53,6 @@ function [perf,result] = mv_searchlight(cfg, X, clabel)
 % .average     - if 1 and X is [samples x features x time], the time
 %                dimension is averaged ot a single feature (default 0). If
 %                0, each time point is used as a separate feature
-% .normalise    - normalises the data across samples, for each time point 
-%                 and each feature separately, using 'zscore' or 'demean' 
-%                 (default 'zscore'). Set to 'none' or [] to avoid normalisation.
 % .feedback     - print feedback on the console (default 1)
 %
 % CROSS-VALIDATION parameters:
@@ -68,6 +65,13 @@ function [perf,result] = mv_searchlight(cfg, X, clabel)
 %                 in each fold (default 1)
 % .repeat       - number of times the cross-validation is repeated with new
 %                 randomly assigned folds (default 1)
+%
+% PREPROCESSING parameters: and 
+% .preprocess         - cell array containing the preprocessing pipeline. The
+%                       pipeline is applied in chronological order
+% .preprocess_param   - cell array of preprocessing parameter structs for each
+%                       function. Length of preprocess_param must match length
+%                       of preprocess
 %
 % Returns:
 % perf          - [features x 1] vector of classifier performances 

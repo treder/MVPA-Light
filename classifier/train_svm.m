@@ -2,19 +2,20 @@ function cf = train_svm(param,X,clabel)
 % Trains a support vector machine (SVM). 
 %
 % Note: It is recommended to demean (X = demean(X,'constant')) or z-score 
-% (X = zscore(X)) the data first to speed up the optimisation.
+% (X = zscore(X)) the data first to speed up the optimization.
 %
 % Usage:
 % cf = train_svm(param,X,clabel)
 %
 %Parameters:
-% X              - [samples x features] matrix of training samples
+% X              - [samples x features] matrix of training samples -OR-
+%                  [samples x samples] kernel matrix
 % clabel         - [samples x 1] vector of class labels
 %
 % param          - struct with hyperparameters:
-% .c            - regularisation hyperparameter controlling the magnitude
-%                  of regularisation. If a single value is given, it is
-%                  used for regularisation. If a vector of values is given,
+% .c            - regularization hyperparameter controlling the magnitude
+%                  of regularization. If a single value is given, it is
+%                  used for regularization. If a vector of values is given,
 %                  cross-validation is used to test all the values
 %                  in the vector and the best one is selected.
 %                  If set to 'auto', a default search grid is used to
@@ -30,8 +31,10 @@ function cf = train_svm(param,X,clabel)
 %                  Alternatively, a custom kernel can be provided if there
 %                  is a function called *_kernel is in the MATLAB path, 
 %                  where "*" is the name of the kernel (e.g. rbf_kernel).
-% .kernel_matrix - optional kernel matrix. If provided, the .kernel 
-%                  parameter is ignored. (Default [])
+%
+%                  If a precomputed kernel matrix is provided as X, set
+%                  param.kernel = 'precomputed'.
+%
 % .prob          - if 1, decision values are returned as probabilities. If
 %                  0, the decision values are simply the distance to the
 %                  hyperplane. Calculating probabilities takes more time
@@ -48,6 +51,7 @@ function cf = train_svm(param,X,clabel)
 %
 % gamma         - (kernel: rbf, polynomial) controls the 'width' of the
 %                  kernel. If set to 'auto', gamma is set to 1/(nr of features)
+%                  or 1 if a pre-computed kernel matrix is provided
 %                  (default 'auto')
 % coef0         - (kernel: polynomial) constant added to the polynomial
 %                 term in the polynomial kernel. If 0, the kernel is
@@ -60,7 +64,8 @@ function cf = train_svm(param,X,clabel)
 % cross-validation is performed where each of the parameters is tested and
 % the best parameter is chosen. If multiple parameters are set for tuning,
 % a multi-dimensional search grid is set up where all combinations of
-% parameters are tested.
+% parameters are tested. Note: if a precomputed kernel is provided, only c
+% can be tuned.
 %
 % Further parameters (that usually do not need to be changed):
 % bias          - if >0 augments the data with a bias term equal to the
@@ -72,12 +77,12 @@ function cf = train_svm(param,X,clabel)
 %                 kernels, a bias is usally not needed (Kecman 2001, p.182)
 % k             - the number of folds in the k-fold cross-validation for
 %                 the lambda search (default 3)
-% plot          - if a lambda search is performed, produces diagnostic
-%                 plots including the regularisation path and
-%                 cross-validated accuracy as a function of lambda (default
+% plot          - if a grid search for c is performed, produces diagnostic
+%                 plots including the regularization path and
+%                 cross-validated accuracy as a function of c (default
 %                 0)
 %
-%Further parameters controlling the Dual Coordinate Descent optimisation:
+%Further parameters controlling the Dual Coordinate Descent optimization:
 % shrinkage_multiplier  - multiplier that controls the Dual Coordinate
 %                 Descent algorithm with active set strategy. If the
 %                 multiplier is < 1, the active set is shrunk more
@@ -108,9 +113,9 @@ function cf = train_svm(param,X,clabel)
 
 % (c) Matthias Treder
 
-[N, nFeat] = size(X);
+N = size(X,1);
 
-% Vector of 1's we need for optimisation
+% Vector of 1's we need for optimization
 ONE = ones(N,1);
 
 % Make sure labels come as column vector
@@ -119,9 +124,17 @@ clabel = double(clabel(:));
 % Need class labels 1 and -1 here
 clabel(clabel == 2) = -1;
 
+% indicates whether kernel matrix has been precomputed
+is_precomputed = strcmp(param.kernel,'precomputed');
+
 %% Set kernel hyperparameter defaults
-if ischar(param.gamma) && strcmp(param.gamma,'auto')
-    param.gamma = 1/nFeat;
+if ischar(param.gamma) && strcmp(param.gamma,'auto') && ~is_precomputed
+    param.gamma = 1/size(X,2);
+end
+
+%% Set search grid for c
+if ischar(param.c) && strcmp(param.c,'auto')
+    param.c = logspace(-2,2,5);
 end
 
 %% Bias
@@ -136,15 +149,15 @@ end
 % Augment X with bias
 if param.bias > 0
     X = cat(2,X, ones(N,1) * param.bias );
-    nFeat = nFeat + 1;
 end
 
-%% Check if hyperparmeters need to be tuned
-has_kernel_matrix = ~isempty(param.kernel_matrix);
+%% Check if kernel hyperparameters need to be tuned
+tune_kernel_parameters = {};
 
-% need to tune hyperparameters?
-tune_hyperparameters = {};
-if ~has_kernel_matrix
+if ~is_precomputed
+
+    % Kernel function
+    kernelfun = eval(['@' param.kernel '_kernel']);
 
     tmp = {};
     switch(param.kernel)
@@ -152,63 +165,45 @@ if ~has_kernel_matrix
             if numel(param.gamma)>1, tmp = {'gamma' param.gamma}; end
         case 'polynomial'
             if numel(param.gamma)>1, tmp = {'gamma' param.gamma}; end
-            if numel(param.coef0)>1, tmp = {tmp{:}; 'coef0' param.coef0}; end
-            if numel(param.degree)>1, tmp = {tmp{:}; 'degree' param.degree}; end
+            if numel(param.coef0)>1, tmp = [tmp(:)' {'coef0'} {param.coef0}]; end
+            if numel(param.degree)>1, tmp = [tmp(:)' {'degree'} {param.degree}]; end
     end
-    tune_hyperparameters = tmp;
+    tune_kernel_parameters = tmp;
 end
 
-%% Precompute and regularise kernel
+%% Compute and regularize kernel
+if isempty(tune_kernel_parameters)
+    if is_precomputed
+        K = X;
+    else
+        % Compute kernel matrix
+        K = kernelfun(param, X);
+    end
 
-if ~has_kernel_matrix && isempty(tune_hyperparameters)
-    % If we do not need to tune hyperparameters, we can precompute the
-    % kernel matrix
-
-    % Kernel function
-    kernelfun = eval(['@' param.kernel '_kernel']);
-    
-    % Compute kernel matrix
-    kernel_matrix = kernelfun(param, X);
-    
-    % Regularise
-    if param.regularise_kernel > 0
-        kernel_matrix = kernel_matrix + param.regularise_kernel * eye(size(X,1));
+    % Regularize
+    if param.regularize_kernel > 0
+        K = K + param.regularize_kernel * eye(size(X,1));
     end
     
-else
-    % kernel matrix has been provided by the user, so we take it from 
-    % the param struct
-    kernel_matrix = param.kernel_matrix;
+    % Create a copy of K wherein class labels 1 and -1 are absorbed in the
+    % kernel matrix. This is useful for optimization.
+    Q = K .* (clabel * clabel');
 end
 
-% Create a copy of kernel_matrix wherein class labels 1 and -1 are absorbed in the
-% kernel matrix. This is useful for optimisation.
-Q_cl = kernel_matrix .* (clabel * clabel');
-
-% %% Automatically set the search grid for c
-if ischar(param.c) && strcmp(param.c,'auto')
-    param.c = logspace(-4,4,10);
-end
-
-%% Optimise hyperparameters using nested cross-validation
-if numel(param.c)>1 || ~isempty(tune_hyperparameters)
-    
+%% Optimize hyperparameters using nested cross-validation
+if numel(param.c)>1 || ~isempty(tune_kernel_parameters)
    tune_hyperparameter_svm
-   
-else
-    % there is just one lambda: no grid search
-    best_c_idx = 1;
 end
 
-%% Train classifier on the full training data (using the best lambda)
-c = param.c(best_c_idx);
+%% Train classifier on the full training data
 
 % Solve the dual problem and obtain alpha
-alpha = DualCoordinateDescent(Q_cl, c, ONE, param.tolerance, param.shrinkage_multiplier);
+alpha = DualCoordinateDescent(Q, param.c, ONE, param.tolerance, param.shrinkage_multiplier);
 
 %% Set up classifier struct
 cf= [];
 cf.kernel = param.kernel;
+cf.c      = param.c;
 cf.alpha  = alpha;
 cf.gamma  = param.gamma;
 cf.bias   = param.bias;
@@ -230,7 +225,6 @@ if strcmp(param.kernel,'linear')
 else
     % Nonlinear kernel: also need to save support vectors
     cf.support_vector_indices = find(cf.alpha>0);
-    cf.support_vectors  = X(cf.support_vector_indices,:);
     
     % Class labels for the support vectors
     cf.y                = clabel(cf.support_vector_indices);
@@ -239,7 +233,7 @@ else
     cf.alpha_y = cf.alpha(cf.support_vector_indices) .* cf.y(:);
     
     if param.bias > 0
-        %%% TODO: this part might need fixing
+        %%% TODO: this part might need checking
         cf.b = 0;
         
 %         % remove bias part from support vectors
@@ -248,8 +242,8 @@ else
         cf.b = 0;
     end
     
-    cf.has_kernel_matrix = has_kernel_matrix;
-    if ~has_kernel_matrix
+    if ~is_precomputed
+        cf.support_vectors = X(cf.support_vector_indices,:); 
         cf.kernelfun = kernelfun;
     end
     
@@ -271,7 +265,7 @@ if cf.prob == 1
     if strcmp(cf.kernel,'linear')
         dval = X*cf.w + cf.b;
     else
-        dval = kernel_matrix(:, cf.support_vector_indices) * cf.alpha_y   + cf.b;
+        dval = K(:, cf.support_vector_indices) * cf.alpha_y   + cf.b;
     end
     
     % Invoke platt function to get sigmoid parameters

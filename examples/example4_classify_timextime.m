@@ -5,6 +5,7 @@
 %%% result is a matrix of classification performance scores, one score for
 %%% every combination of training and test times.
 clear all
+close all
 
 % Load data (in /examples folder)
 [dat, clabel] = load_example_data('epoched3', 0);
@@ -16,8 +17,8 @@ clear all
 % use LDA.
 cfg =  [];
 cfg.classifier = 'lda';
-cfg.normalise  = 'demean';  % 'demean' 'none'
 cfg.metric     = 'accuracy';
+cfg.preprocess = 'zscore';
 
 [acc, result_acc] = mv_classify_timextime(cfg, dat.trial, clabel);
 
@@ -27,9 +28,6 @@ cfg.metric     = 'auc';
 [auc, result_auc] = mv_classify_timextime(cfg, dat.trial, clabel);
 
 %% Plot time generalisation matrix
-% close all
-% mv_plot_result(result_acc, dat.time, dat.time) % 2nd and 3rd argument are optional
-
 figure
 cfg_plot= [];
 cfg_plot.x   = dat.time;
@@ -51,10 +49,12 @@ cfg.cv      = 'none';
 cfg.metric     = 'accuracy';
 [acc_noCV, result_acc_noCV] = mv_classify_timextime(cfg, dat.trial, clabel);
 
+figure
 mv_plot_result({result_acc, result_acc_noCV}, dat.time, dat.time)
 
-%% Compare accuracy/AUC when no normalisation is performed
-cfg.normalise  = 'none';
+%% Compare accuracy/AUC when no normalization is performed
+% the lack of normalization affects accuracy but not AUC
+cfg.preprocess = {};
 cfg.metric     = 'accuracy';
 acc = mv_classify_timextime(cfg, dat.trial, clabel);
 
@@ -74,6 +74,13 @@ title('AUC')
 %% Generalisation with two datasets
 % The classifier is trained on one dataset, and tested on another dataset.
 % As two datasets, two different subjects are taken. 
+%
+% Note that in this case, nested z-scoring does not make sense since train
+% and test set are not directly comparable in terms of their amplitudes.
+% Hence, each dataset should be z-scored separately.
+% Therefore, we will preprocess both datasets globally prior to classification 
+% (see example7 for more information on preprocessing).
+
 
 [dat, clabel] = load_example_data('epoched3', 0);
 % Load data from a different subject (epoched1). This will serve as the 
@@ -81,9 +88,13 @@ title('AUC')
 % The subject loaded above will serve as training data.
 [dat2, clabel2] = load_example_data('epoched1');
 
+% 'Global' z-scoring prior to classification
+preprocess_param = mv_get_preprocess_param('zscore');
+[~, dat.trial] = mv_preprocess_zscore(preprocess_param, dat.trial);
+[~, dat2.trial] = mv_preprocess_zscore(preprocess_param, dat2.trial);
+
 cfg =  [];
 cfg.classifier = 'lda';
-cfg.normalise  = 'zscore';  % 'demean' 'none' 'zscore'
 cfg.metric     = 'acc';
 
 [acc31, result31] = mv_classify_timextime(cfg, dat.trial, clabel, dat2.trial, clabel2);

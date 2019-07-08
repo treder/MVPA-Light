@@ -1,6 +1,6 @@
 function cf = train_logreg(param,X,clabel)
 % Trains a logistic regression classifier with logF or L2 
-% regularisation. 
+% regularization. 
 %
 % Note: Due to the exponential term in the cost function, it is recommended 
 % that X (the data) is z-scored to reduce the probability of numerical
@@ -14,16 +14,16 @@ function cf = train_logreg(param,X,clabel)
 % clabel         - [samples x 1] vector of class labels
 %
 % param          - struct with hyperparameters:
-% .reg           - regularisation approach
-%                 'logf': log-F(1,1) regularisation via data augmentation
-%                  'l2': an L2 regularisation term is added to the cost
-%                  function. The magnitude of regularisation is controlled
+% .reg           - regularization approach
+%                 'logf': log-F(1,1) regularization via data augmentation
+%                  'l2': an L2 regularization term is added to the cost
+%                  function. The magnitude of regularization is controlled
 %                  by the lambda hyperparameter
 %                  No additional hyperparameter required (default 'logf')
 % .lambda        - if reg='l2', then lambda is the 
-%                  regularisation hyperparameter controlling the magnitude
-%                  of L2 regularisation. If a single value is given, it is
-%                  used for regularisation. If a vector of values is given,
+%                  regularization hyperparameter controlling the magnitude
+%                  of L2 regularization. If a single value is given, it is
+%                  used for regularization. If a vector of values is given,
 %                  5-fold cross-validation is used to test all the values
 %                  in the vector and the best one is selected
 %                  Note: lambda is reciprocally related to the cost
@@ -46,11 +46,11 @@ function cf = train_logreg(param,X,clabel)
 %                 vector with the bias variable w <- [w; b].
 %                 If 0, the bias is assumed to be 0. By default, it is set
 %                 to a large value (bias=100). This prevents that b is
-%                 penalised by the regularisation term.
+%                 penalised by the regularization term.
 % k             - the number of folds in the k-fold cross-validation for
 %                 the lambda search
 % plot          - if a lambda search is performed, produces diagnostic
-%                 plots including the regularisation path and
+%                 plots including the regularization path and
 %                 cross-validated accuracy as a function of lambda
 %
 % BACKGROUND:
@@ -60,16 +60,16 @@ function cf = train_logreg(param,X,clabel)
 % and fits the sigmoid function to the data. Logistic regression is a
 % linear function of the log-odds and directly models class probabilities.
 % The log likelihood function
-% including a L2 regularisation term can be arranged as
+% including a L2 regularization term can be arranged as
 %
 %      L(w,lambda) = SUM log(1+exp(-yi*w*xi)) + lambda * ||w||^2
 %
-% where w is the coefficient vector and lambda is the regularisation
+% where w is the coefficient vector and lambda is the regularization
 % strength, yi = {-1,+1} are the class labels, and xi the samples. This is
 % a convex optimisation problem that can be solved by unconstrained
 % minimisation.
 %
-% If the regularisation is 'logf', then a log-F(1,1) prior is imposed. This
+% If the regularization is 'logf', then a log-F(1,1) prior is imposed. This
 % is realised by augmenting the data rather than applying a penalty to the ML
 % estimate. A weight of 0.5 is applied to the augmented samples.
 %
@@ -83,7 +83,7 @@ function cf = train_logreg(param,X,clabel)
 % - in iteration 1, w_init is initialised as the zero vector
 % - in iterations 2 and 3, w_init is initialised by the previous w's (w_1
 %   and w_2)
-% - in iterations 4+, if predict_regularisation_path=1, then w_init is 
+% - in iterations 4+, if predict_regularization_path=1, then w_init is 
 %   initialised by a predicted w: for the
 %   k-th iteration, a quadratic polynomial is fit through w_k-2, w_k-1 and
 %   wk as a function of lambda. The polynomial is then evaluated at
@@ -139,18 +139,18 @@ if isempty(param.weights)
     param.weights = ones(N, 1);
 end
 
-%% log-F(1,1) regularisation
+%% log-F(1,1) regularization
 if strcmp(param.reg, 'logf')
     logfun = @(w) lr_gradient_and_hessian_tanh(w);
     
-    % log-F(1,1) regularisation can be implemented by using the standard ML
+    % log-F(1,1) regularization can be implemented by using the standard ML
     % estimation and instead augmenting the data in the following way:
     % - add 2*nfeatures new samples
     % - each added sample has the value 1 for a given feature, and 0's
     %   for all other features and intercept
     % - each such sample occurs twice, once with y=-1 and once y=1
     % This assures that the data is not linearly separable and 
-    % constitutes a form of regularisation.
+    % constitutes a form of regularization.
     % see also 
     % http://prema.mf.uni-lj.si/files/2015-11%20Bordeaux%20Penalized%20likelihood%20Logreg%20rare%20events_e19.pdf
     % http://prema.mf.uni-lj.si/files/FLICFLAC_final_9e6.pdf
@@ -178,9 +178,9 @@ if strcmp(param.reg, 'logf')
 end
 
 %% Bias correction using weights
-% The bias correction must come after logf regularisation
+% The bias correction must come after logf regularization
 % (because extra samples with their own weights have to be added in first) 
-% but before l2 regularisation (because the final weights are required
+% but before l2 regularization (because the final weights are required
 % for the hyperparameter tuning)
 if param.correct_bias
     % Assume the classes in the population occur each with equal probability 0.5,
@@ -191,10 +191,10 @@ if param.correct_bias
     param.weights(clabel==-1) = param.weights(clabel==-1) * (1-tau)/(1-ybar);
 end
 
-%% Regularisation
+%% Regularization
 if strcmp(param.reg, 'l2')
 
-    %% L2 regularisation 
+    %% L2 regularization 
     logfun = @(w) lr_gradient_and_hessian_tanh_L2(w);
     
     % We must subselect the weights for each training iteration
@@ -230,9 +230,9 @@ if strcmp(param.reg, 'l2')
             wspred= ws;
         end
         
-        if param.predict_regularisation_path
+        if param.predict_regularization_path
             % Create predictor matrix for the polynomial approximation
-            % of the regularisation path by taking the lambda's to the powers
+            % of the regularization path by taking the lambda's to the powers
             % up to the polyorder.
             polyvec = 0:param.polyorder;
             % Use the log of the lambda's to get a better conditioned matrix
@@ -256,9 +256,9 @@ if strcmp(param.reg, 'l2')
                 % Warm-starting the initial w: wstart
                 if ll==1
                     wstart = w0;
-                elseif param.predict_regularisation_path ...
+                elseif param.predict_regularization_path ...
                         && ll>param.polyorder+1      % make sure that enough terms have been calculated
-                    % Fit polynomial to regularisation path
+                    % Fit polynomial to regularization path
                     % and predict next w(lambda_k)
                     quad = qpred(ll-param.polyorder-1:ll-1,:)\(ws(:,ll-param.polyorder-1:ll-1)');
                     wstart = ( repmat(log(lambda),[1,numel(polyvec)]).^polyvec * quad)';
@@ -286,7 +286,6 @@ if strcmp(param.reg, 'l2')
         end
         
         acc = acc / param.k;
-        
         [~, best_idx] = max(acc);
         
         % Diagnostic plots if requested
@@ -298,10 +297,10 @@ if strcmp(param.reg, 'l2')
             subplot(nRow,nCol,3),plot(iter/param.k),hold all,
             title({'Mean number' 'of iterations (across folds)'}),xlabel('lambda#')
             
-            % Plot regularisation path (for the last training fold)
+            % Plot regularization path (for the last training fold)
             figure
             for ii=1:nfeat, semilogx(param.lambda,ws(ii,:),'o-','MarkerFaceColor','w'), hold all, end
-            plot(xlim,[0,0],'k-'),title('Regularisation path for last iteration'),xlabel('lambda#')
+            plot(xlim,[0,0],'k-'),title('Regularization path for last iteration'),xlabel('lambda#')
             
             % Plot cross-validated classification performance
             figure
@@ -315,7 +314,7 @@ if strcmp(param.reg, 'l2')
             figure
             plot(ws(1,:),ws(end,:),'ko-')
             hold all, plot(wspred(1,2:end),wspred(end,2:end),'+')
-            title('Regularisation path for 2 features')
+            title('Regularization path for 2 features')
             legend({'w' 'predicted w'})
             
         end
@@ -355,7 +354,7 @@ end
 
 %%
 %%% Logistic regression objective function. Given w, data X and
-%%% regularisation parameter lambda, returns
+%%% regularization parameter lambda, returns
 %%% f: function value at point w
 %%% g: value of gradient at point w
 %%% h: value of the Hessian at point w
@@ -431,7 +430,7 @@ end
 
     function [g,h] = lr_gradient_and_hessian_tanh_L2(w)
         % Logistic gradient and Hessian expressed using the hyperbolic 
-        % tangent *with L2 regularisation term included*
+        % tangent *with L2 regularization term included*
         % Using the identity: 1 / (1 + exp(-x)) = 0.5 + 0.5 * tanh(x/2)
         sigma = 0.5 + 0.5 * tanh(YX*w/2);
         
