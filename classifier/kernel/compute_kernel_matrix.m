@@ -27,7 +27,7 @@ function K = compute_kernel_matrix(cfg, X)
 %
 % If ndims(X)>2 a separate kernel matrix is calculated for each element of
 % the other dimensions. This can be useful for constructing a separate
-% kernel matrix for eg every time point in a trial.
+% kernel matrix for e.g. every time point in a trial.
 %
 %Output:
 % K            - [samples x samples x ...] kernel matrix
