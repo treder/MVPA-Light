@@ -1,14 +1,14 @@
-function [preprocess_param, X, clabel] = mv_preprocess_undersample(preprocess_param, X, clabel)
+function [pparam, X, clabel] = mv_preprocess_undersample(pparam, X, clabel)
 % Undersamples the majority class(es) in unbalanced data.
 %
 %Usage:
-% [preprocess_param, X, clabel] = mv_preprocess_undersample(preprocess_param, X, clabel)
+% [pparam, X, clabel] = mv_preprocess_undersample(pparam, X, clabel)
 %
 %Parameters:
 % X              - [samples x ... x ...] data matrix
 % clabel         - [samples x 1] vector of class labels
 %
-% preprocess_param - [struct] with preprocessing parameters
+% pparam         - [struct] with preprocessing parameters
 % .sample_dimension - which dimension(s) of the data matrix represent the samples
 %                     (default 1)
 % .undersample_test_set - by default, if undersampling is used during
@@ -19,9 +19,9 @@ function [preprocess_param, X, clabel] = mv_preprocess_undersample(preprocess_pa
 % Undersampling can safely be performed globally (on the full dataset)
 % since it does not introduce any dependencies between samples.
 
-if preprocess_param.is_train_set || preprocess_param.undersample_test_set
+if pparam.is_train_set || pparam.undersample_test_set
     
-    sd = sort(preprocess_param.sample_dimension(:))';
+    sd = sort(pparam.sample_dimension(:))';
     nclasses = max(clabel);
     
     % Sample count for each class

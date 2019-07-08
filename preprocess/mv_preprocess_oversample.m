@@ -1,14 +1,14 @@
-function [preprocess_param, X, clabel] = mv_preprocess_oversample(preprocess_param, X, clabel)
+function [pparam, X, clabel] = mv_preprocess_oversample(pparam, X, clabel)
 % Oversamples the minority class(es) in unbalanced data.
 %
 %Usage:
-% [preprocess_param, X, clabel] = mv_preprocess_oversample(preprocess_param, X, clabel)
+% [pparam, X, clabel] = mv_preprocess_oversample(pparam, X, clabel)
 %
 %Parameters:
 % X              - [samples x ... x ...] data matrix
 % clabel         - [samples x 1] vector of class labels
 %
-% preprocess_param - [struct] with preprocessing parameters
+% pparam         - [struct] with preprocessing parameters
 % .sample_dimension - which dimension(s) of the data matrix represent the samples
 %                     (default 1)
 % .oversample_test_set - by default, if oversampling is used during
@@ -30,9 +30,9 @@ function [preprocess_param, X, clabel] = mv_preprocess_oversample(preprocess_par
 % copy in the test data). This will make life easier for the classifier and
 % will lead to an artificially inflated performance.
 
-if preprocess_param.is_train_set || preprocess_param.oversample_test_set
+if pparam.is_train_set || pparam.oversample_test_set
     
-    sd = sort(preprocess_param.sample_dimension(:))';
+    sd = sort(pparam.sample_dimension(:))';
     nclasses = max(clabel);
     
     % Sample count for each class
@@ -48,7 +48,7 @@ if preprocess_param.is_train_set || preprocess_param.oversample_test_set
     for cc=1:nclasses
         if add_samples(cc)>0
             ix_this_class = find(clabel == cc);
-            if preprocess_param.replace
+            if pparam.replace
                 ix_add = randi( numel(ix_this_class), add_samples(cc), 1);
             else
                 ix_add = randperm( numel(ix_this_class), add_amples(cc));
