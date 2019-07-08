@@ -3,6 +3,7 @@ Light-weight Matlab toolbox for multivariate pattern analysis (MVPA)
 
 ### News
 
+* (July 2019) added [preprocessing module](#preprocessing) + precomputed kernels for [SVM](classifier/train_svm.m) and [kernel FDA](classifier/train_kernel_fda.m)
 * (May 2019) interface added for [LIBSVM](#libsvm) and [LIBLINEAR](#liblinear)
 * (Mar 2019) MVPA-Light has been integrated with FieldTrip (see [tutorial](http://www.fieldtriptoolbox.org/tutorial/mvpa_light/))
 * (Feb 2019) added [kernel Fisher Discriminant Analysis](classifier/train_kernel_fda.m) and new metrics `precision`, `recall`, and `f1`
@@ -122,6 +123,10 @@ Classifier output comes in form of decision values (=distances to the hyperplane
 
 There is usually no need to call [`mv_calculate_performance`](utils/mv_calculate_performance.m) directly. By setting the `cfg.metric` field, the performance metric is calculated automatically in [`mv_crossvalidate`](mv_crossvalidate.m), [`mv_classify_across_time`](mv_classify_across_time.m),  [`mv_classify_timextime`](mv_classify_timextime.m) and [`mv_searchlight`](mv_searchlight.m). You can provide a cell array of metrics, e.g. `cfg.metric = {'accuracy', 'confusion'}` to calculate multiple metrics at once.
 
+#### Preprocessing <a name="preprocessing"></a>
+
+In some cases, preprocessing operations such as z-scoring, PCA, or Common Spatial Patterns (CSP) need to be performed as nested operations within a cross-validation analysis. In nested preprocessing, parameters are estimated on the train data and then applied to the test data. This avoids possible information flow from test set to train set. A prepocessing pipeline can be added by setting the `cfg.preprocess` and `cfg.preprocess_param` fields. Currently implemented preprocessing functions are collected in the [`preprocess subfolder`](preprocess/) subfolder. See code snippet below and [`examples/example7_preprocessing.m`](examples/example7_preprocessing.m) for examples.
+
 
 ## Examples<a name="examples"></a>
 
@@ -175,7 +180,7 @@ See [`examples/example2_crossvalidate.m`](examples/example2_crossvalidate.m) for
 ```Matlab
 
 % Classify across time using default settings
-cfg =  [];
+cfg = [];
 acc = mv_classify_across_time(cfg, dat.trial, clabel);
 
 ```
@@ -186,7 +191,7 @@ See [`examples/example3_classify_across_time.m`](examples/example3_classify_acro
 
 
 ```Matlab
-cfg =  [];
+cfg = [];
 cfg.metric     = 'auc';
 
 auc = mv_classify_timextime(cfg, dat.trial, clabel);
@@ -197,14 +202,24 @@ See [`examples/example4_classify_timextime.m`](examples/example4_classify_timext
 
 #### Searchlight analysis
 
-
 ```Matlab
-cfg =  [];
+cfg = [];
 acc = mv_searchlight(cfg, dat.trial, clabel);
 
 ```
 
 See [`examples/example5_searchlight.m`](examples/example5_searchlight.m) for more details.
+
+#### Preprocessing
+
+```Matlab
+cfg =  [];
+cfg.preprocess = {'zscore' 'average_samples'};
+acc = mv_classify_across_time(cfg, dat.trial, clabel);
+
+```
+
+See [`examples/example7_preprocessing.m`](examples/example7_preprocessing.m) for more details.
 
 
 
