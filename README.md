@@ -123,7 +123,7 @@ Classifier output comes in form of decision values (=distances to the hyperplane
 
 There is usually no need to call [`mv_calculate_performance`](utils/mv_calculate_performance.m) directly. By setting the `cfg.metric` field, the performance metric is calculated automatically in [`mv_crossvalidate`](mv_crossvalidate.m), [`mv_classify_across_time`](mv_classify_across_time.m),  [`mv_classify_timextime`](mv_classify_timextime.m) and [`mv_searchlight`](mv_searchlight.m). You can provide a cell array of metrics, e.g. `cfg.metric = {'accuracy', 'confusion'}` to calculate multiple metrics at once.
 
-#### Preprocessing <a name="preprocessing"></a>
+#### Preprocessing<a name="preprocessing"></a>
 
 In some cases, preprocessing operations such as z-scoring, PCA, or Common Spatial Patterns (CSP) need to be performed as nested operations within a cross-validation analysis. In nested preprocessing, parameters are estimated on the train data and then applied to the test data. This avoids possible information flow from test set to train set. A prepocessing pipeline can be added by setting the `cfg.preprocess` and `cfg.preprocess_param` fields. Currently implemented preprocessing functions are collected in the [`preprocess subfolder`](preprocess/). See code snippet below and [`examples/example7_preprocessing.m`](examples/example7_preprocessing.m) for examples.
 
@@ -210,7 +210,7 @@ acc = mv_searchlight(cfg, dat.trial, clabel);
 
 See [`examples/example5_searchlight.m`](examples/example5_searchlight.m) for more details.
 
-#### Preprocessing
+#### Preprocessing pipeline
 
 ```Matlab
 cfg =  [];
