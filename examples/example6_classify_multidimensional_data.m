@@ -49,6 +49,9 @@ perf = mv_crossvalidate(cfg, X, clabel);
 cfg.sample_dimension  = 1;
 cfg.feature_dimension  = 2;
 
+% optional: provide the names of the dimensions for nice output
+cfg.dimension_names = {'samples','channels'};
+
 perf2 = mv_classify(cfg, X, clabel);
 
 fprintf('mv_crossvalidate result: %2.5f\n', perf)
@@ -56,6 +59,28 @@ fprintf('mv_classify result: %2.5f\n', perf2)
 
 
 %% Classify across time 
+cfg =  [];
+cfg.classifier      = 'logreg';
+cfg.metric          = 'precision';
+
+perf = mv_classify_across_time(cfg, dat.trial, clabel);
+
+% To do the same with mv_classify, we have to define the three dimensions.
+% Like in the previous example, samples are in dimension 1 and features in
+% dimension 2.
+cfg.sample_dimension  = 1;
+cfg.feature_dimension  = 2;
+
+% Additionally, we need to indicate that we want to do the analysis for
+% each of the time points:
+cfg.searchlight_dimension = 3;
+
+% optional: provide the names of the dimensions for nice output
+cfg.dimension_names = {'samples','channels','time points'};
+
+perf2 = mv_classify(cfg, dat.trial, clabel);
+
+
 
 %% Time-frequency classification
 % For this example, we will first calculate the time-frequency
