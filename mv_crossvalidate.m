@@ -73,6 +73,8 @@ n = arrayfun( @(c) sum(clabel==c) , 1:nclasses);
 
 % indicates whether the data represents kernel matrices
 mv_set_default(cfg,'is_kernel_matrix', isfield(cfg.param,'kernel') && strcmp(cfg.param.kernel,'precomputed'));
+if cfg.is_kernel_matrix,  mv_set_default(cfg,'dimension_names',{'samples','samples'});
+else,                     mv_set_default(cfg,'dimension_names',{'samples','features'}); end
 
 %% Get train and test functions
 train_fun = eval(['@train_' cfg.classifier]);

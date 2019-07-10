@@ -1,5 +1,5 @@
-function [perf, result, testlabel] = mv_classify(cfg, X, clabel, X2, clabel2)
-% Flexible classification analysis for arbitrarily sized data.
+function [perf, result, testlabel] = mv_classify(cfg, X, clabel)
+% Flexible classification for arbitrarily sized data.
 %
 % mv_classify allows for the classification of data of arbitrary number and
 % order of dimensions. It combines and generalizes the capabilities of the 
@@ -7,8 +7,8 @@ function [perf, result, testlabel] = mv_classify(cfg, X, clabel, X2, clabel2)
 % mv_classify_across_time, mv_classify_timextime).
 %
 % It is most useful for multi-dimensional datasets such as time-frequency
-% data e.g. [samples x channels x frequencies x time points] which does not
-% work with the other high-level functions.
+% data e.g. [samples x channels x frequencies x time points] which do not
+% work well with the other high-level functions.
 %
 % Usage:
 % [perf, res] = mv_classify(cfg, X, clabel)
@@ -57,6 +57,9 @@ function [perf, result, testlabel] = mv_classify(cfg, X, clabel, X2, clabel2)
 % .flatten_features  - if there is more than 1 feature dimension, flattens
 %                      the feature matrix/array into a vector so that it
 %                      can be used with the standard classifiers (default 1)
+% .dimension_names   - cell array with names for the dimensions. The names
+%                      will be used when printing the classification
+%                      info.
 %
 % CROSS-VALIDATION parameters:
 % .cv           - perform cross-validation, can be set to 'kfold',
@@ -101,6 +104,7 @@ mv_set_default(cfg,'feature_dimension',2);
 mv_set_default(cfg,'searchlight_dimension',[]);
 mv_set_default(cfg,'generalization_dimension',[]);
 mv_set_default(cfg,'flatten_features',1);
+mv_set_default(cfg,'dimension_names',strcat('dim', arrayfun(@(x) {num2str(x)}, 1:ndims(X))));
 
 [cfg, clabel, nclasses, nmetrics] = mv_check_inputs(cfg, X, clabel);
 
@@ -109,6 +113,8 @@ n = arrayfun( @(c) sum(clabel==c) , 1:nclasses);
 
 % indicates whether the data represents kernel matrices
 mv_set_default(cfg,'is_kernel_matrix', isfield(cfg.param,'kernel') && strcmp(cfg.param.kernel,'precomputed'));
+
+if cfg.feedback, mv_print_classification_info(cfg,X,clabel); end
 
 %% check dimension parameters
 if numel(cfg.sample_dimension) > 2
@@ -132,8 +138,11 @@ cfg.searchlight_dimension = (1:numel(cfg.searchlight_dimension))+cfg.feature_dim
 %% flatten features if necessary
 if numel(cfg.feature_dimension) > 1 && cfg.flatten_features
     sz = size(X);
-    all_feat = prod(cfg.feature_dimension);
+    all_feat = prod(sz(cfg.feature_dimension));
     X = reshape(X, [sz(cfg.sample_dimension), all_feat, sz(cfg.searchlight_dimension)]);
+    % also flatten dimension names
+    cfg.dimension_names{cfg.feature_dimension(1)} = strjoin(cfg.dimension_names(cfg.feature_dimension),'/');
+    cfg.dimension_names(cfg.feature_dimension(2:end)) = [];
     cfg.feature_dimension = cfg.sample_dimension+1;
     cfg.searchlight_dimension = (1:numel(cfg.searchlight_dimension)) + cfg.feature_dimension;
 end
@@ -142,20 +151,19 @@ end
 train_fun = eval(['@train_' cfg.classifier]);
 test_fun = eval(['@test_' cfg.classifier]);
 
-
-%% --- todo --- hier weiter --- 
+% Define searchlight dimension
+sz = size(X);
+sz = sz(cfg.searchlight_dimension);
+if isempty(sz), sz = 1; end
 
 %% Perform classification
 if ~strcmp(cfg.cv,'none') 
     % -------------------------------------------------------
-    % One dataset X has been provided as input. X is hence used for both
-    % training and testing. To avoid overfitting, cross-validation is
-    % performed.
-    if cfg.feedback, mv_print_classification_info(cfg,X,clabel); end
+    % Perform cross-validation
 
     % Initialise classifier outputs
-    cf_output = cell(cfg.repeat, cfg.k, nTime1);
-    testlabel = cell(cfg.repeat, cfg.k);
+    cf_output = cell([cfg.repeat, cfg.k, sz]);
+    testlabel = cell([cfg.repeat, cfg.k]);
     
     for rr=1:cfg.repeat                 % ---- CV repetitions ----
         if cfg.feedback, fprintf('Repetition #%d. Fold ',rr), end
@@ -177,27 +185,27 @@ if ~strcmp(cfg.cv,'none')
                 [~, Xtest, testlabel{rr,kk}] = mv_preprocess(tmp_cfg, Xtest, testlabel{rr,kk});
             end
             
-            % ---- Test data ----
-            % Instead of looping through the second time dimension, we
-            % reshape the data and apply the classifier to all time
-            % points. We then need to apply the classifier only once
-            % instead of nTime2 times.
-
-            % permute and reshape into [ (trials x test times) x features]
-            Xtest= permute(Xtest, [1 3 2]);
-            Xtest= reshape(Xtest, numel(testlabel{rr,kk})*nTime2, []);
-
+            % ---- Generalization ---- (eg time x time)
+            % Instead of looping through the generalization dimension, we
+            % reshape the data and apply the classifier to all elements at
+            % once.
+            if any(cfg.generalization_dimension)
+                % permute and reshape into [ (trials x test times) x features]
+                Xtest= permute(Xtest, [1 3 2]);
+                Xtest= reshape(Xtest, numel(testlabel{rr,kk})*nTime2, []);
+            end
+            
             % ---- Training time ----
-            for t1=1:nTime1
+            for ss=1:prod(sz)
 
                 % Training data for time point t1
-                Xtrain_tt= squeeze(Xtrain(:,:,t1));
+                Xtrain_tt= squeeze(Xtrain(:,:,ss));
                 
                 % Train classifier
                 cf= train_fun(cfg.param, Xtrain_tt, trainlabel);
 
                 % Obtain classifier output (labels, dvals or probabilities)
-                cf_output{rr,kk,t1} = reshape( mv_get_classifier_output(cfg.output_type, cf, test_fun, Xtest), numel(testlabel{rr,kk}),[]);
+                cf_output{rr,kk,ss} = reshape( mv_get_classifier_output(cfg.output_type, cf, test_fun, Xtest), numel(testlabel{rr,kk}),[]);
             end
 
         end
@@ -207,52 +215,12 @@ if ~strcmp(cfg.cv,'none')
     % Average classification performance across repeats and test folds
     avdim= [1,2];
 
-elseif hasX2
-    % -------------------------------------------------------
-    % An additional dataset X2 has been provided. The classifier is trained
-    % on X and tested on X2. Cross-validation does not make sense here and
-    % is not performed.
-    cfg.cv = 'none';
-    
-    % Print info on datasets
-    if cfg.feedback, mv_print_classification_info(cfg, X, clabel, X2, clabel2); end
-    
-    % Preprocess train data
-    [tmp_cfg, X, clabel] = mv_preprocess(cfg, X, clabel);
-    
-    % Preprocess test data
-    [~, X2, clabel2] = mv_preprocess(tmp_cfg, X2, clabel2);
 
-    % Initialise classifier outputs
-    cf_output = cell(1, 1, nTime1);
-
-    % permute and reshape into [ (trials x test times) x features]
-    Xtest= permute(X2, [1 3 2]);
-    Xtest= reshape(Xtest, size(X2,1)*nTime2, []);
-
-    % ---- Training time ----
-    for t1=1:nTime1
-
-        % Training data for time point t1
-        Xtrain= squeeze(X(:,:,t1));
-
-        % Train classifier
-        cf= train_fun(cfg.param, Xtrain, clabel);
-
-        % Obtain classifier output (labels or dvals)
-        cf_output{1,1,t1} = reshape( mv_get_classifier_output(cfg.output_type, cf, test_fun, Xtest), size(X2,1),[]);
-
-    end
-
-    testlabel = clabel2;
-    avdim = [];
 
 elseif strcmp(cfg.cv,'none')
     % -------------------------------------------------------
-    % One dataset X has been provided as input. X is hence used for both
-    % training and testing. However, cross-validation is not performed.
-    % Note that this can lead to overfitting.
-
+    % No cross-validation
+    
     if cfg.feedback
         fprintf('Training and testing on the same dataset (note: this can lead to overfitting).\n')
     end
@@ -269,16 +237,16 @@ elseif strcmp(cfg.cv,'none')
     % permute and reshape into [ (trials x test times) x features]
   
     % ---- Training time ----
-    for t1=1:nTime1
+    for ss=1:nTime1
 
         % Training data for time point t1
-        Xtrain= squeeze(X(:,:,t1));
+        Xtrain= squeeze(X(:,:,ss));
 
         % Train classifier
         cf= train_fun(cfg.param, Xtrain, clabel);
 
         % Obtain classifier output (labels, dvals or probabilities)
-        cf_output{1,1,t1} = reshape( mv_get_classifier_output(cfg.output_type, cf, test_fun, Xtest), size(X,1),[]);
+        cf_output{1,1,ss} = reshape( mv_get_classifier_output(cfg.output_type, cf, test_fun, Xtest), size(X,1),[]);
 
     end
 
@@ -307,16 +275,6 @@ if nmetrics==1
     cfg.metric = cfg.metric{1};
 end
 
-% if isempty(cfg.metric) || strcmp(cfg.metric,'none')
-%     if cfg.feedback, fprintf('No performance metric requested, returning raw classifier output.\n'), end
-%     perf = cf_output;
-%     perf_std = [];
-% else
-%     if cfg.feedback, fprintf('Calculating classifier performance... '), end
-%     [perf, perf_std] = mv_calculate_performance(cfg.metric, cfg.output_type, cf_output, testlabel, avdim);
-%     if cfg.feedback, fprintf('finished\n'), end
-% end
-
 result = [];
 if nargout>1
    result.function  = mfilename;
@@ -325,11 +283,6 @@ if nargout>1
    result.metric    = cfg.metric;
    result.cv        = cfg.cv;
    result.k         = cfg.k;
-   if hasX2
-       result.n         = size(X2,1);
-   else
-       result.n         = size(X,1);
-   end
    result.repeat    = cfg.repeat;
    result.nclasses  = nclasses;
    result.classifier = cfg.classifier;

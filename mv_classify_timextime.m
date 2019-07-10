@@ -98,6 +98,8 @@ n = arrayfun( @(c) sum(clabel==c) , 1:nclasses);
 
 % indicates whether the data represents kernel matrices
 mv_set_default(cfg,'is_kernel_matrix', isfield(cfg.param,'kernel') && strcmp(cfg.param.kernel,'precomputed'));
+if cfg.is_kernel_matrix,  mv_set_default(cfg,'dimension_names',{'samples','samples','time points'});
+else,                     mv_set_default(cfg,'dimension_names',{'samples','features','time points'}); end
 
 %% Reduce data to selected time points
 X = X(:,:,cfg.time1);
