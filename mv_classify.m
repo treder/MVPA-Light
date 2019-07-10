@@ -32,9 +32,14 @@ function [perf, result, testlabel] = mv_classify(cfg, X, clabel)
 % .feedback     - print feedback on the console (default 1)
 %
 % For mv_classify to make sense of the data, the user must specify the
-% meaning of each dimension. Sample, feature, and searchlight dimensions
-% must be different and together they must specify all dimensions of the
-% data matrix.
+% meaning of each dimension. sample_dimension and feature_dimension
+% specify which dimension(s) code for samples and features, respectively.
+% All other dimensions will be treated as 'searchlight' dimensions and a
+% separate classification will be performed for each element of these
+% dimensions. Example: let the data matrix be [samples x time x features x
+% frequencies]. Let sample_dimension=1 and feature_dimension=3. The output
+% of mv_classify will then be a [time x frequencies] (corresponding to
+% dimensions 2 and 4) matrix of classification results.
 % 
 % .sample_dimension  - the data dimension(s) that code the samples (default 1). 
 %                      It has either one element or two elements when the
@@ -45,20 +50,16 @@ function [perf, result, testlabel] = mv_classify(cfg, X, clabel)
 %                      then a classifier must be used that can deal with
 %                      multi-dimensional inputs. If a kernel matrix is
 %                      provided, there cannot be a feature dimension.
-% .searchlight_dimension - the dimension(s) across which the loops are
-%                          performed. A separate classification is
-%                          performed for each of the elements of the
-%                          searchlight dimensions  (default []).
 % .generalization_dimension - any of the searchlight dimensions can be used
 %                             for a generalization. In generalization, a
 %                             model is trained for each of the
 %                             generalization elements and then tested at
 %                             each other element (default []).
-% .flatten_features  - if there is more than 1 feature dimension, flattens
-%                      the feature matrix/array into a vector so that it
+% .flatten_features  - if there is multiple feature dimensions, flattens
+%                      the features into a vector so that it
 %                      can be used with the standard classifiers (default 1)
-% .dimension_names   - cell array with names for the dimensions. The names
-%                      will be used when printing the classification
+% .dimension_names   - cell array with names for the dimensions. These names
+%                      are be used when printing the classification
 %                      info.
 %
 % CROSS-VALIDATION parameters:
@@ -67,7 +68,7 @@ function [perf, result, testlabel] = mv_classify(cfg, X, clabel)
 % .k            - number of folds in k-fold cross-validation (default 5)
 % .p            - if cv is 'holdout', p is the fraction of test samples
 %                 (default 0.1)
-% .stratify     - if 1, the class proportions are approximately preserved
+% .stratify     search_dim = setdiff(1:ndims(X), [cfg.sample_dimension, cfg.feature_dimension])- if 1, the class proportions are approximately preserved
 %                 in each fold (default 1)
 % .repeat       - number of times the cross-validation is repeated with new
 %                 randomly assigned folds (default 1)
@@ -108,6 +109,14 @@ mv_set_default(cfg,'dimension_names',strcat('dim', arrayfun(@(x) {num2str(x)}, 1
 
 [cfg, clabel, nclasses, nmetrics] = mv_check_inputs(cfg, X, clabel);
 
+% sort dimensions
+cfg.sample_dimension = sort(cfg.sample_dimension);
+cfg.feature_dimension = sort(cfg.feature_dimension);
+cfg.generalization_dimension = sort(cfg.generalization_dimension);
+
+% define non-sample/feature dimension(s) that will be used for searchlight/looping
+search_dim = setdiff(1:ndims(X), [cfg.sample_dimension, cfg.feature_dimension]);
+
 % Number of samples in the classes
 n = arrayfun( @(c) sum(clabel==c) , 1:nclasses);
 
@@ -117,29 +126,43 @@ mv_set_default(cfg,'is_kernel_matrix', isfield(cfg.param,'kernel') && strcmp(cfg
 if cfg.feedback, mv_print_classification_info(cfg,X,clabel); end
 
 %% check dimension parameters
+
+% check sample dimensions
 if numel(cfg.sample_dimension) > 2
     error('There can be at most 2 sample dimensions but %d have been specified', numel(cfg.sample_dimension))
 elseif (numel(cfg.sample_dimension) == 2) && (~cfg.is_kernel_matrix)
     error('2 sample dimensions given but the kernel is not specified to be precomputed')
 end
 
-if any([intersect(cfg.sample_dimension, cfg.feature_dimension), intersect(cfg.sample_dimension, cfg.searchlight_dimension), intersect(cfg.searchlight_dimension, cfg.feature_dimension)])
+% check whether dimensions are different and add up to ndims(X)
+sam_feat_gen_dims = sort([cfg.sample_dimension, cfg.feature_dimension, cfg.generalization_dimension]);
+sam_feat_search_dims = sort([cfg.sample_dimension, cfg.feature_dimension, cfg.searchlight_dimension]);
+if numel(unique(sam_feat_gen_dims)) < numel(sam_feat_gen_dims)
     error('sample_dimension, feature_dimension, and searchlight_dimension must be different from each other')
-elseif numel([cfg.sample_dimension, cfg.feature_dimension, cfg.searchlight_dimension]) ~= ndims(X)
+elseif numel(sam_feat_search_dims) ~= ndims(X)
     error('sample_dimension, feature_dimension, and searchlight_dimension together specify %d dimensions but the input data has %d dimensions', numel([cfg.sample_dimension, cfg.feature_dimension, cfg.searchlight_dimension]), ndims(X))
 end
 
-%% order the dimensions by samples -> features -> searchlight dimensions
-X = permute(X, [cfg.sample_dimension, cfg.feature_dimension, cfg.searchlight_dimension]);
+if numel(cfg.generalization_dimension) > 1
+    error('There should be at most one generalization dimension')
+end
+
+%% order the dimensions by samples -> searchlight dimensions -> features
+
+% permute X and dimension names
+X = permute(X, [cfg.sample_dimension, cfg.searchlight_dimension, cfg.feature_dimension]);
+cfg.dimension_names = cfg.dimension_names([cfg.sample_dimension, cfg.searchlight_dimension, cfg.feature_dimension]);
+
+% adapt the dimensions accordingly
 cfg.sample_dimension = 1:numel(cfg.sample_dimension);
-cfg.feature_dimension = (1:numel(cfg.feature_dimension))+cfg.sample_dimension(end);
-cfg.searchlight_dimension = (1:numel(cfg.searchlight_dimension))+cfg.feature_dimension(end);
+cfg.searchlight_dimension = (1:numel(cfg.searchlight_dimension))+cfg.sample_dimension(end);
+cfg.feature_dimension = (1:numel(cfg.feature_dimension))+cfg.searchlight_dimension(end);
 
 %% flatten features if necessary
 if numel(cfg.feature_dimension) > 1 && cfg.flatten_features
     sz = size(X);
     all_feat = prod(sz(cfg.feature_dimension));
-    X = reshape(X, [sz(cfg.sample_dimension), all_feat, sz(cfg.searchlight_dimension)]);
+    X = reshape(X, [sz(cfg.sample_dimension), sz(cfg.searchlight_dimension), all_feat]);
     % also flatten dimension names
     cfg.dimension_names{cfg.feature_dimension(1)} = strjoin(cfg.dimension_names(cfg.feature_dimension),'/');
     cfg.dimension_names(cfg.feature_dimension(2:end)) = [];
