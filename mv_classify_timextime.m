@@ -10,8 +10,7 @@ function [perf, result, testlabel] = mv_classify_timextime(cfg, X, clabel, X2, c
 %
 %Parameters:
 % X              - [samples x features x time points] data matrix
-% clabel         - [samples x 1] vector of class labels containing
-%                  1's (class 1) and 2's (class 2)
+% clabel         - [samples x 1] vector of class labels
 % X2, clabel2    - (optional) second dataset with associated labels. If
 %                  provided, the classifier is trained on X and tested on
 %                  X2 using
