@@ -16,7 +16,7 @@ close all
 clear all
 
 % Load data (in /examples folder)
-[dat,clabel] = load_example_data('epoched1');
+[dat,clabel,chans] = load_example_data('epoched1');
 [dat2,clabel2] = load_example_data('epoched2');
 [dat3,clabel3] = load_example_data('epoched3');
 
@@ -27,13 +27,16 @@ dat3.trial = zscore(dat3.trial);
 %% PART 1: standard classification tasks with mv_classify
 % To get an intuition for working with mv_classify, we will perform
 % cross-validation, classification across time, and time x time
-% generalization using with the respective functions and then compare it to
-% the way it can be performed using mv_classify.
+% generalization with mv_classify and we will compare it to the way its
+% done using the other high-level functions mv_crossvalidate,
+% mv_classify_across_time, and mv_classify_timextime.
 
-%% Cross-validate (cf example2_crossvalidate)
+%% compare to mv_crossvalidate (based on example2_crossvalidate)
+% Take average in a time window so that X is [samples x features]
 ival_idx = find(dat.time >= 0.6 & dat.time <= 0.8);
 X = squeeze(mean(dat.trial(:,:,ival_idx),3));
 
+% Let's start doing cross-validation with mv_crossvalidate
 cfg = [];
 cfg.classifier      = 'lda';
 cfg.metric          = 'f1';
@@ -41,46 +44,167 @@ cfg.metric          = 'f1';
 rng(42);
 perf = mv_crossvalidate(cfg, X, clabel);
 
-% Now we will do the same using mv_classify. We need to reset the random
-% number generator to get the same result. The only necessary action is to
-% indicate that the samples are in dimension 1 and the features in
+% Now we will do the same using mv_classify.  We need to indicate 
+% that the samples are in dimension 1 and the features in
 % dimension 2 (this is also the default but we set them here explicitly
 % just for clarity).
 cfg.sample_dimension  = 1;
 cfg.feature_dimension  = 2;
 
-% optional: provide the names of the dimensions for nice output
+% optionally, we can also provide the names of the dimensions to get nice output
 cfg.dimension_names = {'samples','channels'};
 
+% We also need to reset the random number generator to get the same result.
+rng(42);
 perf2 = mv_classify(cfg, X, clabel);
 
 fprintf('mv_crossvalidate result: %2.5f\n', perf)
 fprintf('mv_classify result: %2.5f\n', perf2)
 
 
-%% Classify across time 
+%% compare to mv_classify_across_time 
 cfg =  [];
-cfg.classifier      = 'logreg';
+cfg.classifier      = 'lda';
 cfg.metric          = 'precision';
 
+rng(2) % reset random number generator such that random folds are identical
 perf = mv_classify_across_time(cfg, dat.trial, clabel);
 
 % To do the same with mv_classify, we have to define the three dimensions.
 % Like in the previous example, samples are in dimension 1 and features in
-% dimension 2.
+% dimension 2. The last dimension will be automatically devised as a search
+% dimension, we do not need to explicitly define it.
 cfg.sample_dimension  = 1;
 cfg.feature_dimension  = 2;
-
-% Additionally, we need to indicate that we want to do the analysis for
-% each of the time points:
-cfg.searchlight_dimension = 3;
 
 % optional: provide the names of the dimensions for nice output
 cfg.dimension_names = {'samples','channels','time points'};
 
+rng(2) % reset random number generator such that random folds are identical
 perf2 = mv_classify(cfg, dat.trial, clabel);
 
+% the results are identical again
+figure
+plot(perf)
+hold all
+plot(perf2)
 
+fprintf('Difference between perf and perf2: %2.2f\n', norm(perf-perf2)) % should be 0
+
+%% compare to mv_classify_timextime
+cfg =  [];
+cfg.classifier      = 'lda';
+cfg.metric          = 'auc';
+
+rng(42) % reset random number generator such that random folds are identical
+perf = mv_classify_timextime(cfg, dat.trial, clabel);
+
+% Like in the previous example, samples are in dimension 1 and features in
+% dimension 2. The last dimension will be automatically devised as search
+% dimension. However, this time we also need to indicate that we want to 
+% the 3rd dimension for generalization (time x time).
+cfg.sample_dimension  = 1;
+cfg.feature_dimension  = 2;
+cfg.generalization_dimension = 3;
+
+% optional: provide the names of the dimensions for nice output
+cfg.dimension_names = {'samples','channels','time points'};
+
+rng(42) % reset random number generator such that random folds are identical
+perf2 = mv_classify(cfg, dat.trial, clabel);
+
+% the results are identical again
+figure
+subplot(1,2,1),imagesc(perf)
+subplot(1,2,2),imagesc(perf2)
+
+fprintf('Difference between perf and perf2: %2.2f\n', norm(perf-perf2)) % should be 0
+
+%% compare to mv_searchlight
+
+% Average activity in 0.6-0.8 interval (see example 1)
+ival_idx = find(dat.time >= 0.6 & dat.time <= 0.8);
+X = squeeze(mean(dat.trial(:,:,ival_idx),3));
+
+% Distance matrix giving the pair-wise distances between electrodes
+nb = squareform(pdist(chans.pos));
+
+% Turn into binary matrix of 0's and 1's by defining a threshold distance
+nb = nb < 0.2;
+
+% Numer of neighbours for each channel
+sum(nb)
+
+% using mv_searchlight
+cfg = [];
+cfg.metric      = 'auc';
+cfg.neighbours  = nb;
+
+rng(42)
+auc = mv_searchlight(cfg, X, clabel);
+
+% using mv_classify
+% we just need to define the sample dimension 1, then dimension 2 will
+% automatically become the search dimension. Other than that, the syntax is
+% identical
+cfg = [];
+cfg.metric              = 'auc';
+cfg.neighbours          = nb;
+cfg.sample_dimension    = 1;
+cfg.dimension_names = {'samples','channels'};  % for nice output
+
+
+rng(42) % reset random number generator such that random folds are identical
+auc2 = mv_classify(cfg, X, clabel);
+
+
+% the results are identical again
+figure
+bar([auc, auc2])
+legend({'auc', 'auc2'})
+xlabel('Channel'), ylabel('AUC')
+
+fprintf('Difference between auc and auc2: %2.2f\n', norm(auc-auc2)) % should be 0
+
+
+%% PART 2: beyond standard examples
+
+%% Classification across time including a searchlight
+% Here we will perform classification across time, like implemented in the
+% function mv_classify_across_time. Additionally, we will include a
+% searchlight across time that includes neighbouring time points. As a
+% reference, let's first run it without the searchlight.
+
+cfg =  [];
+cfg.classifier      = 'lda';
+cfg.metric          = 'precision';
+cfg.sample_dimension  = 1;
+cfg.feature_dimension  = 2;
+
+% optional: provide the names of the dimensions for nice output
+cfg.dimension_names = {'samples','channels','time points'};
+
+% Let's first just classify without neighbours
+perf = mv_classify(cfg, dat.trial, clabel);
+
+% The third dimension (third) is used as search dimension. Now, for
+% every time point, we also want to take up the immediately preceding and
+% immediately following time points as features. To this end, we define a
+% [time x time] neighbourhood matrix that has ones on the diagonals and
+% subdiagonals. This defines the extent of the searchlight.
+O = ones(size(dat.trial,3));
+O = O - triu(O,4) - tril(O,-4);
+
+cfg.neighbours = O;
+
+perf2 = mv_classify(cfg, dat.trial, clabel);
+
+% the results are identical again
+figure
+plot(perf)
+hold all
+plot(perf2)
+legend({'without searchlight' ,'with searchlight'})
 
 %% Time-frequency classification
 % For this example, we will first calculate the time-frequency
