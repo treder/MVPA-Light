@@ -160,15 +160,6 @@ if nmetrics==1
     perf_std = perf_std{1};
     cfg.metric = cfg.metric{1};
 end
-% if isempty(cfg.metric) || strcmp(cfg.metric,'none')
-%     if cfg.feedback, fprintf('No performance metric requested, returning raw classifier output.\n'), end
-%     perf = cf_output;
-%     perf_std = [];
-% else
-%     if cfg.feedback, fprintf('Calculating classifier performance... '), end
-%     [perf, perf_std] = mv_calculate_performance(cfg.metric, cfg.output_type, cf_output, testlabel, avdim);
-%     if cfg.feedback, fprintf('finished\n'), end
-% end
 
 result = [];
 if nargout>1
