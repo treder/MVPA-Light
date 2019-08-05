@@ -1,5 +1,5 @@
 function [perf, result, testlabel] = mv_classify(cfg, X, clabel)
-% Flexible classification for arbitrarily sized data.
+% Classification of multi-dimensional data.
 %
 % mv_classify allows for the classification of data of arbitrary number and
 % order of dimensions. It combines and generalizes the capabilities of the 
@@ -8,7 +8,7 @@ function [perf, result, testlabel] = mv_classify(cfg, X, clabel)
 %
 % It is most useful for multi-dimensional datasets such as time-frequency
 % data e.g. [samples x channels x frequencies x time points] which do not
-% work well with the other high-level functions.
+% work well with the other, more specialised high-level functions.
 %
 % Usage:
 % [perf, res] = mv_classify(cfg, X, clabel)
@@ -34,12 +34,14 @@ function [perf, result, testlabel] = mv_classify(cfg, X, clabel)
 % For mv_classify to make sense of the data, the user must specify the
 % meaning of each dimension. sample_dimension and feature_dimension
 % specify which dimension(s) code for samples and features, respectively.
-% All other dimensions will be treated as 'searchlight' dimensions and a
+% All other dimensions will be treated as 'search' dimensions and a
 % separate classification will be performed for each element of these
 % dimensions. Example: let the data matrix be [samples x time x features x
 % frequencies]. Let sample_dimension=1 and feature_dimension=3. The output
 % of mv_classify will then be a [time x frequencies] (corresponding to
 % dimensions 2 and 4) matrix of classification results.
+% To use generalization (e.g. time x time, or frequency x frequency), set
+% the generalization_dimension parameter. 
 % 
 % .sample_dimension  - the data dimension(s) that code the samples (default 1). 
 %                      It has either one element or two elements when the
@@ -54,13 +56,31 @@ function [perf, result, testlabel] = mv_classify(cfg, X, clabel)
 %                             dimensions can be used for generalization. 
 %                             In generalization, a model is trained for each
 %                             generalization element and then tested at
-%                             each other element (default []).
+%                             each other element (default []). Note: if a 
+%                             generalization dimension is given, the input
+%                             may not consist of *precomputed kernels*.
+%                             This is because the kernel matrix needs to be
+%                             evaluated not only between samples within a
+%                             given time point but also for all
+%                             combinations of samples across different time
+%                             points.
 % .flatten_features  - if there is multiple feature dimensions, flattens
-%                      the features into a vector so that it
-%                      can be used with the standard classifiers (default 1)
+%                      the features into a single feature vector so that it
+%                      can be used with the standard classifiers (default
+%                      1). Has no effect if there is only one feature
+%                      dimension.
 % .dimension_names   - cell array with names for the dimensions. These names
-%                      are be used when printing the classification
+%                      are used when printing the classification
 %                      info.
+%
+% SEARCHLIGHT parameters:
+% .neighbours  - [... x ...] matrix specifying which features
+%                are neighbours of each other. If there is multiple search
+%                dimensions, a cell array of such matrices should be
+%                provided. (default: identity matrix). Note: this
+%                corresponds to the GRAPH option in mv_searchlight.
+%                There is no separate parameter for neighbourhood size, the
+%                size of the neibhbourhood is specified by the matrix.
 %
 % CROSS-VALIDATION parameters:
 % .cv           - perform cross-validation, can be set to 'kfold',
@@ -97,23 +117,26 @@ mv_set_default(cfg,'param',[]);
 mv_set_default(cfg,'metric','accuracy');
 mv_set_default(cfg,'feedback',1);
 
-mv_set_default(cfg,'preprocess',{});
-mv_set_default(cfg,'preprocess_param',{});
-
 mv_set_default(cfg,'sample_dimension',1);
-mv_set_default(cfg,'feature_dimension',2);
+mv_set_default(cfg,'feature_dimension',[]);
 mv_set_default(cfg,'generalization_dimension',[]);
 mv_set_default(cfg,'flatten_features',1);
 mv_set_default(cfg,'dimension_names',strcat('dim', arrayfun(@(x) {num2str(x)}, 1:ndims(X))));
 
+mv_set_default(cfg,'neighbours',{});
+if ~iscell(cfg.neighbours), cfg.neighbours = {cfg.neighbours}; end
+
+mv_set_default(cfg,'preprocess',{});
+mv_set_default(cfg,'preprocess_param',{});
+
 [cfg, clabel, nclasses, nmetrics] = mv_check_inputs(cfg, X, clabel);
 
-% sort dimensions
+% sort dimension vectors
 sample_dim = sort(cfg.sample_dimension);
 feature_dim = sort(cfg.feature_dimension);
-generalization_dim = sort(cfg.generalization_dimension);
+gen_dim = cfg.generalization_dimension;
 
-% define non-sample/feature dimension(s) that will be used for searchlight/looping
+% define non-sample/feature dimension(s) that will be used for search/looping
 search_dim = setdiff(1:ndims(X), [sample_dim, feature_dim]);
 
 % Number of samples in the classes
@@ -121,6 +144,11 @@ n = arrayfun( @(c) sum(clabel==c) , 1:nclasses);
 
 % indicates whether the data represents kernel matrices
 mv_set_default(cfg,'is_kernel_matrix', isfield(cfg.param,'kernel') && strcmp(cfg.param.kernel,'precomputed'));
+
+% generalization does not work together with precomputed kernel matrices
+if cfg.is_kernel_matrix && ~isempty(gen_dim)
+    error('generalization does not work together with precomputed kernel matrices')
+end
 
 if cfg.feedback, mv_print_classification_info(cfg,X,clabel); end
 
@@ -132,55 +160,96 @@ elseif (numel(sample_dim) == 2) && (~cfg.is_kernel_matrix)
     error('there is 2 sample dimensions given but the kernel is not specified to be precomputed (set cfg.param.kernel=''precomputed'')')
 elseif numel(sample_dim) == 2  &&  numel(feature_dim)>1
     error('if there is 2 samples dimensions you must set cfg.feature_dimensions=[]')
+elseif numel(gen_dim) > 1
+    % check generalization dimensions
+    error('There can be at most one generalization dimension')
 end
 
 % check whether dimensions are different and add up to ndims(X)
-sam_feat_gen_dims = sort([sample_dim, feature_dim, generalization_dim]);
+sam_feat_gen_dims = sort([sample_dim, feature_dim, gen_dim]);
 if numel(unique(sam_feat_gen_dims)) < numel(sam_feat_gen_dims)
     error('sample_dimension, feature_dimension, and generalization_dimension must be different from each other')
 end
 
-% check generalization dimensions
-if numel(generalization_dim) > 1
-    error('There should be at most one generalization dimension')
+%% check neighbours parameters
+has_neighbours = ~isempty(cfg.neighbours);
+
+if has_neighbours && (numel(cfg.neighbours) ~= numel(search_dim))
+    error('If any neighbourhood matrix is given, you must specify a matrix for every search dimension')
 end
 
-%% order the dimensions by samples -> searchlight dimensions -> features
+if has_neighbours && numel(gen_dim)>0
+    error('Searchlight and generalization are currently not supported simultaneously')
+end
+%% order the dimensions by samples -> search dimensions -> features
+
+% the generalization dimension should be the first of the search dimensions,
+% if it is not then permute the dimensions accordingly
+if ~isempty(gen_dim) && (search_dim(end) ~= gen_dim)
+    ix = ismember(search_dim, gen_dim);
+    search_dim(ix) = search_dim(end);
+    search_dim(end) = gen_dim;
+end
 
 % permute X and dimension names
-X = permute(X, [sample_dim, feature_dim, search_dim]);
-cfg.dimension_names = cfg.dimension_names([sample_dim, feature_dim, search_dim]);
+X = permute(X, [sample_dim, search_dim, feature_dim]);
+cfg.dimension_names = cfg.dimension_names([sample_dim, search_dim, feature_dim]);
 
-% adapt the dimensions accordingly
+% adapt the dimensions to reflect the permuted X
 sample_dim = 1:numel(sample_dim);
-feature_dim = (1:numel(feature_dim))+sample_dim(end);
-search_dim = (1:numel(search_dim))+sample_dim(end)+numel(feature_dim);
+search_dim = (1:numel(search_dim))  + numel(sample_dim);
+feature_dim = (1:numel(feature_dim))+ numel(sample_dim) + numel(search_dim);
+if ~isempty(gen_dim), gen_dim = search_dim(end); end
 
-%% flatten features if necessary
+%% flatten features to one dimension if requested
 if numel(feature_dim) > 1 && cfg.flatten_features
-    sz = size(X);
-    all_feat = prod(sz(feature_dim));
-    X = reshape(X, [sz(sample_dim), sz(search_dim), all_feat]);
+    sz_search = size(X);
+    all_feat = prod(sz_search(feature_dim));
+    X = reshape(X, [sz_search(sample_dim), all_feat, sz_search(search_dim)]);
     % also flatten dimension names
     cfg.dimension_names{feature_dim(1)} = strjoin(cfg.dimension_names(feature_dim),'/');
     cfg.dimension_names(feature_dim(2:end)) = [];
-    feature_dim = sample_dim+1;
-    search_dim = (1:numel(search_dim)) + feature_dim;
+    feature_dim = feature_dim(1);
 end
 
 %% Get train and test functions
 train_fun = eval(['@train_' cfg.classifier]);
 test_fun = eval(['@test_' cfg.classifier]);
 
-% Define searchlight dimension
-sz = size(X);
-sz = sz(setdiff(search_dim,gen_dim));
-if isempty(sz), sz = 1; end
+% Define search dimension
+sz_search = size(X);
+sz_search = sz_search(search_dim);
+if isempty(sz_search), sz_search = 1; end
+% sz_sample = size(X);
+% sz_sample = sz_sample(sample_dim);
+% sz_feature = size(X);
+% sz_feature = sz_feature(sample_dim);
 
-% dim_skip helps us access the searchlight dimensions by skipping the
-% sample and feature dimensions
-sample_skip = repmat({':'},[1, numel([sample_dim, feature_dim])] );
-sample_skip = repmat({':'},[1, numel([sample_dim, feature_dim])] );
+% sample_skip and feature_skip helps us access the search dimensions by 
+% skipping over sample and feature dimensions
+% sample_skip = repmat({':'},[1, numel([sample_dim, feature_dim])] );
+sample_skip = repmat({':'},[1, numel(sample_dim)] );
+feature_skip = repmat({':'},[1, numel(feature_dim)] );
+
+%% Create all combinations of elements in the search dimensions
+if isempty(search_dim)
+    % no search dimensions, we just perform cross-validation once
+    dim_loop = {':'};
+else
+    len_loop = prod(sz_search);
+    dim_loop = zeros(numel(sz_search), len_loop);
+    for rr = 1:numel(sz_search)  % row
+        seq = repelem(1:sz_search(rr), prod(sz_search(1:rr-1)));
+        dim_loop(rr, :) = repmat(seq, [1, len_loop/numel(seq)]);
+    end
+    
+    % to use dim_loop for indexing, we need to convert it to a cell array
+    dim_loop = num2cell(dim_loop);
+end
+
+nfeat = size(X);
+nfeat = nfeat(feature_dim);
+if isempty(nfeat), nfeat = 1; end
 
 %% Perform classification
 if ~strcmp(cfg.cv,'none') 
@@ -188,7 +257,7 @@ if ~strcmp(cfg.cv,'none')
     % Perform cross-validation
 
     % Initialise classifier outputs
-    cf_output = cell([cfg.repeat, cfg.k, sz]);
+    cf_output = cell([cfg.repeat, cfg.k, sz_search]);
     testlabel = cell([cfg.repeat, cfg.k]);
     
     for rr=1:cfg.repeat                 % ---- CV repetitions ----
@@ -211,30 +280,78 @@ if ~strcmp(cfg.cv,'none')
                 [~, Xtest, testlabel{rr,kk}] = mv_preprocess(tmp_cfg, Xtest, testlabel{rr,kk});
             end
             
-            for ss=1:
-            
-            
-            % ---- Generalization ---- (eg time x time)
-            % Instead of looping through the generalization dimension, we
-            % reshape the data and apply the classifier to all elements at
-            % once.
-            if any(generalization_dim)
-                % permute and reshape into [ (trials x test times) x features]
-                Xtest= permute(Xtest, [1 3 2]);
-                Xtest= reshape(Xtest, numel(testlabel{rr,kk})*nTime2, []);
+            if ~isempty(gen_dim)
+                % ---- Generalization ---- (eg time x time)
+                % Instead of looping through the generalization dimension,
+                % which would require an additional loop, we reshape the test
+                % data and apply the classifier to all elements of the
+                % generalization dimension at once
+                
+                % permute dimensions such that gen dim is the first search
+                % dimension
+                p = 1:ndims(X);  p(gen_dim) = 2;  p(2) = gen_dim;
+                Xtest = permute(Xtest, p);
+                
+                % reshape samples x gen dim into one dimension
+                sz_search = size(Xtest);
+                Xtest = reshape(Xtest, [sz_search(1)*sz_search(2), sz_search(3:end)]);
             end
             
-            % ---- Training time ----
-            for ix=1:prod(sz)
+            % Remember sizes
+            sz_Xtrain = size(Xtrain);
+            sz_Xtest = size(Xtest);
+            
 
-                % Training data for time point t1
-                Xtrain_ix= squeeze(Xtrain(sample_skip{:},ix));
+            for ix = dim_loop                       % ---- search dimensions ----
+                                
+                
+                % Training data for current search position
+                if has_neighbours
+                    % --- searchlight --- define neighbours for current iteration
+                    ix_nb = cellfun( @(N,f) find(N(f,:)), cfg.neighbours, ix, 'Un',0);
+                    % train data
+                    Xtrain_ix = Xtrain(sample_skip{:}, ix_nb{:}, feature_skip{:});
+                    Xtrain_ix = reshape(Xtrain_ix, [sz_Xtrain(sample_dim), prod(cellfun(@numel, ix_nb)) * nfeat]);
+                    % test data
+                    Xtest_ix = squeeze(Xtest(sample_skip{:}, ix_nb{:}, feature_skip{:}));
+                    Xtest_ix = reshape(Xtest_ix, [sz_Xtest(sample_dim), prod(cellfun(@numel, ix_nb)) * nfeat]);
+                else
+                    if isempty(gen_dim),    ix_test = ix;
+                    else                    ix_test = ix(1:end-1);
+                    end
+                    Xtrain_ix = squeeze(Xtrain(sample_skip{:}, ix{:}, feature_skip{:}));
+                    Xtest_ix = squeeze(Xtest(sample_skip{:}, ix_test{:}, feature_skip{:}));
+                end
                 
                 % Train classifier
                 cf= train_fun(cfg.param, Xtrain_ix, trainlabel);
 
                 % Obtain classifier output (labels, dvals or probabilities)
-                cf_output{rr,kk,ix} = reshape( mv_get_classifier_output(cfg.output_type, cf, test_fun, Xtest), numel(testlabel{rr,kk}),[]);
+                if isempty(gen_dim)
+                    cf_output{rr,kk,ix{:}} = mv_get_classifier_output(cfg.output_type, cf, test_fun, Xtest_ix);
+                else
+                    % we have to reshape classifier output back
+                    cf_output{rr,kk,ix{:}} = reshape( mv_get_classifier_output(cfg.output_type, cf, test_fun, Xtest_ix), numel(testlabel{rr,kk}),[]);
+                end
+                
+%                 if isempty(gen_dim)
+%                     % no generalization, just get test data for current
+%                     % search point
+%                     
+%                     % Obtain classifier output (labels, dvals or probabilities)
+%                     cf_output{rr,kk,ix{:}} = mv_get_classifier_output(cfg.output_type, cf, test_fun, Xtest_ix);
+% 
+%                 else
+%                     % ---- Generalization ---- (eg time x time)
+%                     % Instead of looping through the generalization dimension,
+%                     % which would required an additional loop, we
+%                     % reshape the data and apply the classifier to all elements at
+%                     % once.
+%                     Xtest_ix = squeeze(Xtest(sample_skip{:}, ix_test{:}, feature_skip{:}));
+% 
+%                     % Obtain classifier output (labels, dvals or probabilities)
+%                     cf_output{rr,kk,ix{:}} = reshape( mv_get_classifier_output(cfg.output_type, cf, test_fun, Xtest_ix), numel(testlabel{rr,kk}),[]);
+%                 end
             end
 
         end
@@ -248,6 +365,8 @@ elseif strcmp(cfg.cv,'none')
     % -------------------------------------------------------
     % No cross-validation
     
+    
+    %%% --- todo --
     if cfg.feedback
         fprintf('Training and testing on the same dataset (note: this can lead to overfitting).\n')
     end
@@ -256,15 +375,14 @@ elseif strcmp(cfg.cv,'none')
     [~, X, clabel] = mv_preprocess(cfg, X, clabel);
 
     % Initialise classifier outputs
-    cf_output = cell(1, 1, nTime1);
+    cf_output = cell(1, 1, sz_search);
 
     % permute and reshape into [ (trials x test times) x features]
     Xtest= permute(X, [1 3 2]);
     Xtest= reshape(Xtest, size(X,1)*nTime1, []);
     % permute and reshape into [ (trials x test times) x features]
   
-    % ---- Training time ----
-    for ix=1:nTime1
+    for ix = dim_loop            % ---- search dimensions ----
 
         % Training data for time point t1
         Xtrain= squeeze(X(:,:,ix));

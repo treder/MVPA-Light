@@ -25,9 +25,52 @@ acc1 = mv_crossvalidate(cfg, X, clabel);
 
 % mv_crossvalidate
 rng(42)
+cfg.sample_dimension = 1;
+cfg.feature_dimension = 2;
 acc2 = mv_classify(cfg, X, clabel);
 
 print_unittest_result('compare to mv_crossvalidate', acc1, acc2, tol);
+
+%% Check different metrics and classifiers -- just run to see if there's errors (use 5 dimensions with 3 search dims)
+X = randn(12, 5, 3, 4, 2);
+clabel = ones(size(X,1), 1); 
+clabel(ceil(end/2):end) = 2;
+
+cfg = [];
+cfg.sample_dimension     = 1;
+cfg.feature_dimension    = 2;
+% % cfg.generalization_dimension = 4;
+cfg.metric = 'acc';
+
+cfg.feedback = 0;
+
+for metric = {'acc','auc','f1','precision','recall','confusion','tval','dval'}
+    for classifier = {'lda', 'logreg', 'multiclass_lda', 'svm', 'ensemble','kernel_fda'}
+        if strcmp(classifier{:},'multiclass_lda') && any(ismember(metric, {'tval','dval','auc'}))
+            continue
+        end
+        fprintf('%s - %s\n', metric{:}, classifier{:})
+        
+        cfg.metric      = metric{:};
+        cfg.classifier  = classifier{:};
+        tmp = mv_classify(cfg, X, clabel);
+    end
+end
+
+
+
+%% 4 dimensions with 2 search dims
+X = randn(19, 2, 3, 40);
+sz = size(X);
+clabel = ones(size(X,1), 1); 
+clabel(ceil(end/2):end) = 2;
+
+cfg = [];
+cfg.sample_dimension     = 1;
+cfg.feature_dimension    = 2;
+cfg.generalization_dimension = 4;
+
+perf = mv_classify(cfg, X, clabel);
 
 %% compare to mv_classify_across_time
 nsamples = 50;
