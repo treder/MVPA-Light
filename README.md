@@ -58,7 +58,7 @@ In order to learn which features in the data discriminate between the experiment
 
 Classifier performance is evaluated on a dataset called *test data*. To this end, the classifier is applied to samples from the test data. The class label predicted by the classifier can then be compared to the true class label in order to quantify classification performance. All test functions start with `test_` (e.g. [`test_lda`](classifier/test_lda.m)).
 
-#### Classifiers for two classes
+#### Classifiers for two classes <a name="classifiers"></a>
 
 * [`lda`](classifier/train_lda.m): Regularised Linear Discriminant Analysis (LDA). LDA searches for a projection of the data into 1D such that the class means are separated as far as possible and the within-class variability is as small as possible. To counteract overfitting, ridge regularisation and shrinkage regularisation are available. In shrinkage, the regularisation parameter λ (lambda) rankges from λ=0 (no regularisation) to λ=1 (maximum regularisation). It can also be set to 'auto' to have λ be estimated automatically. For more details on regularised LDA see [[Bla2011]](#Bla2011). LDA has been shown to be formally equivalent to LCMV beamforming and it can be used for recovering time series of ERP sources [[Tre2011]](#Tre2011). See [`train_lda`](classifier/train_lda.m) for a full description of the parameters.
 * [`logreg`](classifier/train_logreg.m): Logistic regression (LR). LR directly models class probabilities by fitting a logistic function to the data. Like LDA, LR is a linear classifier and hence its operation is expressed by a weight vector w and a bias b. By default, *logf* regularisation is used to prevent overfitting. It is implemented by data augmentation and  does not require hyperparameters. Alternatively, L2-regularisation can be used. It requires setting a positive but unbounded parameter λ (lambda) that controls the L2-penalisation of the classifier weights. It can also be set to 'auto'. In this case, different λ's are tried out using a searchgrid; the value of λ maximising cross-validation performance is then used for training on the full dataset. See [`train_logreg`](classifier/train_logreg.m) for a full description of the parameters.
@@ -80,7 +80,7 @@ Classifier performance is evaluated on a dataset called *test data*. To this end
 
 * [`liblinear`](classifier/train_liblinear.m)<a name="liblinear"></a>  : interface for the excellent [LIBLINEAR](https://www.csie.ntu.edu.tw/~cjlin/liblinear/) toolbox for linear SVM and logistic regression. Just as LIBSVM, it is fast due to usage of compiled C code. Follow the installation and compilation instructions on the [LIBLINEAR website](https://www.csie.ntu.edu.tw/~cjlin/liblinear/) and the [GitHub repository](https://github.com/cjlin1/liblinear). Refer to [`train_liblinear`](classifier/train_liblinear.m) to see how to call LIBLINEAR in `MVPA-Light`.
 
-#### Cross-validation
+#### Cross-validation <a name="cv"></a>
 
 To obtain a realistic estimate of classifier performance and control for overfitting, a classifier should be tested on an independent dataset that has not been used for training. In most neuroimaging experiments, there is only one dataset with a restricted number of trials. *K-fold cross-validation* makes efficient use of this data by splitting it into k different folds. In each iteration, one of the k folds is held out and used as test set, whereas all other folds are used for training. This is repeated until every fold has been used as test set once. See [[Lemm2011]](#Lemm2011) for a discussion of cross-validation and potential pitfalls. Cross-validation is implemented in [`mv_crossvalidate`](mv_crossvalidate.m). Note that the more specialised functions [`mv_classify_across_time`](mv_classify_across_time.m), [`mv_classify_timextime`](mv_classify_timextime.m) and [`mv_searchlight`](mv_searchlight.m) implement cross-validation too. Cross-validation is always controlled by the following parameters:
 
@@ -103,11 +103,11 @@ Classification across time does not give insight into whether information is sha
 
 Which features contribute most to classification performance? The answer to this question can be used to better interpret the data or to perform feature selection. To this end, [`mv_searchlight`](mv_searchlight.m) performs cross-validated classification for each feature separately. If there is a spatial structure in the features (e.g. neighbouring eletrodes, neighbouring voxels), groups of features rather than single features can be considered. The result is a classification performance measure for each feature. If the features are e.g. channels, the result can be plotted as a topography.
 
-#### Hyperparameter
+#### Hyperparameter <a name="hyperparameter"></a>
 
 The hyperparameter for each classifier can be controlled using the `cfg.param` field before calling any of the above functions. To this end, initialise the field using `cfg.param = []`. Then, add the desired parameters, e.g. `cfg.param.lambda = 0.5` for setting the regularisation parameter or `cfg.param.kernel = 'polynomial'` for defining the kernel in SVM. The hyperparameters for each classifier are specified in the documentation for each train_ function in the folder [`classifier`](classifier/).
 
-#### Classifier performance metrics
+#### Classifier performance metrics <a name="metrics"></a>
 
 Classifier output comes in form of decision values (=distances to the hyperplane for linear methods) or directly in form of class labels. However,  one is often only interested in a performance metric that summarises how well the classifier discriminates between the classes. The following metrics can be calculated by the function [`mv_calculate_performance`](utils/mv_calculate_performance.m):
 
