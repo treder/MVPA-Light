@@ -104,15 +104,17 @@ cfg = [];
 cfg.feedback = 0;
 
 for metric = {'acc','auc','f1','precision','recall','confusion','tval','dval'}
-    for classifier = {'lda', 'logreg', 'multiclass_lda', 'svm', 'ensemble'}
-        if strcmp(classifier{:},'multiclass_lda') && any(ismember(metric, {'tval','dval','auc'}))
+    for classifier = {'lda', 'logreg', 'multiclass_lda', 'svm', 'ensemble','kernel_fda'}
+        if any(ismember(classifier,{'kernel_fda' 'multiclass_lda'})) && any(ismember(metric, {'tval','dval','auc'}))
             continue
         end
         fprintf('%s - %s\n', metric{:}, classifier{:})
         
         cfg.metric      = metric{:};
         cfg.classifier  = classifier{:};
-        tmp = mv_classify_across_time(cfg, X, clabel);
+        cfg.k           = 5;
+        cfg.repeat      = 1;
+        tmp = mv_classify_across_time(cfg, X2, clabel);
     end
 end
 

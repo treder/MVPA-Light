@@ -69,3 +69,22 @@ actual = mv_crossvalidate(cfg, X, clabel);
 expect = 1;
 
 print_unittest_result('[5 classes] CV for well-separated data',expect, actual, tol);
+
+%% Check different metrics and classifiers -- just run to see if there's errors
+cfg = [];
+cfg.feedback = 0;
+
+for metric = {'acc','auc','f1','precision','recall','confusion','tval','dval'}
+    for classifier = {'lda', 'logreg', 'multiclass_lda', 'svm', 'ensemble','kernel_fda'}
+        if any(ismember(classifier,{'kernel_fda' 'multiclass_lda'})) && any(ismember(metric, {'tval','dval','auc'}))
+            continue
+        end
+        fprintf('%s - %s\n', metric{:}, classifier{:})
+        
+        cfg.metric      = metric{:};
+        cfg.classifier  = classifier{:};
+        cfg.k           = 5;
+        cfg.repeat      = 1;
+        tmp = mv_crossvalidate(cfg, X, clabel);
+    end
+end

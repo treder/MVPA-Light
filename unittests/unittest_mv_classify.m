@@ -31,9 +31,72 @@ acc2 = mv_classify(cfg, X, clabel);
 
 print_unittest_result('compare to mv_crossvalidate', acc1, acc2, tol);
 
+%% compare to mv_classify_across_time
+nsamples = 50;
+ntime = 100;
+nfeatures = 10;
+nclasses = 2;
+prop = [];
+scale = 0.0001;
+do_plot = 0;
+
+% Generate data
+X2 = zeros(nsamples, nfeatures, ntime);
+[~,clabel] = simulate_gaussian_data(nsamples, nfeatures, nclasses, prop, scale, do_plot);
+
+for tt=1:ntime
+    X2(:,:,tt) = simulate_gaussian_data(nsamples, nfeatures, nclasses, prop, scale, do_plot);
+end
+
+% mv_classify_across_time
+rng(21)   % reset rng to get the same random folds
+cfg = [];
+cfg.feedback = 0;
+acc1 = mv_classify_across_time(cfg, X2, clabel);
+
+% mv_classify
+rng(21)   % reset rng to get the same random folds
+cfg.sample_dimension = 1;
+cfg.feature_dimension = 2;
+acc2 = mv_classify(cfg, X2, clabel);
+
+print_unittest_result('compare to mv_classify_across_time', 0, norm(acc1-acc2), tol);
+
+%% compare to mv_classify_timextime
+
+% mv_classify_timextime
+rng(22)
+cfg = [];
+cfg.feedback = 0;
+acc1 = mv_classify_timextime(cfg, X2, clabel);
+
+% mv_classify
+rng(22)
+cfg.sample_dimension = 1;
+cfg.feature_dimension = 2;
+cfg.generalization_dimension = 3;
+acc2 = mv_classify(cfg, X2, clabel);
+
+print_unittest_result('compare to mv_classify_timextime', 0, norm(acc1-acc2), tol);
+
+%% compare to mv_searchlight
+
+% mv_classify_timextime
+rng(22)
+cfg = [];
+cfg.feedback = 0;
+acc1 = mv_searchlight(cfg, X, clabel);
+
+% mv_classify
+rng(22)
+cfg.sample_dimension = 1;
+acc2 = mv_classify(cfg, X, clabel);
+
+print_unittest_result('compare to mv_searchlight', 0, norm(acc1-acc2), tol);
+
 %% Check different metrics and classifiers -- just run to see if there's errors (use 5 dimensions with 3 search dims)
-X = randn(12, 5, 3, 4, 2);
-clabel = ones(size(X,1), 1); 
+X2 = randn(12, 5, 3, 4, 2);
+clabel = ones(size(X2,1), 1); 
 clabel(ceil(end/2):end) = 2;
 
 cfg = [];
@@ -46,105 +109,49 @@ cfg.feedback = 0;
 
 for metric = {'acc','auc','f1','precision','recall','confusion','tval','dval'}
     for classifier = {'lda', 'logreg', 'multiclass_lda', 'svm', 'ensemble','kernel_fda'}
-        if strcmp(classifier{:},'multiclass_lda') && any(ismember(metric, {'tval','dval','auc'}))
+        if any(ismember(classifier,{'kernel_fda' 'multiclass_lda'})) && any(ismember(metric, {'tval','dval','auc'}))
             continue
         end
         fprintf('%s - %s\n', metric{:}, classifier{:})
         
         cfg.metric      = metric{:};
         cfg.classifier  = classifier{:};
-        tmp = mv_classify(cfg, X, clabel);
+        cfg.k           = 5;
+        cfg.repeat      = 1;
+        tmp = mv_classify(cfg, X2, clabel);
     end
 end
 
+%% Check whether output dimensions are correct
 
-
-%% 4 dimensions with 2 search dims
-X = randn(19, 2, 3, 40);
-sz = size(X);
-clabel = ones(size(X,1), 1); 
+% 4 input dimensions with 2 search dims
+sz = [19, 2, 3, 40];
+X2 = randn(sz);
+clabel = ones(sz(1), 1); 
 clabel(ceil(end/2):end) = 2;
 
 cfg = [];
 cfg.sample_dimension     = 1;
-cfg.feature_dimension    = 2;
-cfg.generalization_dimension = 4;
+cfg.feature_dimension    = 3;
 
-perf = mv_classify(cfg, X, clabel);
+perf = mv_classify(cfg, X2, clabel);
+szp = size(perf);
 
-%% compare to mv_classify_across_time
-nsamples = 50;
-ntime = 100;
-nfeatures = 10;
-nclasses = 2;
-prop = [];
-scale = 0.0001;
-do_plot = 0;
+print_unittest_result('is size(perf) correct for 4 input dimensions?', 0, norm(szp - sz([2,4])), tol);
 
-% Generate data
-X = zeros(nsamples, nfeatures, ntime);
-[~,clabel] = simulate_gaussian_data(nsamples, nfeatures, nclasses, prop, scale, do_plot);
 
-for tt=1:ntime
-    X(:,:,tt) = simulate_gaussian_data(nsamples, nfeatures, nclasses, prop, scale, do_plot);
-end
-
-% mv_classify_across_time
-cfg = [];
-cfg.feedback = 0;
-acc1 = mv_classify_timextime(cfg, X, clabel);
-
-% mv_classify
-cfg.sample_dimension = 1;
-cfg.feature_dimension = 2;
-acc2 = mv_classify(cfg, X, clabel);
-
-print_unittest_result('correlate with mv_classify_across_time', 1, corr(acc1,acc2), tol);
-
-%% Create a dataset where classes can be perfectly discriminated for only some time points [4 classes]
-nsamples = 100;
-ntime = 100;
-nfeatures = 10;
-nclasses = 4;
-prop = [];
-scale = 0.0001;
-do_plot = 0;
-
-can_discriminate = 30:60;
-cannot_discriminate = setdiff(1:ntime, can_discriminate);
-
-% Generate data
-X = zeros(nsamples, nfeatures, ntime);
-[~,clabel] = simulate_gaussian_data(nsamples, nfeatures, nclasses, prop, scale, do_plot);
-
-for tt=1:ntime
-    if ismember(tt, can_discriminate)
-        scale = 0.0001;
-        if tt==can_discriminate(1)
-            [X(:,:,tt),~,~,M]  = simulate_gaussian_data(nsamples, nfeatures, nclasses, prop, scale, do_plot);
-        else
-            % reuse the class centroid to make sure that the performance
-            % generalises
-            X(:,:,tt)  = simulate_gaussian_data(nsamples, nfeatures, nclasses, prop, scale, do_plot, M);
-        end
-    else
-        scale = 10e1;
-        X(:,:,tt) = simulate_gaussian_data(nsamples, nfeatures, nclasses, prop, scale, do_plot);
-    end
-end
+% 5 input dimensions with 2 search dims + 1 generalization dim
+sz = [20, 4, 10, 2, 3];
+X2 = randn(sz);
+clabel = ones(sz(1), 1); 
+clabel(ceil(end/2):end) = 2;
 
 cfg = [];
-cfg.feedback = 0;
-cfg.classifier = 'multiclass_lda';
+cfg.sample_dimension     = 5;
+cfg.feature_dimension    = 1;
+% cfg.generalization_dimension = 4;
 
-acc = mv_classify_timextime(cfg, X, clabel);
+perf = mv_classify(cfg, X2, clabel);
+perf 
 
-% performance should be around 100% for the discriminable time points, and
-% around 25% for the non-discriminable ones
-acc_discriminable = mean(mean( acc(can_discriminate, can_discriminate)));
-acc_nondiscriminable = mean(mean( acc(cannot_discriminate, cannot_discriminate)));
-
-tol = 0.03;
-print_unittest_result('[4 classes] CV discriminable times = 1?', 1, acc_discriminable, tol);
-print_unittest_result('[4 classes] CV non-discriminable times = 0.5?', 0.25, acc_nondiscriminable, tol);
 
