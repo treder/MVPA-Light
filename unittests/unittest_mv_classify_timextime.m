@@ -102,3 +102,33 @@ tol = 0.03;
 print_unittest_result('[4 classes] CV discriminable times = 1?', 1, acc_discriminable, tol);
 print_unittest_result('[4 classes] CV non-discriminable times = 0.5?', 0.25, acc_nondiscriminable, tol);
 
+%% Check different metrics and classifiers -- just run to see if there's errors
+nsamples = 60;
+ntime = 2;
+nfeatures = 10;
+nclasses = 2;
+prop = [];
+scale = 0.0001;
+do_plot = 0;
+
+% Generate data
+[X,clabel] = simulate_gaussian_data(nsamples, nfeatures, nclasses, prop, scale, do_plot);
+X(:,:,2) = X;
+
+cfg = [];
+cfg.feedback = 0;
+
+for metric = {'acc','auc','f1','precision','recall','confusion','tval','dval'}
+    for classifier = {'lda', 'logreg', 'multiclass_lda', 'svm', 'ensemble','kernel_fda'}
+        if any(ismember(classifier,{'kernel_fda' 'multiclass_lda'})) && any(ismember(metric, {'tval','dval','auc'}))
+            continue
+        end
+        fprintf('%s - %s\n', metric{:}, classifier{:})
+        
+        cfg.metric      = metric{:};
+        cfg.classifier  = classifier{:};
+        cfg.k           = 5;
+        cfg.repeat      = 1;
+        tmp = mv_classify_timextime(cfg, X2, clabel);
+    end
+end
