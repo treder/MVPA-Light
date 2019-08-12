@@ -99,7 +99,7 @@ end
 %% Solve generalised eigenvalue problem to obtain discriminative subspace
 [W,D] = eig(Sb, Sw, 'vector');
 [~, so] = sort(D,'descend');
-W = W(:,so(1:nclasses-1));
+W = W(:,so(1:min(nclasses, nfeatures+1)-1));
 
 % Columns of W need to be scaled correctly such that it turns Sw into identity
 W  = W * diag(1./sqrt(diag(W'*Sw*W)));
