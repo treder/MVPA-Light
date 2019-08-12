@@ -124,7 +124,9 @@ mv_set_default(cfg,'flatten_features',1);
 mv_set_default(cfg,'dimension_names',strcat('dim', arrayfun(@(x) {num2str(x)}, 1:ndims(X))));
 
 mv_set_default(cfg,'neighbours',{});
+if isempty(cfg.neighbours), cfg.neighbours = {}; end  % replace [] by {}
 if ~iscell(cfg.neighbours), cfg.neighbours = {cfg.neighbours}; end
+cfg.neighbours = cfg.neighbours(:);  % make sure it's a column vector
 
 mv_set_default(cfg,'preprocess',{});
 mv_set_default(cfg,'preprocess_param',{});
@@ -205,7 +207,7 @@ if ~isempty(gen_dim), gen_dim = search_dim(end); end
 if numel(feature_dim) > 1 && cfg.flatten_features
     sz_search = size(X);
     all_feat = prod(sz_search(feature_dim));
-    X = reshape(X, [sz_search(sample_dim), all_feat, sz_search(search_dim)]);
+    X = reshape(X, [sz_search(sample_dim), sz_search(search_dim), all_feat]);
     % also flatten dimension names
     cfg.dimension_names{feature_dim(1)} = strjoin(cfg.dimension_names(feature_dim),'/');
     cfg.dimension_names(feature_dim(2:end)) = [];
@@ -301,7 +303,6 @@ if ~strcmp(cfg.cv,'none')
             sz_Xtrain = size(Xtrain);
             sz_Xtest = size(Xtest);
             
-
             for ix = dim_loop                       % ---- search dimensions ----
                                 
                 
@@ -317,7 +318,7 @@ if ~strcmp(cfg.cv,'none')
                     Xtest_ix = reshape(Xtest_ix, [sz_Xtest(sample_dim), prod(cellfun(@numel, ix_nb)) * nfeat]);
                 else
                     if isempty(gen_dim),    ix_test = ix;
-                    else                    ix_test = ix(1:end-1);
+                    else,                   ix_test = ix(1:end-1);
                     end
                     Xtrain_ix = squeeze(Xtrain(sample_skip{:}, ix{:}, feature_skip{:}));
                     Xtest_ix = squeeze(Xtest(sample_skip{:}, ix_test{:}, feature_skip{:}));
