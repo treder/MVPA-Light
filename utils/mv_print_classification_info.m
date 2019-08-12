@@ -28,7 +28,7 @@ if nargin <= 3
     % Print data information
     nclasses = max(clabel);
     if nargin>1 
-        dimensions = arrayfun(@(x,y) sprintf('%d %s, ', x, y{:}), size(X), cfg.dimension_names, 'Un', 0);
+        dimensions = arrayfun(@(x,y) sprintf('%d %s, ', x, y{:}), size(X), cfg.dimension_names(:)', 'Un', 0);
         fprintf('Data has %sand %d classes.\n', [dimensions{:}], nclasses)
     end
     
@@ -66,7 +66,7 @@ else
     % Dataset 2
     nclasses2 = max(clabel2);
     if nargin>1
-        dimensions = arrayfun(@(x,y) sprintf('%d %s, ', x, y{:}), size(X2), cfg.dimension_names, 'Un', 0);
+        dimensions = arrayfun(@(x,y) sprintf('%d %s, ', x, y{:}), size(X2), cfg.dimension_names(:)', 'Un', 0);
         fprintf('Dataset 2 has %sand %d classes.\n', [dimensions{:}], nclasses2)
     end
 
