@@ -74,10 +74,10 @@ scale = 0;
 [X_spiral, clabel_spiral] = simulate_spiral_data(N, nrevolutions, nclasses, prop, scale, 0);
 
 %%% LINEAR kernel: cross-validation
-cfg              = [];
-cfg.classifier   = 'liblinear';
-cfg.param        = [];
-cfg.feedback     = 0;
+cfg                 = [];
+cfg.classifier      = 'liblinear';
+cfg.hyperparameter  = [];
+cfg.feedback        = 0;
 
 acc_linear = mv_crossvalidate(cfg, X_spiral, clabel_spiral);
 

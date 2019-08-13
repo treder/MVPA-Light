@@ -39,7 +39,7 @@ function cf = train_ensemble(param,X,clabel)
 %                     Any classifier with train and test functions can
 %                     serve as a learner.
 % .learner_param    - struct with further parameters passed on to the learning
-%                     algorithm (e.g. cfg.param.learner_param.lambda specifies the
+%                     algorithm (e.g. cfg.hyperparameter.learner_param.lambda specifies the
 %                     regularisation hyperparameter for LDA)
 % .simplify         - for linear classifiers, the operation of the ensemble
 %                     is again equivalent to a single linear classifier.

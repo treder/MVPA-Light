@@ -141,10 +141,10 @@ kparam.regularize_kernel = 10e-1;
 K = compute_kernel_matrix(kparam, dat2.trial);
 
 cfg = [];
-cfg.metric          = 'auc';
-cfg.classifier      = 'svm'; % 'kernel_fda'
-cfg.param           = [];
-cfg.param.kernel    = 'precomputed'; % indicate that the kernel matrix is precomputed
+cfg.metric                  = 'auc';
+cfg.classifier              = 'svm'; % 'kernel_fda'
+cfg.hyperparameter          = [];
+cfg.hyperparameter.kernel   = 'precomputed'; % indicate that the kernel matrix is precomputed
 % cfg.preprocess      = 'average_kernel';
 
 group_sizes = [1, 5];

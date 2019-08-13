@@ -63,10 +63,10 @@ cf = train_kernel_fda(param, squeeze(K(:,:,30)), clabel);
 cfg = [] ;
 cfg.classifier  = 'kernel_fda';
 cfg.metric      = 'acc';
-cfg.param       = [];
+cfg.hyperparameter       = [];
 
-cfg.param.kernel = 'rbf';
-cfg.param.gamma  = 0.0333;
+cfg.hyperparameter.kernel = 'rbf';
+cfg.hyperparameter.gamma  = 0.0333;
 
 tic
 [perf, res] = mv_classify_across_time(cfg, dat.trial, clabel);
@@ -77,8 +77,8 @@ cfg = [] ;
 cfg.classifier  = 'kernel_fda';
 cfg.metric      = 'acc';
 
-cfg.param       = [];
-cfg.param.kernel = 'precomputed';
+cfg.hyperparameter       = [];
+cfg.hyperparameter.kernel = 'precomputed';
 
 tic
 [perf, res2] = mv_classify_across_time(cfg, K, clabel);
@@ -91,8 +91,8 @@ cfg = [] ;
 cfg.classifier  = 'kernel_fda';
 cfg.metric      = 'acc';
 
-cfg.param       = [];
-cfg.param.kernel = 'precomputed';
+cfg.hyperparameter       = [];
+cfg.hyperparameter.kernel = 'precomputed';
 
 [perf, res_av] = mv_classify_across_time(cfg, K_average, clabel_average);
 
@@ -103,8 +103,8 @@ cfg = [] ;
 cfg.classifier  = 'kernel_fda';
 cfg.metric      = 'acc';
 
-cfg.param       = [];
-cfg.param.kernel = 'precomputed';
+cfg.hyperparameter       = [];
+cfg.hyperparameter.kernel = 'precomputed';
 
 cfg.preprocess          = 'average_samples';
 cfg.preprocess_param    = [];

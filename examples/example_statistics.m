@@ -2,6 +2,9 @@
 %%% using the function mv_statistics. We will analyse the results of the
 %%% four major functions mv_crossvalidate, mv_classify_across_time,
 %%% mv_classify_timextime, and mv_searchlight.
+
+%%% TODO
+
 clear all
 
 % Load data (in /examples folder)
@@ -15,8 +18,7 @@ clear all
 % automatically.
 cfg =  [];
 cfg.classifier = 'lda';
-cfg.param      = struct('lambda','auto');
-cfg.normalise  = 'demean';  % 'demean' 'none'
+cfg.hyperparameter      = struct('lambda','auto');
 cfg.metric     = 'acc';
 
 [acc, result_acc] = mv_classify_timextime(cfg, dat.trial, clabel);
@@ -45,24 +47,6 @@ mv_plot_2D(cfg, auc);
 colormap jet
 title('AUC')
 
-%% Compare accuracy/AUC when no normalisation is performed
-ccfg.normalise  = 'none';
-ccfg.metric     = 'acc';
-acc = mv_classify_timextime(ccfg, dat.trial, clabel);
-
-ccfg.metric     = 'auc';
-auc = mv_classify_timextime(ccfg, dat.trial, clabel);
-
-figure
-mv_plot_2D(cfg, acc);
-colormap jet
-title('Accuracy')
-
-figure
-mv_plot_2D(cfg, auc);
-colormap jet
-title('AUC')
-
 %% Generalisation with two datasets
 % The classifier is trained on one dataset, and tested on another dataset.
 % As two datasets, two different subjects are taken. 
@@ -73,9 +57,8 @@ title('AUC')
 [dat2, clabel2] = load_example_data('epoched1');
 
 ccfg =  [];
-ccfg.classifier = 'lda';
-ccfg.param      = struct('lambda','auto');
-ccfg.normalise  = 'demean';  % 'demean' 'none'
+ccfg.classifier         = 'lda';
+ccfg.hyperparameter     = struct('lambda','auto');
 ccfg.metric     = 'acc';
 
 [acc31, result31] = mv_classify_timextime(ccfg, dat.trial, clabel, dat2.trial, clabel2);

@@ -23,7 +23,7 @@ cfg_LDA.metric          = 'accuracy';
 
 % We are interested in comparing LDA and Logistic Regression (LR). To this 
 % end, we setup a configuration struct for logreg as well. Again, we do not
-% set the cfg.param field so the default hyperparameters are used.
+% set the cfg.hyperparameter field so the default hyperparameters are used.
 cfg_LR =  cfg_LDA;
 cfg_LR.classifier       = 'logreg';
 

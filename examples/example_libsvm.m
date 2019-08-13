@@ -50,10 +50,10 @@ pparam.is_kernel_matrix = 1;
 cfg = [] ;
 cfg.classifier  = 'svm';
 cfg.metric      = 'auc';
-cfg.param       = [];
-cfg.param.c     = 1;
+cfg.hyperparameter       = [];
+cfg.hyperparameter.c     = 1;
 
-cfg.param.kernel = 'rbf';
+cfg.hyperparameter.kernel = 'rbf';
 
 [perf, res] = mv_classify_across_time(cfg, dat.trial, clabel);
 
@@ -69,10 +69,10 @@ cf = train_svm(param, squeeze(K(:,:,30)), clabel);
 cfg = [] ;
 cfg.classifier  = 'svm';
 cfg.metric      = 'auc';
-cfg.param       = [];
-cfg.param.c     = 1;
+cfg.hyperparameter       = [];
+cfg.hyperparameter.c     = 1;
 
-cfg.param.kernel = 'precomputed';
+cfg.hyperparameter.kernel = 'precomputed';
 
 [perf, res] = mv_classify_across_time(cfg, K, clabel);
 
@@ -82,9 +82,9 @@ mv_plot_result(res, dat.time)
 cfg = [] ;
 cfg.classifier  = 'svm';
 cfg.metric      = 'auc';
-cfg.param       = [];
-cfg.param.c     = 1;
-cfg.param.kernel = 'precomputed';
+cfg.hyperparameter       = [];
+cfg.hyperparameter.c     = 1;
+cfg.hyperparameter.kernel = 'precomputed';
 
 [perf, res_av] = mv_classify_across_time(cfg, K_average, clabel_average);
 
@@ -94,9 +94,9 @@ mv_plot_result({res, res_av}, dat.time)
 cfg = [] ;
 cfg.classifier  = 'svm';
 cfg.metric      = 'auc';
-cfg.param       = [];
-cfg.param.c     = 1;
-cfg.param.kernel = 'precomputed';
+cfg.hyperparameter          = [];
+cfg.hyperparameter.c        = 1;
+cfg.hyperparameter.kernel   = 'precomputed';
 
 cfg.preprocess          = 'average_samples';
 cfg.preprocess_param    = [];

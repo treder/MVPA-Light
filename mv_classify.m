@@ -19,17 +19,17 @@ function [perf, result, testlabel] = mv_classify(cfg, X, clabel)
 % clabel         - [samples x 1] vector of class labels
 %
 % cfg          - struct with optional parameters:
-% .classifier   - name of classifier, needs to have according train_ and test_
-%                 functions (default 'lda')
-% .param        - struct with parameters passed on to the classifier train
-%                 function (default [])
-% .metric       - classifier performance metric, default 'accuracy'. See
-%                 mv_classifier_performance. If set to [] or 'none', the 
-%                 raw classifier output (labels, dvals or probabilities 
-%                 depending on cfg.output_type) for each sample is returned. 
-%                 Use cell array to specify multiple metrics (eg
-%                 {'accuracy' 'auc'}
-% .feedback     - print feedback on the console (default 1)
+% .classifier     - name of classifier, needs to have according train_ and test_
+%                   functions (default 'lda')
+% .hyperparameter - struct with parameters passed on to the classifier train
+%                   function (default [])
+% .metric         - classifier performance metric, default 'accuracy'. See
+%                   mv_classifier_performance. If set to [] or 'none', the 
+%                   raw classifier output (labels, dvals or probabilities 
+%                   depending on cfg.output_type) for each sample is returned. 
+%                   Use cell array to specify multiple metrics (eg
+%                    {'accuracy' 'auc'}
+% .feedback       - print feedback on the console (default 1)
 %
 % For mv_classify to make sense of the data, the user must specify the
 % meaning of each dimension. sample_dimension and feature_dimension
@@ -113,7 +113,7 @@ function [perf, result, testlabel] = mv_classify(cfg, X, clabel)
 X = double(X);
 
 mv_set_default(cfg,'classifier','lda');
-mv_set_default(cfg,'param',[]);
+mv_set_default(cfg,'hyperparameter',[]);
 mv_set_default(cfg,'metric','accuracy');
 mv_set_default(cfg,'feedback',1);
 
@@ -145,7 +145,7 @@ search_dim = setdiff(1:ndims(X), [sample_dim, feature_dim]);
 n = arrayfun( @(c) sum(clabel==c) , 1:nclasses);
 
 % indicates whether the data represents kernel matrices
-mv_set_default(cfg,'is_kernel_matrix', isfield(cfg.param,'kernel') && strcmp(cfg.param.kernel,'precomputed'));
+mv_set_default(cfg,'is_kernel_matrix', isfield(cfg.hyperparameter,'kernel') && strcmp(cfg.hyperparameter.kernel,'precomputed'));
 
 % generalization does not work together with precomputed kernel matrices
 if cfg.is_kernel_matrix && ~isempty(gen_dim)
@@ -159,7 +159,7 @@ if cfg.feedback, mv_print_classification_info(cfg,X,clabel); end
 if numel(sample_dim) > 2
     error('There can be at most 2 sample dimensions but %d have been specified', numel(sample_dim))
 elseif (numel(sample_dim) == 2) && (~cfg.is_kernel_matrix)
-    error('there is 2 sample dimensions given but the kernel is not specified to be precomputed (set cfg.param.kernel=''precomputed'')')
+    error('there is 2 sample dimensions given but the kernel is not specified to be precomputed (set cfg.hyperparameter.kernel=''precomputed'')')
 elseif numel(sample_dim) == 2  &&  numel(feature_dim)>1
     error('if there is 2 samples dimensions you must set cfg.feature_dimensions=[]')
 elseif numel(gen_dim) > 1
@@ -325,7 +325,7 @@ if ~strcmp(cfg.cv,'none')
                 end
                 
                 % Train classifier
-                cf= train_fun(cfg.param, Xtrain_ix, trainlabel);
+                cf= train_fun(cfg.hyperparameter, Xtrain_ix, trainlabel);
 
                 % Obtain classifier output (labels, dvals or probabilities)
                 if isempty(gen_dim)
@@ -389,7 +389,7 @@ elseif strcmp(cfg.cv,'none')
         Xtrain= squeeze(X(:,:,ix));
 
         % Train classifier
-        cf= train_fun(cfg.param, Xtrain, clabel);
+        cf= train_fun(cfg.hyperparameter, Xtrain, clabel);
 
         % Obtain classifier output (labels, dvals or probabilities)
         cf_output{1,1,ix} = reshape( mv_get_classifier_output(cfg.output_type, cf, test_fun, Xtest), size(X,1),[]);

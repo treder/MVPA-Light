@@ -22,7 +22,7 @@ function [perf, result, testlabel] = mv_classify_timextime(cfg, X, clabel, X2, c
 % cfg          - struct with optional parameters:
 % .classifier   - name of classifier, needs to have according train_ and test_
 %                 functions (default 'lda')
-% .param        - struct with parameters passed on to the classifier train
+% .hyperparameter - struct with parameters passed on to the classifier train
 %                 function (default []). 
 % .metric       - classifier performance metric, default 'accuracy'. See
 %                 mv_classifier_performance. If set to [] or 'none', the 
@@ -78,7 +78,7 @@ if nargin > 3
 end
 
 mv_set_default(cfg,'classifier','lda');
-mv_set_default(cfg,'param',[]);
+mv_set_default(cfg,'hyperparameter',[]);
 mv_set_default(cfg,'metric','accuracy');
 mv_set_default(cfg,'time1',1:size(X,3));
 mv_set_default(cfg,'feedback',1);
@@ -101,7 +101,7 @@ nTime2 = numel(cfg.time2);
 n = arrayfun( @(c) sum(clabel==c) , 1:nclasses);
 
 % this function does not work with precomputed kernel matrices
-if isfield(cfg.param,'kernel') && strcmp(cfg.param.kernel,'precomputed')
+if isfield(cfg.hyperparameter,'kernel') && strcmp(cfg.hyperparameter.kernel,'precomputed')
     error('mv_classify_timextime does not work with precomputed kernel matrices, since kernel needs to be evaluated between time points as well')
 end
 
@@ -166,7 +166,7 @@ if ~strcmp(cfg.cv,'none') && ~hasX2
                 Xtrain_tt= squeeze(Xtrain(:,:,t1));
                 
                 % Train classifier
-                cf= train_fun(cfg.param, Xtrain_tt, trainlabel);
+                cf= train_fun(cfg.hyperparameter, Xtrain_tt, trainlabel);
 
                 % Obtain classifier output (labels, dvals or probabilities)
                 cf_output{rr,kk,t1} = reshape( mv_get_classifier_output(cfg.output_type, cf, test_fun, Xtest), numel(testlabel{rr,kk}),[]);
@@ -209,7 +209,7 @@ elseif hasX2
         Xtrain= squeeze(X(:,:,t1));
 
         % Train classifier
-        cf= train_fun(cfg.param, Xtrain, clabel);
+        cf= train_fun(cfg.hyperparameter, Xtrain, clabel);
 
         % Obtain classifier output (labels or dvals)
         cf_output{1,1,t1} = reshape( mv_get_classifier_output(cfg.output_type, cf, test_fun, Xtest), size(X2,1),[]);
@@ -247,7 +247,7 @@ elseif strcmp(cfg.cv,'none')
         Xtrain= squeeze(X(:,:,t1));
 
         % Train classifier
-        cf= train_fun(cfg.param, Xtrain, clabel);
+        cf= train_fun(cfg.hyperparameter, Xtrain, clabel);
 
         % Obtain classifier output (labels, dvals or probabilities)
         cf_output{1,1,t1} = reshape( mv_get_classifier_output(cfg.output_type, cf, test_fun, Xtest), size(X,1),[]);

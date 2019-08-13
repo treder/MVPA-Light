@@ -83,7 +83,7 @@ function [perf,result] = mv_searchlight(cfg, X, clabel)
 X = double(X);
 
 mv_set_default(cfg,'classifier','lda');
-mv_set_default(cfg,'param',[]);
+mv_set_default(cfg,'hyperparameter',[]);
 mv_set_default(cfg,'metric','accuracy');
 mv_set_default(cfg,'neighbours',[]);
 mv_set_default(cfg,'size',1);
