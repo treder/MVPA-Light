@@ -119,8 +119,8 @@ cfg = [];
 cfg.feedback = 0;
 
 for metric = {'acc','auc','f1','precision','recall','confusion','tval','dval'}
-    for classifier = {'lda', 'logreg', 'multiclass_lda', 'svm', 'ensemble','kernel_fda'}
-        if any(ismember(classifier,{'kernel_fda' 'multiclass_lda'})) && any(ismember(metric, {'tval','dval','auc'}))
+    for classifier = {'lda', 'logreg', 'multiclass_lda', 'svm', 'ensemble','kernel_fda','naive_bayes'}
+        if any(ismember(classifier,{'kernel_fda' 'multiclass_lda','naive_bayes'})) && any(ismember(metric, {'tval','dval','auc'}))
             continue
         end
         fprintf('%s - %s\n', metric{:}, classifier{:})
@@ -129,6 +129,6 @@ for metric = {'acc','auc','f1','precision','recall','confusion','tval','dval'}
         cfg.classifier  = classifier{:};
         cfg.k           = 5;
         cfg.repeat      = 1;
-        tmp = mv_classify_timextime(cfg, X2, clabel);
+        tmp = mv_classify_timextime(cfg, X, clabel);
     end
 end
