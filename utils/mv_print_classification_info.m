@@ -10,9 +10,9 @@ function mv_print_classification_info(cfg, X, clabel, X2, clabel2)
 %Parameters:
 % cfg       - configuration struct with parameters .classifier, .k, .cv,
 %             and .repeat
-% X         - [samples x features] struct with data (optional)
+% X         - [... x ... x ... x] dataset (optional)
 % clabel    - [samples x 1] class labels  (optional)
-% X2        - [samples x features] struct with second dataset (optional)
+% X2        - [... x ... x ... x] second dataset (optional)
 % clabel2   - [samples x 1] class labels for second dataset (optional)
 
 if nargin <= 3
@@ -27,12 +27,9 @@ if nargin <= 3
     
     % Print data information
     nclasses = max(clabel);
-    if nargin>1
-        if ndims(X)==2
-            fprintf('Data has %d samples, %d features and %d classes.\n', [size(X), nclasses])
-        elseif ndims(X)==3
-            fprintf('Data has %d samples, %d features, %d time points, and %d classes.\n', [size(X), nclasses])
-        end
+    if nargin>1 
+        dimensions = arrayfun(@(x,y) sprintf('%d %s, ', x, y{:}), size(X), cfg.dimension_names(:)', 'Un', 0);
+        fprintf('Data has %sand %d classes.\n', [dimensions{:}], nclasses)
     end
     
     % Print class label information
@@ -46,13 +43,6 @@ if nargin <= 3
         fprintf('.\n')
     end
     
-    % Under- or oversampling
-    if isfield(cfg,'balance')
-        if any(strcmp(cfg.balance,{'oversample','undersample'}))
-            fprintf('Uses %sing to balance the data.\n', cfg.balance(1:end-1))
-        end
-    end
-    
 else
     %% Transfer classification using two datasets
     fprintf('Training on dataset 1, testing on dataset 2 using a %s classifier.\n',upper(cfg.classifier));
@@ -64,8 +54,7 @@ else
     elseif ndims(X)==3
         fprintf('Dataset 1 has %d samples, %d features, %d time points, and %d classes.\n', [size(X), nclasses1])
     end
-    
-    
+
     u = unique(clabel);
     fprintf('Class frequencies: ');
     for ii=1:numel(u)
@@ -76,12 +65,11 @@ else
     
     % Dataset 2
     nclasses2 = max(clabel2);
-    if ndims(X2)==2
-        fprintf('Dataset 2 has %d samples, %d features and %d classes.\n', [size(X2), nclasses2])
-    elseif ndims(X2)==3
-        fprintf('Dataset 2 has %d samples, %d features, %d time points, and %d classes.\n', [size(X2), nclasses2])
+    if nargin>1
+        dimensions = arrayfun(@(x,y) sprintf('%d %s, ', x, y{:}), size(X2), cfg.dimension_names(:)', 'Un', 0);
+        fprintf('Dataset 2 has %sand %d classes.\n', [dimensions{:}], nclasses2)
     end
-    
+
     u = unique(clabel2);
     fprintf('Class frequencies (dataset 2): ');
     for ii=1:numel(u)
@@ -89,12 +77,7 @@ else
         if ii<numel(u), fprintf(', '), end
     end
     fprintf('.\n')
-    
-    % Under- or oversampling
-    if isfield(cfg,'balance')
-        if any(strcmp(cfg.balance,{'oversample','undersample'}))
-            fprintf('Uses %sing to balance the training data.\n', cfg.balance(1:end-1))
-        end
-    end
+
+end
 
 end

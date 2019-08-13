@@ -50,11 +50,11 @@ acc = mv_calculate_performance('acc', dval, clabel)
 cfg =[] ;
 cfg.metric          = 'acc';
 cfg.classifier      = 'svm';
-cfg.param           = [];
-cfg.param.kernel    = 'rbf';
-% cfg.param.kernel    = 'polynomial';
-% cfg.param.kernel    = 'linear';
-cfg.param.c = 11;
+cfg.hyperparameter  = [];
+cfg.hyperparameter.kernel    = 'rbf';
+% cfg.hyperparameter.kernel    = 'polynomial';
+% cfg.hyperparameter.kernel    = 'linear';
+cfg.hyperparameter.c = 11;
 
 tic
 acc = mv_crossvalidate(cfg, X, clabel)
@@ -78,12 +78,12 @@ acc_libsvm= mv_calculate_performance('acc', predlabel, clabel)
 cfg =[] ;
 cfg.metric          = 'acc';
 cfg.classifier      = 'libsvm';
-cfg.param           = [];
+cfg.hyperparameter  = [];
 
-cfg.param.kernel_type = 0; % linear
-cfg.param.kernel_type = 1; % polynomial
-cfg.param.kernel_type = 2; % RBF
-% cfg.param.kernel_type = 3; % sigmoid
+cfg.hyperparameter.kernel_type = 0; % linear
+cfg.hyperparameter.kernel_type = 1; % polynomial
+cfg.hyperparameter.kernel_type = 2; % RBF
+% cfg.hyperparameter.kernel_type = 3; % sigmoid
 
 tic
 acc = mv_crossvalidate(cfg, X, clabel);

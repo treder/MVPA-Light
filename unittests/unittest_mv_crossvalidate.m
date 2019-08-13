@@ -40,8 +40,8 @@ cfg = [];
 cfg.feedback        = 0;
 cfg.metric          = 'acc';
 cfg.classifier      = 'lda';
-cfg.param           = [];
-cfg.param.lambda    = 'auto';
+cfg.hyperparameter  = [];
+cfg.hyperparameter.lambda    = 'auto';
 
 actual = mv_crossvalidate(cfg, X, clabel);
 expect = 1;
@@ -62,8 +62,8 @@ cfg = [];
 cfg.feedback        = 0;
 cfg.metric          = 'acc';
 cfg.classifier      = 'multiclass_lda';
-cfg.param           = [];
-cfg.param.lambda    = 'auto';
+cfg.hyperparameter           = [];
+cfg.hyperparameter.lambda    = 'auto';
 
 actual = mv_crossvalidate(cfg, X2, clabel2);
 expect = 1;

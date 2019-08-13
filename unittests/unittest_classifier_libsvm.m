@@ -62,21 +62,21 @@ scale = 0;
 [X_spiral, clabel_spiral] = simulate_spiral_data(N, nrevolutions, nclasses, prop, scale, 0);
 
 %%% LINEAR kernel: cross-validation
-cfg              = [];
-cfg.classifier   = 'libsvm';
-cfg.param        = [];
-cfg.param.kernel = 'linear';
-cfg.feedback     = 0;
+cfg                         = [];
+cfg.classifier              = 'libsvm';
+cfg.hyperparameter          = [];
+cfg.hyperparameter.kernel   = 'linear';
+cfg.feedback                = 0;
 
 acc_linear = mv_crossvalidate(cfg, X_spiral, clabel_spiral);
 
 %%% RBF kernel: cross-validation
-cfg              = [];
-cfg.classifier   = 'libsvm';
-cfg.param        = [];
-cfg.param.kernel = 'rbf';
-cfg.param.gamma = 100;
-cfg.feedback     = 0;
+cfg                         = [];
+cfg.classifier              = 'libsvm';
+cfg.hyperparameter          = [];
+cfg.hyperparameter.kernel   = 'rbf';
+cfg.hyperparameter.gamma    = 100;
+cfg.feedback                = 0;
 
 acc_rbf = mv_crossvalidate(cfg, X_spiral, clabel_spiral);
 

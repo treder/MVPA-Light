@@ -35,8 +35,9 @@ cfg.feedback    = 0;
 acc_linear = mv_crossvalidate(cfg, X_spiral, clabel_spiral);
 
 %%% RBF kernel: cross-validation
-cfg.param.kernel    = 'rbf';
-cfg.param.gamma     = 10e1;
+cfg.hyperparameter           = [];
+cfg.hyperparameter.kernel    = 'rbf';
+cfg.hyperparameter.gamma     = 10e1;
 acc_rbf = mv_crossvalidate(cfg,X_spiral,clabel_spiral);
 
 % Since CV is a bit chance-dependent: tolerance of 2%

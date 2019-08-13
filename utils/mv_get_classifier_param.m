@@ -1,9 +1,9 @@
-function param = mv_get_classifier_param(classifier,param)
-% Returns a parameter struct with default (hyper)parameters for a given 
+function param = mv_get_hyperparameter(classifier, param)
+% Returns a struct with default hyperparameters for a given 
 % classifier. 
 %
 %Usage:
-% param = mv_get_classifier_param(classifier, <param>)
+% param = mv_get_hyperparameter(classifier, <param>)
 % 
 %Parameters:
 % classifier     - [string] specifying the classifier (e.g. 'lda')
@@ -13,7 +13,7 @@ function param = mv_get_classifier_param(classifier,param)
 %                  param is not provided, all values are set to default
 %
 %Output:
-% param  - [struct] with default parameters
+% param          - [struct] with default hyperparameters
 
 if nargin < 2 || ~isstruct(param)
     param = struct();

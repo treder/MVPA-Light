@@ -19,16 +19,16 @@ scale = 0.001;
 %%% LINEAR kernel: cross-validation
 cfg                 = [];
 cfg.classifier      = 'svm';
-cfg.param           = [];
-cfg.param.kernel    = 'linear';
-cfg.param.c         = 10e0;
+cfg.hyperparameter  = [];
+cfg.hyperparameter.kernel    = 'linear';
+cfg.hyperparameter.c         = 10e0;
 cfg.feedback        = 0;
 
 acc_linear = mv_crossvalidate(cfg,X,clabel);
 
 %%% RBF kernel: cross-validation
-cfg.param.kernel    = 'rbf';
-cfg.param.gamma     = 10e1;
+cfg.hyperparameter.kernel    = 'rbf';
+cfg.hyperparameter.gamma     = 10e1;
 acc_rbf = mv_crossvalidate(cfg,X,clabel);
 
 % Since CV is a bit chance-dependent: tolerance of 2%

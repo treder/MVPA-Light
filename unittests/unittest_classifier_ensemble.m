@@ -11,18 +11,18 @@ clabel = randi(2, size(X,1),1);
 
 %% ensemble with 1 learner should be identical to testing the classifier directly [two-class LDA]
 cfg = [];
-cfg.param = [];
 cfg.feedback        = 0;
 cfg.classifier      = 'ensemble';
-cfg.param.nfeatures = 0.9999;       % cannot set to 1 otherwise train_ensemble interprets it as a number rather than fraction
-cfg.param.nsamples  = 0.9999;
-cfg.param.nlearners = 1;
-cfg.param.strategy  = 'vote';
+cfg.hyperparameter = [];
+cfg.hyperparameter.nfeatures = 0.9999;       % cannot set to 1 otherwise train_ensemble interprets it as a number rather than fraction
+cfg.hyperparameter.nsamples  = 0.9999;
+cfg.hyperparameter.nlearners = 1;
+cfg.hyperparameter.strategy  = 'vote';
 
 acc_ensemble = mv_crossvalidate(cfg, X, clabel);
 
 cfg = [];
-cfg.param = [];
+cfg.hyperparameter  = [];
 cfg.feedback        = 0;
 cfg.classifier      = 'lda';
 
@@ -42,20 +42,20 @@ do_plot = 0;
 
 
 cfg = [];
-cfg.param = [];
 cfg.feedback        = 0;
 cfg.classifier      = 'ensemble';
-cfg.param.learner   = 'multiclass_lda';
-cfg.param.nfeatures = 0.9999;       % cannot set to 1 otherwise train_ensemble interprets it as a number rather than fraction
-cfg.param.nsamples  = 0.9999;
-cfg.param.nlearners = 1;
-cfg.param.strategy  = 'vote';
-cfg.param.bootstrap = 0;
+cfg.hyperparameter = [];
+cfg.hyperparameter.learner   = 'multiclass_lda';
+cfg.hyperparameter.nfeatures = 0.9999;       % cannot set to 1 otherwise train_ensemble interprets it as a number rather than fraction
+cfg.hyperparameter.nsamples  = 0.9999;
+cfg.hyperparameter.nlearners = 1;
+cfg.hyperparameter.strategy  = 'vote';
+cfg.hyperparameter.bootstrap = 0;
 
 acc_ensemble = mv_crossvalidate(cfg, X, clabel);
 
 cfg = [];
-cfg.param = [];
+cfg.hyperparameter = [];
 cfg.feedback        = 0;
 cfg.classifier      = 'multiclass_lda';
 
@@ -69,19 +69,19 @@ prop = [];
 [X,clabel] = simulate_gaussian_data(nsamples, nfeatures, nclasses, prop, scale, do_plot);
 
 cfg = [];
-cfg.param = [];
 cfg.feedback        = 0;
 cfg.classifier      = 'ensemble';
-cfg.param.nfeatures = 0.9999;
-cfg.param.nsamples  = 0.9999;
-cfg.param.nlearners = 1;
+cfg.hyperparameter = [];
+cfg.hyperparameter.nfeatures = 0.9999;
+cfg.hyperparameter.nsamples  = 0.9999;
+cfg.hyperparameter.nlearners = 1;
 
 rng(42)
-cfg.param.strategy  = 'vote';
+cfg.hyperparameter.strategy  = 'vote';
 acc_vote = mv_crossvalidate(cfg, X, clabel);
 
 rng(42)
-cfg.param.strategy  = 'dval';
+cfg.hyperparameter.strategy  = 'dval';
 acc_dval = mv_crossvalidate(cfg, X, clabel);
 
 print_unittest_result('[two-class] 1 learner: same result for ''vote'' and ''dval''', acc_vote, acc_dval, tol);

@@ -18,7 +18,7 @@ function [perf, result, testlabel] = mv_crossvalidate(cfg, X, clabel)
 % cfg          - struct with hyperparameters:
 % .classifier   - name of classifier, needs to have according train_ and test_
 %                 functions (default 'lda')
-% .param        - struct with parameters passed on to the classifier train
+% .hyperparameter - struct with parameters passed on to the classifier train
 %                 function (default [])
 % .metric       - classifier performance metric, default 'accuracy'. See
 %                 mv_classifier_performance. If set to [] or 'none', the 
@@ -58,7 +58,7 @@ X = double(X);
 if ~ismatrix(X), error('X must be 2-dimensional'), end
 
 mv_set_default(cfg,'classifier','lda');
-mv_set_default(cfg,'param',[]);
+mv_set_default(cfg,'hyperparameter',[]);
 mv_set_default(cfg,'metric','accuracy');
 mv_set_default(cfg,'feedback',1);
 
@@ -72,7 +72,9 @@ mv_set_default(cfg,'preprocess_param',{});
 n = arrayfun( @(c) sum(clabel==c) , 1:nclasses);
 
 % indicates whether the data represents kernel matrices
-mv_set_default(cfg,'is_kernel_matrix', isfield(cfg.param,'kernel') && strcmp(cfg.param.kernel,'precomputed'));
+mv_set_default(cfg,'is_kernel_matrix', isfield(cfg.hyperparameter,'kernel') && strcmp(cfg.hyperparameter.kernel,'precomputed'));
+if cfg.is_kernel_matrix,  mv_set_default(cfg,'dimension_names',{'samples','samples'});
+else,                     mv_set_default(cfg,'dimension_names',{'samples','features'}); end
 
 %% Get train and test functions
 train_fun = eval(['@train_' cfg.classifier]);
@@ -108,7 +110,7 @@ if ~strcmp(cfg.cv,'none')
             end
             
             % Train classifier on training data
-            cf= train_fun(cfg.param, Xtrain, trainlabel);
+            cf= train_fun(cfg.hyperparameter, Xtrain, trainlabel);
 
             % Obtain classifier output (labels, dvals or probabilities) on test data
             cf_output{rr,kk} = mv_get_classifier_output(cfg.output_type, cf, test_fun, Xtest);
@@ -130,7 +132,7 @@ else
     [~, X, clabel] = mv_preprocess(cfg, X, clabel);
 
     % Train classifier
-    cf= train_fun(cfg.param, X, clabel);
+    cf= train_fun(cfg.hyperparameter, X, clabel);
 
     % Obtain classifier output (labels, dvals or probabilities)
     cf_output = mv_get_classifier_output(cfg.output_type, cf, test_fun, X);
@@ -158,15 +160,6 @@ if nmetrics==1
     perf_std = perf_std{1};
     cfg.metric = cfg.metric{1};
 end
-% if isempty(cfg.metric) || strcmp(cfg.metric,'none')
-%     if cfg.feedback, fprintf('No performance metric requested, returning raw classifier output.\n'), end
-%     perf = cf_output;
-%     perf_std = [];
-% else
-%     if cfg.feedback, fprintf('Calculating classifier performance... '), end
-%     [perf, perf_std] = mv_calculate_performance(cfg.metric, cfg.output_type, cf_output, testlabel, avdim);
-%     if cfg.feedback, fprintf('finished\n'), end
-% end
 
 result = [];
 if nargout>1
