@@ -56,7 +56,7 @@ prop = [];
 scale = 0.0001;
 do_plot = 0;
 
-[X,clabel] = simulate_gaussian_data(nsamples, nfeatures, nclasses, prop, scale, do_plot);
+[X2,clabel2] = simulate_gaussian_data(nsamples, nfeatures, nclasses, prop, scale, do_plot);
 
 cfg = [];
 cfg.feedback        = 0;
@@ -65,7 +65,7 @@ cfg.classifier      = 'multiclass_lda';
 cfg.param           = [];
 cfg.param.lambda    = 'auto';
 
-actual = mv_crossvalidate(cfg, X, clabel);
+actual = mv_crossvalidate(cfg, X2, clabel2);
 expect = 1;
 
 print_unittest_result('[5 classes] CV for well-separated data',expect, actual, tol);
@@ -75,8 +75,8 @@ cfg = [];
 cfg.feedback = 0;
 
 for metric = {'acc','auc','f1','precision','recall','confusion','tval','dval'}
-    for classifier = {'lda', 'logreg', 'multiclass_lda', 'svm', 'ensemble','kernel_fda'}
-        if any(ismember(classifier,{'kernel_fda' 'multiclass_lda'})) && any(ismember(metric, {'tval','dval','auc'}))
+    for classifier = {'lda', 'logreg', 'multiclass_lda', 'svm', 'ensemble','kernel_fda','naive_bayes'}
+        if any(ismember(classifier,{'kernel_fda' 'multiclass_lda','naive_bayes'})) && any(ismember(metric, {'tval','dval','auc'}))
             continue
         end
         fprintf('%s - %s\n', metric{:}, classifier{:})

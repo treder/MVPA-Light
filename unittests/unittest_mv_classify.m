@@ -1,4 +1,6 @@
 % mv_classify unit test
+return 
+
 
 rng(42)
 tol = 10e-10;
@@ -108,8 +110,8 @@ cfg.metric = 'acc';
 cfg.feedback = 0;
 
 for metric = {'acc','auc','f1','precision','recall','confusion','tval','dval'}
-    for classifier = {'lda', 'logreg', 'multiclass_lda', 'svm', 'ensemble','kernel_fda'}
-        if any(ismember(classifier,{'kernel_fda' 'multiclass_lda'})) && any(ismember(metric, {'tval','dval','auc'}))
+    for classifier = {'lda', 'logreg', 'multiclass_lda', 'svm', 'ensemble','kernel_fda','naive_bayes'}
+        if any(ismember(classifier,{'kernel_fda' 'multiclass_lda','naive_bayes'})) && any(ismember(metric, {'tval','dval','auc'}))
             continue
         end
         fprintf('%s - %s\n', metric{:}, classifier{:})
@@ -148,10 +150,11 @@ clabel(ceil(end/2):end) = 2;
 
 cfg = [];
 cfg.sample_dimension     = 5;
-cfg.feature_dimension    = 1;
-% cfg.generalization_dimension = 4;
+cfg.feature_dimension    = [1,2];
+cfg.generalization_dimension = 4;
 
 perf = mv_classify(cfg, X2, clabel);
-perf 
+
+print_unittest_result('is size(perf) correct for 4 input dimensions?', 0, norm(szp - sz([2,4])), tol);
 
 
