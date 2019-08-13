@@ -196,5 +196,8 @@ switch(classifier)
         mv_set_default(param,'coef0',1);    % polynomial kernel
         mv_set_default(param,'degree',3);   % degree of polynomial kernel
      
+    case 'naive_bayes'
+        mv_set_default(param,'prior','equal');
+
     otherwise, error('Unknown classifier ''%s''',classifier)
 end
