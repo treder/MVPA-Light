@@ -125,7 +125,7 @@ There is usually no need to call [`mv_calculate_performance`](utils/mv_calculate
 
 #### Preprocessing<a name="preprocessing"></a>
 
-In some cases, preprocessing operations such as z-scoring, PCA, or Common Spatial Patterns (CSP) need to be performed as nested operations within a cross-validation analysis. In nested preprocessing, parameters are estimated on the train data and then applied to the test data. This avoids possible information flow from test set to train set. A prepocessing pipeline can be added by setting the `cfg.preprocess` and `cfg.preprocess_param` fields. Currently implemented preprocessing functions are collected in the [`preprocess subfolder`](preprocess/). See code snippet below and [`examples/example7_preprocessing.m`](examples/example7_preprocessing.m) for examples.
+Preprocessing refers to operations applied to the data before training the classifier. In some cases, preprocessing operations such as oversampling, PCA, or Common Spatial Patterns (CSP) need to be performed as nested operations within a cross-validation analysis. In nested preprocessing, parameters are estimated on the train data and then applied to the test data. This avoids possible information flow from test set to the train set. A prepocessing pipeline can be added by setting the `cfg.preprocess` and `cfg.preprocess_param` fields. Currently implemented preprocessing functions are collected in the [`preprocess subfolder`](preprocess/). See code snippet below and [`examples/example7_preprocessing.m`](examples/example7_preprocessing.m) for examples.
 
 
 ## Examples<a name="examples"></a>
@@ -143,7 +143,7 @@ This section gives some basic examples. More detailed examples and data can be f
 X = dat.trial(:,:,100);
 
 % Get default hyperparameters for the classifier
-param = mv_get_classifier_param('lda');
+param = mv_get_hyperparameter('lda');
 
 % Train an LDA classifier
 cf = train_lda(param, X, clabel);
@@ -214,7 +214,7 @@ See [`examples/example5_searchlight.m`](examples/example5_searchlight.m) for mor
 
 ```Matlab
 cfg =  [];
-cfg.preprocess = {'zscore' 'average_samples'};
+cfg.preprocess = {'pca' 'average_samples'};
 acc = mv_classify_across_time(cfg, dat.trial, clabel);
 
 ```
