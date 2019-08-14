@@ -128,10 +128,11 @@ if isempty(cfg.neighbours), cfg.neighbours = {}; end  % replace [] by {}
 if ~iscell(cfg.neighbours), cfg.neighbours = {cfg.neighbours}; end
 cfg.neighbours = cfg.neighbours(:);  % make sure it's a column vector
 
-mv_set_default(cfg,'preprocess',{});
+mv_set_default(cfg,'process',{});
 mv_set_default(cfg,'preprocess_param',{});
 
-[cfg, clabel, nclasses, nmetrics] = mv_check_inputs(cfg, X, clabel);
+% mv_check_inputs assumes samples are in dimension 1 so need to permute
+[cfg, clabel, nclasses, nmetrics] = mv_check_inputs(cfg, permute(X,[cfg.sample_dimension, setdiff(1:ndims(X), cfg.sample_dimension)]), clabel);
 
 % sort dimension vectors
 sample_dim = sort(cfg.sample_dimension);
@@ -185,12 +186,14 @@ if has_neighbours && numel(gen_dim)>0
 end
 %% order the dimensions by samples -> search dimensions -> features
 
-% the generalization dimension should be the first of the search dimensions,
+% the generalization dimension should be the  last of the search dimensions,
 % if it is not then permute the dimensions accordingly
 if ~isempty(gen_dim) && (search_dim(end) ~= gen_dim)
-    ix = ismember(search_dim, gen_dim);
-    search_dim(ix) = search_dim(end);
-    search_dim(end) = gen_dim;
+    ix = find(ismember(search_dim, gen_dim));
+    % push gen dim to the end
+    search_dim = [search_dim(1:ix-1), search_dim(ix+1:end), search_dim(ix)];
+    % use circshift to push dimension to the end
+%     search_dim = circshift(search_dim(, numel(search_dim)-ix);
 end
 
 % permute X and dimension names
@@ -222,10 +225,6 @@ test_fun = eval(['@test_' cfg.classifier]);
 sz_search = size(X);
 sz_search = sz_search(search_dim);
 if isempty(sz_search), sz_search = 1; end
-% sz_sample = size(X);
-% sz_sample = sz_sample(sample_dim);
-% sz_feature = size(X);
-% sz_feature = sz_feature(sample_dim);
 
 % sample_skip and feature_skip helps us access the search dimensions by 
 % skipping over sample and feature dimensions
@@ -289,10 +288,11 @@ if ~strcmp(cfg.cv,'none')
                 % data and apply the classifier to all elements of the
                 % generalization dimension at once
                 
-                % permute dimensions such that gen dim is the first search
-                % dimension
-                p = 1:ndims(X);  p(gen_dim) = 2;  p(2) = gen_dim;
-                Xtest = permute(Xtest, p);
+                % gen_dim is the last search dimension. For reshaping we
+                % need to move it to the first search dim position and
+                % shift the other dimensions up one position, we can use 
+                % circshift for this
+                Xtest = permute(Xtest, [sample_dim, circshift(search_dim,1), feature_dim]);
                 
                 % reshape samples x gen dim into one dimension
                 sz_search = size(Xtest);
@@ -305,14 +305,13 @@ if ~strcmp(cfg.cv,'none')
             
             for ix = dim_loop                       % ---- search dimensions ----
                                 
-                
                 % Training data for current search position
                 if has_neighbours
                     % --- searchlight --- define neighbours for current iteration
                     ix_nb = cellfun( @(N,f) find(N(f,:)), cfg.neighbours, ix, 'Un',0);
                     % train data
-                    Xtrain_ix = Xtrain(sample_skip{:}, ix_nb{:}, feature_skip{:});
-                    Xtrain_ix = reshape(Xtrain_ix, [sz_Xtrain(sample_dim), prod(cellfun(@numel, ix_nb)) * nfeat]);
+                    X_ix = Xtrain(sample_skip{:}, ix_nb{:}, feature_skip{:});
+                    X_ix = reshape(X_ix, [sz_Xtrain(sample_dim), prod(cellfun(@numel, ix_nb)) * nfeat]);
                     % test data
                     Xtest_ix = squeeze(Xtest(sample_skip{:}, ix_nb{:}, feature_skip{:}));
                     Xtest_ix = reshape(Xtest_ix, [sz_Xtest(sample_dim), prod(cellfun(@numel, ix_nb)) * nfeat]);
@@ -320,12 +319,12 @@ if ~strcmp(cfg.cv,'none')
                     if isempty(gen_dim),    ix_test = ix;
                     else,                   ix_test = ix(1:end-1);
                     end
-                    Xtrain_ix = squeeze(Xtrain(sample_skip{:}, ix{:}, feature_skip{:}));
+                    X_ix = squeeze(Xtrain(sample_skip{:}, ix{:}, feature_skip{:}));
                     Xtest_ix = squeeze(Xtest(sample_skip{:}, ix_test{:}, feature_skip{:}));
                 end
                 
                 % Train classifier
-                cf= train_fun(cfg.hyperparameter, Xtrain_ix, trainlabel);
+                cf= train_fun(cfg.hyperparameter, X_ix, trainlabel);
 
                 % Obtain classifier output (labels, dvals or probabilities)
                 if isempty(gen_dim)
@@ -334,25 +333,6 @@ if ~strcmp(cfg.cv,'none')
                     % we have to reshape classifier output back
                     cf_output{rr,kk,ix{:}} = reshape( mv_get_classifier_output(cfg.output_type, cf, test_fun, Xtest_ix), numel(testlabel{rr,kk}),[]);
                 end
-                
-%                 if isempty(gen_dim)
-%                     % no generalization, just get test data for current
-%                     % search point
-%                     
-%                     % Obtain classifier output (labels, dvals or probabilities)
-%                     cf_output{rr,kk,ix{:}} = mv_get_classifier_output(cfg.output_type, cf, test_fun, Xtest_ix);
-% 
-%                 else
-%                     % ---- Generalization ---- (eg time x time)
-%                     % Instead of looping through the generalization dimension,
-%                     % which would required an additional loop, we
-%                     % reshape the data and apply the classifier to all elements at
-%                     % once.
-%                     Xtest_ix = squeeze(Xtest(sample_skip{:}, ix_test{:}, feature_skip{:}));
-% 
-%                     % Obtain classifier output (labels, dvals or probabilities)
-%                     cf_output{rr,kk,ix{:}} = reshape( mv_get_classifier_output(cfg.output_type, cf, test_fun, Xtest_ix), numel(testlabel{rr,kk}),[]);
-%                 end
             end
 
         end
@@ -365,35 +345,62 @@ if ~strcmp(cfg.cv,'none')
 elseif strcmp(cfg.cv,'none')
     % -------------------------------------------------------
     % No cross-validation
-    
-    
-    %%% --- todo --
     if cfg.feedback
         fprintf('Training and testing on the same dataset (note: this can lead to overfitting).\n')
     end
     
     % Preprocess train/test data
-    [~, X, clabel] = mv_preprocess(cfg, X, clabel);
-
+    if ~isempty(cfg.preprocess)
+        [~, X, clabel] = mv_preprocess(cfg, X, clabel);
+    end
+    
     % Initialise classifier outputs
-    cf_output = cell(1, 1, sz_search);
-
-    % permute and reshape into [ (trials x test times) x features]
-    Xtest= permute(X, [1 3 2]);
-    Xtest= reshape(Xtest, size(X,1)*nTime1, []);
-    % permute and reshape into [ (trials x test times) x features]
-  
-    for ix = dim_loop            % ---- search dimensions ----
-
-        % Training data for time point t1
-        Xtrain= squeeze(X(:,:,ix));
-
+    cf_output = cell([1, 1, sz_search]);
+    
+    if ~isempty(gen_dim)
+        Xtest= permute(X, [sample_dim, circshift(search_dim,1), feature_dim]);
+        
+        % reshape samples x gen dim into one dimension
+        sz_search = size(Xtest);
+        Xtest= reshape(Xtest, [sz_search(1)*sz_search(2), sz_search(3:end)]);
+    else
+        Xtest = X;
+    end
+    
+    % Remember sizes
+    sz_Xtrain = size(X);
+    sz_Xtest = size(Xtest);
+    
+    for ix = dim_loop                       % ---- search dimensions ----
+        
+        % Training data for current search position
+        if has_neighbours
+            % --- searchlight --- define neighbours for current iteration
+            ix_nb = cellfun( @(N,f) find(N(f,:)), cfg.neighbours, ix, 'Un',0);
+            % train data
+            X_ix = X(sample_skip{:}, ix_nb{:}, feature_skip{:});
+            X_ix= reshape(X_ix, [sz_Xtrain(sample_dim), prod(cellfun(@numel, ix_nb)) * nfeat]);
+            % test data
+            Xtest_ix = squeeze(Xtest(sample_skip{:}, ix_nb{:}, feature_skip{:}));
+            Xtest_ix = reshape(Xtest_ix, [sz_Xtest(sample_dim), prod(cellfun(@numel, ix_nb)) * nfeat]);
+        else
+            if isempty(gen_dim),    ix_test = ix;
+            else,                   ix_test = ix(1:end-1);
+            end
+            X_ix= squeeze(X(sample_skip{:}, ix{:}, feature_skip{:}));
+            Xtest_ix = squeeze(Xtest(sample_skip{:}, ix_test{:}, feature_skip{:}));
+        end
+        
         % Train classifier
-        cf= train_fun(cfg.hyperparameter, Xtrain, clabel);
-
+        cf= train_fun(cfg.hyperparameter, X_ix, clabel);
+        
         % Obtain classifier output (labels, dvals or probabilities)
-        cf_output{1,1,ix} = reshape( mv_get_classifier_output(cfg.output_type, cf, test_fun, Xtest), size(X,1),[]);
-
+        if isempty(gen_dim)
+            cf_output{1,1,ix{:}} = mv_get_classifier_output(cfg.output_type, cf, test_fun, Xtest_ix);
+        else
+            % we have to reshape classifier output back
+            cf_output{1,1,ix{:}} = reshape( mv_get_classifier_output(cfg.output_type, cf, test_fun, Xtest_ix), numel(clabel),[]);
+        end
     end
 
     testlabel = clabel;
