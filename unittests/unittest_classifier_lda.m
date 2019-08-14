@@ -14,7 +14,7 @@ clabel = randi(2, size(X,1),1);
 %% check "scale" parameter: if scale = 1, training data should be scaled such that mean(class1)=1 and mean(class2)=-1
 
 % Get classifier params
-param = mv_get_classifier_param('lda');
+param = mv_get_hyperparameter('lda');
 param.scale = 1;
 
 % Train and test classifier
@@ -30,7 +30,7 @@ print_unittest_result('check scale parameter for class 2',-1, mean(dval(clabel==
 %% check "prob" parameter: if prob = 1, probabilities should be returned as third parameter
 
 % Get classifier params
-param = mv_get_classifier_param('lda');
+param = mv_get_hyperparameter('lda');
 param.prob = 1;
 
 % Train and test classifier
@@ -43,7 +43,7 @@ print_unittest_result('check prob parameter',1, all(abs(prob)<=1),  tol);
 %% check "lambda" parameter: if lambda = 1, w should be collinear with the difference between the class means
 
 % Get classifier params
-param = mv_get_classifier_param('lda');
+param = mv_get_hyperparameter('lda');
 param.reg       = 'shrink';
 param.lambda    = 1;
 
@@ -61,7 +61,7 @@ print_unittest_result('check w parameter for lambda=1 (equal to diff of class me
 %% Equivalence between ridge and shrinkage regularisation
 
 % Get classifier param for shrinkage regularisation
-param_shrink = mv_get_classifier_param('lda');
+param_shrink = mv_get_hyperparameter('lda');
 param_shrink.reg   = 'shrink';
 param_shrink.lambda = 0.5;
 

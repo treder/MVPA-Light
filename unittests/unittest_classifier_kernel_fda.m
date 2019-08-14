@@ -53,7 +53,7 @@ print_unittest_result('classif spiral data (RBF kernel)',1, acc_rbf, tol);
 gamma = 10e1;
 
 % Get classifier params
-param = mv_get_classifier_param('kernel_fda');
+param = mv_get_hyperparameter('kernel_fda');
 param.gamma  = gamma;
 
 % 1 -provide precomputed kernel matrix
@@ -80,7 +80,7 @@ print_unittest_result('providing kernel matrix vs calculating it from scratch sh
 X_gauss = zscore(X_gauss);
 
 %%% FDA
-param_fda = mv_get_classifier_param('kernel_fda');
+param_fda = mv_get_hyperparameter('kernel_fda');
 param_fda.kernel = 'linear';
 param_fda.reg       = 'ridge';
 param_fda.lambda    = 1;
@@ -89,7 +89,7 @@ cf_fda = train_kernel_fda(param_fda, X_gauss, clabel_gauss);
 w_fda= cf_fda.Xtrain' * cf_fda.A;
 
 %%% Multiclass LDA
-param_lda = mv_get_classifier_param('multiclass_lda');
+param_lda = mv_get_hyperparameter('multiclass_lda');
 param_lda.reg       = param_fda.reg;
 param_lda.lambda    = param_fda.lambda;
 cf_lda = train_multiclass_lda(param_lda, X_gauss, clabel_gauss);

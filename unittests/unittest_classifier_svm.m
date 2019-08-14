@@ -43,7 +43,7 @@ print_unittest_result('classif spiral data (RBF kernel)',1, acc_rbf, tol);
 %% providing kernel matrix directly VS calculating it from scratch should give same result
 
 % Get classifier params
-param = mv_get_classifier_param('svm');
+param = mv_get_hyperparameter('svm');
 param.c      = 1;
 param.bias   = 0;
 param.gamma  = 1;
@@ -66,7 +66,7 @@ print_unittest_result('providing kernel matrix vs calculating it from scratch sh
 %% Check probabilities
 
 % Get classifier params
-param = mv_get_classifier_param('svm');
+param = mv_get_hyperparameter('svm');
 param.prob      = 1;
 param.kernel    = 'rbf';
 

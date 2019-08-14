@@ -17,7 +17,7 @@ clabel(2:2:end) = 2;
 %% check "prob" parameter: all returned values must be probabilities
 
 % Get classifier params
-param = mv_get_classifier_param('logreg');
+param = mv_get_hyperparameter('logreg');
 param.prob = 1;
 
 % Train and test classifier
@@ -36,7 +36,7 @@ clabel_unbalanced1(1:N-10) = 1;
 clabel_unbalanced2(1:N-10) = 2;
 
 % Train and test classifier
-param = mv_get_classifier_param('logreg');
+param = mv_get_hyperparameter('logreg');
 param.correct_bias = 0;
 param.reg = 'l2';
 param.lambda = 1;
@@ -58,7 +58,7 @@ print_unittest_result('check dval>0 for both classes in unbalanced data (more cl
 %% check bias correction for unbalanced data with l2 reg: with bias correction positive samples should give a mean positive dval, and vice versa for negative
 
 % Train and test classifier
-param = mv_get_classifier_param('logreg');
+param = mv_get_hyperparameter('logreg');
 param.correct_bias = 1;
 param.reg = 'l2';
 param.lambda = 1;

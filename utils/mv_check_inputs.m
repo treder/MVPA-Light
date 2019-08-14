@@ -117,7 +117,7 @@ for ii=1:numel(idx)
 end
 
 %% cfg: set defaults for classifier hyperparameter
-cfg.hyperparameter = mv_get_classifier_param(cfg.classifier, cfg.hyperparameter);
+cfg.hyperparameter = mv_get_hyperparameter(cfg.classifier, cfg.hyperparameter);
 
 %% cfg: check for parameter names that have been changed
 changed_fields = { 'nb'      'neighbours';

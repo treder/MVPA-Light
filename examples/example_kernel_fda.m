@@ -16,7 +16,7 @@ X = squeeze(mean(dat.trial(:,:,ival_idx),3));
 %% train kernel FDA
 close all
 
-param = mv_get_classifier_param('kernel_fda');
+param = mv_get_hyperparameter('kernel_fda');
 % param.c = 10;
 param.tolerance = 10e-10;
 
@@ -29,7 +29,7 @@ cf = train_kernel_fda(param, X, clabel);
 toc
 
 %% optimise hyperparameter --- not implemented yet
-param = mv_get_classifier_param('kernel_fda');
+param = mv_get_hyperparameter('kernel_fda');
 param.kernel = 'polynomial';
 % param.kernel = 'rbf';
 param.gamma  = [0.001, 0.01, 0.033, 0.1, 100, 1000];
@@ -54,7 +54,7 @@ pparam.is_kernel_matrix = 1;
 [~, K_average, clabel_average] = mv_preprocess_average_samples(pparam, K, clabel);
 
 %% train kernel FDA using precomputed kernel matrix
-param = mv_get_classifier_param('kernel_fda');
+param = mv_get_hyperparameter('kernel_fda');
 param.kernel = 'precomputed';
 
 cf = train_kernel_fda(param, squeeze(K(:,:,30)), clabel);

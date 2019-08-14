@@ -12,11 +12,11 @@ X = randn(1000,10);
 clabel = randi(2, size(X,1),1);
 
 % Get classifier params for multiclass LDA and binary LDA
-param = mv_get_classifier_param('multiclass_lda');
+param = mv_get_hyperparameter('multiclass_lda');
 param.reg     = 'ridge';
 param.lambda  = 0.1;
 
-param_binary = mv_get_classifier_param('lda');
+param_binary = mv_get_hyperparameter('lda');
 param_binary.reg     = param.reg;
 param_binary.lambda  = param.lambda;
 
@@ -40,7 +40,7 @@ do_plot = 0;
 
 [X,clabel] = simulate_gaussian_data(nsamples, nfeatures, nclasses, prop, scale, do_plot);
 
-param = mv_get_classifier_param('multiclass_lda');
+param = mv_get_hyperparameter('multiclass_lda');
 param.reg     = 'ridge';
 param.lambda  = 0;
 cf = train_multiclass_lda(param, X, clabel);

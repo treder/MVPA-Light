@@ -44,7 +44,7 @@ do_plot = 0;
 [X_gauss,clabel_gauss] = simulate_gaussian_data(nsamples, nfeatures, nclasses, prop, scale, do_plot);
 
 % Get classifier params
-param = mv_get_classifier_param('libsvm');
+param = mv_get_hyperparameter('libsvm');
 param.gamma = [0.1, 0.01, 1];
 
 %% use cross-validation [no test, just look for crashes]
@@ -94,7 +94,7 @@ print_unittest_result('classif spiral data (RBF kernel)',1, acc_rbf, tol);
 K = rbf_kernel(struct('gamma',500), X_spiral);
 [Xtrain, trainlabel, Xtest, testlabel] = mv_select_train_and_test_data(K, clabel, 1:2:numel(clabel), 2:2:numel(clabel), 1);
 
-param = mv_get_classifier_param('libsvm');
+param = mv_get_hyperparameter('libsvm');
 param.kernel = 'precomputed';
 
 cf = train_libsvm(param, Xtrain, trainlabel);
@@ -109,7 +109,7 @@ fprintf('[precomputed kernel] test accuracy: %2.2f\n', sum(pred_testlabel==testl
 gamma = 10e1;
 
 % Get classifier params
-param = mv_get_classifier_param('libsvm');
+param = mv_get_hyperparameter('libsvm');
 param.gamma  = gamma;
 
 % 1 -provide kernel matrix directly
@@ -128,7 +128,7 @@ print_unittest_result('[rbf] providing kernel matrix vs calculating it from scra
 gamma = 10e1;
 
 % Get classifier params
-param = mv_get_classifier_param('libsvm');
+param = mv_get_hyperparameter('libsvm');
 
 % 1 -provide kernel matrix directly
 kernel_param = [];
@@ -154,7 +154,7 @@ print_unittest_result('[polynomial] providing kernel matrix vs calculating it fr
 gamma = 10e1;
 
 % Get classifier params
-param = mv_get_classifier_param('libsvm');
+param = mv_get_hyperparameter('libsvm');
 
 % 1 -provide kernel matrix directly
 K = linear_kernel([], X_spiral);

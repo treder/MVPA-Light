@@ -332,7 +332,7 @@ YX = Y*X0;
 sumyxN = sum(param.weights .* YX)'/N;
 X = X0;
 
-w = TrustRegionDoglegGN(logfun, w0, param.tolerance, param.max_iter, 1);
+w = TrustRegionDoglegGN(logfun, w0, param.tolerance, param.max_iter);
 
 %% Set up classifier struct
 cf = struct();

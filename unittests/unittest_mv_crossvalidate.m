@@ -88,3 +88,23 @@ for metric = {'acc','auc','f1','precision','recall','confusion','tval','dval'}
         tmp = mv_crossvalidate(cfg, X, clabel);
     end
 end
+
+
+%% Check different cross-validation types [just run to check for errors]
+sz = [30, 7];
+X = randn(sz);
+
+cfg = [];
+cfg.cv                   = 'kfold';
+cfg.k                    = 2;
+cfg.p                    = 0.3;
+cfg.feedback             = 0;
+
+clabel = ones(sz(1), 1); 
+clabel(ceil(end/2):end) = 2;
+
+for cv = {'kfold' ,'leaveout', 'holdout', 'none'}
+    fprintf('--%s--\n', cv{:})
+    cfg.cv = cv{:};
+    mv_crossvalidate(cfg, X, clabel);
+end

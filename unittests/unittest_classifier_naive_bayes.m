@@ -18,7 +18,7 @@ do_plot = 0;
 [X_gauss, clabel_gauss] = simulate_gaussian_data(nsamples, nfeatures, nclasses, prop, scale, do_plot);
 
 % get classifier hyperparameter
-param = mv_get_classifier_param('naive_bayes');
+param = mv_get_hyperparameter('naive_bayes');
 
 % train and test Naive Bayes classifier
 cf = train_naive_bayes(param, X_gauss, clabel_gauss);

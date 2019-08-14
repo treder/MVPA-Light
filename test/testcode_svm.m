@@ -11,7 +11,7 @@ ival_idx = find(dat.time >= 0.6 & dat.time <= 0.8);
 X = squeeze(mean(dat.trial(:,:,ival_idx),3));
 
 % Get default hyperparameters
-param = mv_get_classifier_param('lda');
+param = mv_get_hyperparameter('lda');
 
 % Train an LDA classifier
 tic
@@ -23,7 +23,7 @@ acc = mv_calculate_performance('acc', dval, clabel)
 
 
 %% -- SVM
-param = mv_get_classifier_param('svm');
+param = mv_get_hyperparameter('svm');
 param.c = logspace(-5,2,10);
 param.plot = 0;
 % param.k = 5;
@@ -61,7 +61,7 @@ acc = mv_crossvalidate(cfg, X, clabel)
 toc
 
 %% LIBSVM
-param = mv_get_classifier_param('libsvm');
+param = mv_get_hyperparameter('libsvm');
 
 tic
 rng(1);

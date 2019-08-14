@@ -64,8 +64,9 @@ print_unittest_result('Booth function', 0, norm(x_TR - x_opt), tol);
 % the algorithm finds one of them
 % f(x,y) = (x^2 + y - 11)^2 + (x + y^2 - 7)^2
 
-x0 = randn(2,1);
-max_iter = 400;
+x0 = [0;0];
+max_iter = 100;
+tolerance = 10e-5;
 [x_TR,iter,delta] = TrustRegionDoglegGN(@(x) himmelblau_function(x), x0, tolerance, max_iter);
 
 % Check function value at optimum [note: could be maximum or minimum]

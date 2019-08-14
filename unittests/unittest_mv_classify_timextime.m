@@ -5,8 +5,6 @@ tol = 10e-10;
 mf = mfilename;
 
 %% Create a dataset where classes can be perfectly discriminated for only some time points [two-class]
-% 
-
 nsamples = 100;
 ntime = 300;
 nfeatures = 10;
@@ -131,4 +129,23 @@ for metric = {'acc','auc','f1','precision','recall','confusion','tval','dval'}
         cfg.repeat      = 1;
         tmp = mv_classify_timextime(cfg, X, clabel);
     end
+end
+
+%% Check different cross-validation types [just run to check for errors]
+sz = [30, 7, 100];
+X = randn(sz);
+
+cfg = [];
+cfg.cv                   = 'kfold';
+cfg.k                    = 2;
+cfg.p                    = 0.3;
+cfg.feedback             = 0;
+
+clabel = ones(sz(1), 1); 
+clabel(ceil(end/2):end) = 2;
+
+for cv = {'kfold' ,'leaveout', 'holdout', 'none'}
+    fprintf('--%s--\n', cv{:})
+    cfg.cv = cv{:};
+    mv_classify_timextime(cfg, X, clabel);
 end

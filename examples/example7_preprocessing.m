@@ -149,7 +149,6 @@ cfg.hyperparameter.kernel   = 'precomputed'; % indicate that the kernel matrix i
 
 group_sizes = [1, 5];
 res = cell(1, numel(group_sizes));
-res_timextime = res;
 
 for ii=1%:2
 %     cfg.preprocess_param = [];
@@ -157,15 +156,11 @@ for ii=1%:2
     
     % kernel matrix K serves as input
     [~, res{ii}] = mv_classify_across_time(cfg, K, clabel2);
-    [~, res_timextime{ii}] = mv_classify_timextime(cfg, K, clabel2);
 end
 
 mv_plot_result(res{1}, dat.time)
 legend(strcat({'Group size: '}, arrayfun(@(c) {num2str(c)}, group_sizes)), ...
     'location', 'southeast')
-
-figure
-mv_plot_result(res_timextime{1}, dat.time, dat.time)
 
 %% Preprocessing pipelines: concatenating preprocessing steps
 % Multiple preprocessing steps can be concatenated by providing cell arrays

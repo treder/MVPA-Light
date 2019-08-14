@@ -11,7 +11,7 @@ ival_idx = find(dat.time >= 0.6 & dat.time <= 0.8);
 X = squeeze(mean(dat.trial(:,:,ival_idx),3));
 
 % Get default hyperparameters
-param = mv_get_classifier_param('lda');
+param = mv_get_hyperparameter('lda');
 
 % Train an LDA classifier
 tic
@@ -26,7 +26,7 @@ X = detrend(X);
 Xp = X*U;
 
 %% -- Logistic regression
-param = mv_get_classifier_param('logreg');
+param = mv_get_hyperparameter('logreg');
 param.lambda = 1; %logspace(-6,2,30); % 2
 % param.plot = 1;
 param.tolerance = 1e-6;

@@ -119,3 +119,21 @@ for metric = {'acc','auc','f1','precision','recall','confusion','tval','dval'}
 end
 
 
+%% Check different cross-validation types [just run to check for errors]
+sz = [30, 7, 100];
+X = randn(sz);
+
+cfg = [];
+cfg.cv                   = 'kfold';
+cfg.k                    = 2;
+cfg.p                    = 0.3;
+cfg.feedback             = 0;
+
+clabel = ones(sz(1), 1); 
+clabel(ceil(end/2):end) = 2;
+
+for cv = {'kfold' ,'leaveout', 'holdout', 'none'}
+    fprintf('--%s--\n', cv{:})
+    cfg.cv = cv{:};
+    mv_classify_across_time(cfg, X, clabel);
+end

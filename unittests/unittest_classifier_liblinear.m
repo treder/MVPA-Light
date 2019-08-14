@@ -42,10 +42,10 @@ do_plot = 0;
 [X_gauss,clabel_gauss] = simulate_gaussian_data(nsamples, nfeatures, nclasses, prop, scale, do_plot);
 
 % Get classifier params
-param = mv_get_classifier_param('liblinear');
+param = mv_get_hyperparameter('liblinear');
 
 %% use cross-validation [no test, just look for crashes]
-param = mv_get_classifier_param('liblinear');
+param = mv_get_hyperparameter('liblinear');
 param.cv = 10;
 cf = train_liblinear(param, X, clabel);
 

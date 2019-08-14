@@ -11,7 +11,7 @@ ival_idx = find(dat.time >= 0.6 & dat.time <= 0.8);
 X = squeeze(mean(dat.trial(:,:,ival_idx),3));
 
 % Get default hyperparameters
-param = mv_get_classifier_param('lda');
+param = mv_get_hyperparameter('lda');
 
 % Train an LDA classifier
 tic
@@ -24,7 +24,7 @@ toc
 auc_lda= mv_calculate_performance('auc', dval, clabel)
 
 %% LIBSVM
-param = mv_get_classifier_param('libsvm');
+param = mv_get_hyperparameter('libsvm');
 
 tic
 rng(1);
@@ -36,7 +36,7 @@ auc_libsvm= mv_calculate_performance('auc', dval, clabel)
 acc_libsvm= mv_calculate_performance('acc', predlabel, clabel)
 
 %% LIBLINEAR (log reg)
-param = mv_get_classifier_param('liblinear');
+param = mv_get_hyperparameter('liblinear');
 param.type = 0;   % L2-regularised logistic regression
 param.C = 1;
 param.quiet = 1;

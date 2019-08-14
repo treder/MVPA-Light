@@ -148,11 +148,6 @@ else
     % Initialise classifier outputs
     cf_output = cell(1, 1, ntime);
 
-    % Rebalance data using under-/over-sampling if requested
-    if ~strcmp(cfg.balance,'none')
-        [X,clabel] = mv_balance_classes(X_orig,label_orig,cfg.balance,cfg.replace);
-    end
-    
     % Preprocess train/test data
     [~, X, clabel] = mv_preprocess(cfg, X, clabel);
 
@@ -165,7 +160,6 @@ else
         
         % Obtain classifier output (class labels or dvals)
         cf_output{1,1,tt} = mv_get_classifier_output(cfg.output_type, cf, test_fun, Xtraintest);
-%         cf_output(:,tt) = mv_get_classifier_output(cfg.output_type, cf, test_fun, Xtraintest);
     end
 
     testlabel = clabel;

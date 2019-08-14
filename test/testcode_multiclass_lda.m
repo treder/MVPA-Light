@@ -8,7 +8,7 @@ load fisheriris
 clabel = cellfun(@(x) find(ismember({'setosa','versicolor','virginica'},x)), species);
 
 % Get default hyperparameters
-param = mv_get_classifier_param('multiclass_lda');
+param = mv_get_hyperparameter('multiclass_lda');
 
 % Train an multiclass LDA classifier
 cf = train_multiclass_lda(param, meas, clabel);

@@ -16,7 +16,7 @@ X = squeeze(mean(dat.trial(:,:,ival_idx),3));
 %% train SVM
 close all
 
-param = mv_get_classifier_param('svm');
+param = mv_get_hyperparameter('svm');
 % param.c = 10;
 param.tolerance = 10e-10;
 param.plot = 1;
@@ -31,7 +31,7 @@ toc
 
 
 %% optimise hyperparameter
-param = mv_get_classifier_param('svm');
+param = mv_get_hyperparameter('svm');
 param.kernel = 'polynomial';
 % param.kernel = 'rbf';
 param.gamma  = [0.001, 0.01, 0.033, 0.1, 100, 1000];
@@ -69,7 +69,7 @@ cfg.hyperparameter.kernel = 'rbf';
 mv_plot_result(res, dat.time)
 
 %% train SVM using precomputed kernel matrix
-param = mv_get_classifier_param('svm');
+param = mv_get_hyperparameter('svm');
 param.kernel = 'precomputed';
 
 cf = train_svm(param, squeeze(K(:,:,30)), clabel);

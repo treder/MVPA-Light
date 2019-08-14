@@ -1,4 +1,5 @@
-function [w,iter,delta] = TrustRegionDoglegGN(fun,w,tolerance,max_iter,ll)
+% function [w,iter,delta] = TrustRegionDoglegGN(fun,w,tolerance,max_iter,ll)
+function [w,iter,delta] = TrustRegionDoglegGN(fun,w,tolerance,max_iter)
 % Implementation of a Trust Region (TR) Dogleg algorithm for solving 
 % non-linear equations of the type 
 %
@@ -135,8 +136,8 @@ while iter < max_iter
 end
 
 if (iter == max_iter)
-%     warning('Maximum number of iterations (%d) reached, stopping...',max_iter)
-    warning('Maximum number of iterations (%d) reached at iteration #%d, stopping...',max_iter,ll)
+    warning('Maximum number of iterations (%d) reached, stopping...',max_iter)
+%     warning('Maximum number of iterations (%d) reached at iteration #%d, stopping...',max_iter,ll)
 end
 
     %% ---- DOGLEG algorithm ----
