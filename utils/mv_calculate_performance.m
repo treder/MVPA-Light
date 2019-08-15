@@ -50,6 +50,7 @@ function [perf, perf_std] = mv_calculate_performance(metric, output_type, cf_out
 % - mv_crossvalidate: 2D [repeats x K] cell array
 % - mv_classify_across_time: 3D [repeats x K x time points] cell array
 % - mv_classify_timextime: 3D [repeat x K x time points] cell array
+% - mv_classify: [repeat x K x ... x ... ] of any dimension >= 2
 %
 % In all three cases, however, the corresponding clabel array is just
 % [repeats x K] since class labels are repeated for all time points. If 
@@ -146,12 +147,12 @@ switch(metric)
         
         % Aggregate across samples, for each class separately
         if nextra == 1
-            perf(dim_skip_token{:},1) = cellfun( @(cfo,lab) nanmean(cfo(lab==1,:,:,:,:,:),1), cf_output, clabel, 'Un',0);
-            perf(dim_skip_token{:},2) = cellfun( @(cfo,lab) nanmean(cfo(lab==2,:,:,:,:,:),1), cf_output, clabel, 'Un',0);
+            perf(dim_skip_token{:},1) = cellfun( @(cfo,lab) nanmean(cfo(lab==1,:,:,:,:,:,:,:,:,:),1), cf_output, clabel, 'Un',0);
+            perf(dim_skip_token{:},2) = cellfun( @(cfo,lab) nanmean(cfo(lab==2,:,:,:,:,:,:,:,:,:),1), cf_output, clabel, 'Un',0);
         else
             for xx=1:nextra % Looping across the extra dimensions if cf_output is multi-dimensional
-                perf(dim_skip_token{:},xx,1) = cellfun( @(cfo,lab) nanmean(cfo(lab==1,:,:,:,:,:),1), cf_output(dim_skip_token{:},xx), clabel, 'Un',0);
-                perf(dim_skip_token{:},xx,2) = cellfun( @(cfo,lab) nanmean(cfo(lab==2,:,:,:,:,:),1), cf_output(dim_skip_token{:},xx), clabel, 'Un',0);
+                perf(dim_skip_token{:},xx) = cellfun( @(cfo,lab) nanmean(cfo(lab==1,:,:,:,:,:,:,:,:,:),1), cf_output(dim_skip_token{:},xx), clabel, 'Un',0);
+                perf(dim_skip_token{:},xx+nextra) = cellfun( @(cfo,lab) nanmean(cfo(lab==2,:,:,:,:,:,:,:,:,:),1), cf_output(dim_skip_token{:},xx), clabel, 'Un',0);
             end
         end
         
@@ -164,11 +165,11 @@ switch(metric)
          % Aggregate across samples, for each class separately
         if nextra == 1
             % Get means
-            M1 = cellfun( @(cfo,lab) nanmean(cfo(lab==1,:,:,:,:,:),1), cf_output, clabel, 'Un',0);
-            M2 = cellfun( @(cfo,lab) nanmean(cfo(lab==2,:,:,:,:,:),1), cf_output, clabel, 'Un',0);
+            M1 = cellfun( @(cfo,lab) nanmean(cfo(lab==1,:,:,:,:,:,:,:,:,:),1), cf_output, clabel, 'Un',0);
+            M2 = cellfun( @(cfo,lab) nanmean(cfo(lab==2,:,:,:,:,:,:,:,:,:),1), cf_output, clabel, 'Un',0);
             % Variances
-            V1 = cellfun( @(cfo,lab) nanvar(cfo(lab==1,:,:,:,:,:)), cf_output, clabel, 'Un',0);
-            V2 = cellfun( @(cfo,lab) nanvar(cfo(lab==2,:,:,:,:,:)), cf_output, clabel, 'Un',0);
+            V1 = cellfun( @(cfo,lab) nanvar(cfo(lab==1,:,:,:,:,:,:,:,:,:)), cf_output, clabel, 'Un',0);
+            V2 = cellfun( @(cfo,lab) nanvar(cfo(lab==2,:,:,:,:,:,:,:,:,:)), cf_output, clabel, 'Un',0);
             % Class frequencies
             N1 = cellfun( @(lab) sum(lab==1), clabel, 'Un',0);
             N2 = cellfun( @(lab) sum(lab==2), clabel, 'Un',0);
@@ -179,11 +180,11 @@ switch(metric)
         else
             for xx=1:nextra % Looping across the extra dimensions if cf_output is multi-dimensional
                 % Get means
-                M1 = cellfun( @(cfo,lab) nanmean(cfo(lab==1,:,:,:,:,:),1), cf_output(dim_skip_token{:},xx), clabel, 'Un',0);
-                M2 = cellfun( @(cfo,lab) nanmean(cfo(lab==2,:,:,:,:,:),1), cf_output(dim_skip_token{:},xx), clabel, 'Un',0);
+                M1 = cellfun( @(cfo,lab) nanmean(cfo(lab==1,:,:,:,:,:,:,:,:,:),1), cf_output(dim_skip_token{:},xx), clabel, 'Un',0);
+                M2 = cellfun( @(cfo,lab) nanmean(cfo(lab==2,:,:,:,:,:,:,:,:,:),1), cf_output(dim_skip_token{:},xx), clabel, 'Un',0);
                 % Variances
-                V1 = cellfun( @(cfo,lab) nanvar(cfo(lab==1,:,:,:,:,:)), cf_output(dim_skip_token{:},xx), clabel, 'Un',0);
-                V2 = cellfun( @(cfo,lab) nanvar(cfo(lab==2,:,:,:,:,:)), cf_output(dim_skip_token{:},xx), clabel, 'Un',0);
+                V1 = cellfun( @(cfo,lab) nanvar(cfo(lab==1,:,:,:,:,:,:,:,:,:)), cf_output(dim_skip_token{:},xx), clabel, 'Un',0);
+                V2 = cellfun( @(cfo,lab) nanvar(cfo(lab==2,:,:,:,:,:,:,:,:,:)), cf_output(dim_skip_token{:},xx), clabel, 'Un',0);
                 % Class frequencies
                 N1 = cellfun( @(lab) sum(lab==1), clabel, 'Un',0);
                 N2 = cellfun( @(lab) sum(lab==2), clabel, 'Un',0);
@@ -239,12 +240,12 @@ switch(metric)
         gtfun = @(cii, cn1) (sum(bsxfun(@gt, cii, cn1) + 0.5*bsxfun(@eq,cii,cn1) ));
         % arrsum repeats gtfun for each sample in matrix c corresponding to
         % class 1. The counts are then summed across the class 1 samples
-        arrsum =  @(c,n1) sum(cell2mat(   arrayfun(@(ii) gtfun(c(ii,:,:,:),c(n1+1:end,:,:,:)), 1:n1,'Un',0)'    ) );
+        arrsum =  @(c,n1) sum(cell2mat(   arrayfun(@(ii) gtfun(c(ii,:,:,:,:,:,:,:),c(n1+1:end,:,:,:,:,:,:,:)), 1:n1,'Un',0)'    ) );
         for xx=1:nextra
             % Sort decision values using the indices of the sorted labels.
             % Add a bunch of :'s to make sure that we preserve the other
             % (possible) dimensions
-            cf_so = cellfun(@(c,so) c(so,:,:,:,:,:) , cf_output(dim_skip_token{:},xx), soidx, 'Un',0);
+            cf_so = cellfun(@(c,so) c(so,:,:,:,:,:,:,:,:,:) , cf_output(dim_skip_token{:},xx), soidx, 'Un',0);
             % Use cellfun to perform the following operation within each
             % cell:
             % For each class 1 sample, we count how many class 2 exemplars
@@ -475,7 +476,7 @@ if isvector(perf_std), perf_std = perf_std(:); end
         if nclasses==2
             % for two classes we use the standard formula TP / (TP + FP)
             for xx=1:nextra % Looping across the extra dimensions if cf_output is multi-dimensional
-                precision(dim_skip_token{:},xx) = cellfun( @(c) c(1,1,:,:)./(c(1,1,:,:)+c(2,1,:,:)), conf(dim_skip_token{:},xx), 'Un',0);
+                precision(dim_skip_token{:},xx) = cellfun( @(c) c(1,1,:,:,:,:,:,:)./(c(1,1,:,:,:,:,:,:)+c(2,1,:,:,:,:,:,:)), conf(dim_skip_token{:},xx), 'Un',0);
             end
         else
             % for more than two classes, we use the generalisation from
@@ -497,7 +498,7 @@ if isvector(perf_std), perf_std = perf_std(:); end
         if nclasses==2
             % for two classes we use the standard formula TP / (TP + FN)
             for xx=1:nextra % Looping across the extra dimensions if cf_output is multi-dimensional
-                recall(dim_skip_token{:},xx) = cellfun( @(c) c(1,1,:,:)./(c(1,1,:,:)+c(1,2,:,:)), conf(dim_skip_token{:},xx), 'Un',0);
+                recall(dim_skip_token{:},xx) = cellfun( @(c) c(1,1,:,:,:,:,:,:)./(c(1,1,:,:,:,:,:,:)+c(1,2,:,:,:,:,:,:)), conf(dim_skip_token{:},xx), 'Un',0);
             end
         else
             % for more than two classes, we use the generalisation from
