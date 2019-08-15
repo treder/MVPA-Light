@@ -128,7 +128,7 @@ if isempty(cfg.neighbours), cfg.neighbours = {}; end  % replace [] by {}
 if ~iscell(cfg.neighbours), cfg.neighbours = {cfg.neighbours}; end
 cfg.neighbours = cfg.neighbours(:);  % make sure it's a column vector
 
-mv_set_default(cfg,'process',{});
+mv_set_default(cfg,'preprocess',{});
 mv_set_default(cfg,'preprocess_param',{});
 
 % mv_check_inputs assumes samples are in dimension 1 so need to permute
