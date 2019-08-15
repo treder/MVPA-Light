@@ -90,7 +90,7 @@ switch(classifier)
         mv_set_default(param,'tolerance',1e-6);
         mv_set_default(param,'k',5);
         mv_set_default(param,'plot',0);
-        mv_set_default(param,'predict_regularization_path',1);
+        mv_set_default(param,'predict_regularization_path',0);
         mv_set_default(param,'polyorder',3);
         
     case 'multiclass_lda'
@@ -102,7 +102,7 @@ switch(classifier)
         
     case 'svm'
         mv_set_default(param,'bias','auto');
-        mv_set_default(param,'c','auto');
+        mv_set_default(param,'c',1);
         mv_set_default(param,'kernel','linear'); % 'poly' 'rbf'
         mv_set_default(param,'prob',0);
         mv_set_default(param,'regularize_kernel',10e-10);
@@ -110,7 +110,6 @@ switch(classifier)
         mv_set_default(param,'k',3);
         mv_set_default(param,'tolerance',0.01);
         mv_set_default(param,'shrinkage_multiplier',1);
-        mv_set_default(param,'q',[]);
         
         % parameters for specific kernels
         mv_set_default(param,'gamma','auto'); % RBF and polynomial kernel regularization parameter
