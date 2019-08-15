@@ -252,7 +252,7 @@ if strcmp(cfg.classifier, 'liblinear')
 end
 
 %% Deprecation checks
-if isfield(cfg,'param')
+if isfield(cfg,'param') && ~isfield(cfg,'hyperparameter')
     warning('cfg.param is now called cfg.hyperparameter, renaming...');
     cfg.hyperparameter = cfg.param;
 end
