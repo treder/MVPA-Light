@@ -30,12 +30,12 @@ cfg_LDA.cv              = 'kfold';  % 'kfold' 'leaveout' 'holdout'
 cfg_LDA.k               = 5;
 cfg_LDA.repeat          = 10;
 
-% the param substruct contains the hyperparameters for the classifier.
+% the hyperparameter substruct contains the hyperparameters for the classifier.
 % Here, we only set lambda = 'auto'. This is the default, so in general
-% setting param is not required unless one wants to change the default
+% setting hyperparameter is not required unless one wants to change the default
 % settings.
-cfg_LDA.param           = [];
-cfg_LDA.param.lambda    = 'auto';
+cfg_LDA.hyperparameter          = [];
+cfg_LDA.hyperparameter.lambda   = 'auto';
 
 [acc_LDA, result_LDA] = mv_crossvalidate(cfg_LDA, X, clabel);
 

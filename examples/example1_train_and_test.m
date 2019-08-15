@@ -35,7 +35,7 @@ ival_idx = find(dat.time >= 0.6 & dat.time <= 0.8);
 X = squeeze(mean(dat.trial(:,:,ival_idx),3));
 
 % Get default hyperparameters for the LDA classifier
-param = mv_get_classifier_param('lda');
+param = mv_get_hyperparameter('lda');
 
 % We also want to calculate class probabilities (prob variable) for each 
 % sample (do not use unless explicitly required since it slows down 

@@ -43,13 +43,13 @@ if any(not_lowercase)
     error('For consistency, all parameters must be given in lowercase: please replace cfg.%s by cfg.%s', fn{not_lowercase(1)},lower(fn{not_lowercase(1)}) )
 end
 
-% Are all cfg.param fields given in lowercase?
-if isfield(cfg,'param') && isstruct(cfg.param)
-    pfn = fieldnames(cfg.param);
+% Are all cfg.hyperparameter fields given in lowercase?
+if isfield(cfg,'hyperparameter') && isstruct(cfg.hyperparameter)
+    pfn = fieldnames(cfg.hyperparameter);
     not_lowercase = find(~strcmp(pfn,lower(pfn)));
     
     if any(not_lowercase)
-        error('For consistency, all parameters must be given in lowercase: please replace param.%s by param.%s', pfn{not_lowercase(1)},lower(pfn{not_lowercase(1)}) )
+        error('For consistency, all parameters must be given in lowercase: please replace hyperparameter.%s by hyperparameter.%s', pfn{not_lowercase(1)},lower(pfn{not_lowercase(1)}) )
     end
 end
 
@@ -116,8 +116,8 @@ for ii=1:numel(idx)
     end
 end
 
-%% cfg: set defaults for classifier param
-cfg.param = mv_get_classifier_param(cfg.classifier, cfg.param);
+%% cfg: set defaults for classifier hyperparameter
+cfg.hyperparameter = mv_get_hyperparameter(cfg.classifier, cfg.hyperparameter);
 
 %% cfg: check for parameter names that have been changed
 changed_fields = { 'nb'      'neighbours';
@@ -249,4 +249,10 @@ if strcmp(cfg.classifier, 'liblinear')
             end
         end
     end
+end
+
+%% Deprecation checks
+if isfield(cfg,'param') && ~isfield(cfg,'hyperparameter')
+    warning('cfg.param is now called cfg.hyperparameter, renaming...');
+    cfg.hyperparameter = cfg.param;
 end

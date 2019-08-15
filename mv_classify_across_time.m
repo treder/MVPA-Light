@@ -14,7 +14,7 @@ function [perf, result, testlabel] = mv_classify_across_time(cfg, X, clabel)
 % cfg          - struct with hyperparameters:
 % .classifier   - name of classifier, needs to have according train_ and test_
 %                 functions (default 'lda')
-% .param        - struct with parameters passed on to the classifier train
+% .hyperparameter - struct with parameters passed on to the classifier train
 %                 function (default [])
 % .metric       - classifier performance metric, default 'accuracy'. See
 %                 mv_classifier_performance. If set to [] or 'none', the 
@@ -64,7 +64,7 @@ X = double(X);
 if ndims(X)~= 3, error('X must be 3-dimensional'), end
 
 mv_set_default(cfg,'classifier','lda');
-mv_set_default(cfg,'param',[]);
+mv_set_default(cfg,'hyperparameter',[]);
 mv_set_default(cfg,'metric','accuracy');
 mv_set_default(cfg,'time',1:size(X,3));
 mv_set_default(cfg,'feedback',1);
@@ -80,7 +80,9 @@ ntime = numel(cfg.time);
 n = arrayfun( @(c) sum(clabel==c) , 1:nclasses);
 
 % indicates whether the data represents kernel matrices
-mv_set_default(cfg,'is_kernel_matrix', isfield(cfg.param,'kernel') && strcmp(cfg.param.kernel,'precomputed'));
+mv_set_default(cfg,'is_kernel_matrix', isfield(cfg.hyperparameter,'kernel') && strcmp(cfg.hyperparameter.kernel,'precomputed'));
+if cfg.is_kernel_matrix,  mv_set_default(cfg,'dimension_names',{'samples','samples','time points'});
+else,                     mv_set_default(cfg,'dimension_names',{'samples','features','time points'}); end
 
 %% Get train and test functions
 train_fun = eval(['@train_' cfg.classifier]);
@@ -120,7 +122,7 @@ if ~strcmp(cfg.cv,'none')
                 Xtest_tt= squeeze(Xtest(:,:,cfg.time(tt)));
 
                 % Train classifier
-                cf= train_fun(cfg.param, Xtrain_tt, trainlabel);
+                cf= train_fun(cfg.hyperparameter, Xtrain_tt, trainlabel);
 
                 % Obtain classifier output (class labels, dvals or probabilities)
                 cf_output{rr,kk,tt} = mv_get_classifier_output(cfg.output_type, cf, test_fun, Xtest_tt);
@@ -146,11 +148,6 @@ else
     % Initialise classifier outputs
     cf_output = cell(1, 1, ntime);
 
-    % Rebalance data using under-/over-sampling if requested
-    if ~strcmp(cfg.balance,'none')
-        [X,clabel] = mv_balance_classes(X_orig,label_orig,cfg.balance,cfg.replace);
-    end
-    
     % Preprocess train/test data
     [~, X, clabel] = mv_preprocess(cfg, X, clabel);
 
@@ -159,11 +156,10 @@ else
         Xtraintest= squeeze(X(:,:,cfg.time(tt)));
 
         % Train classifier
-        cf= train_fun(cfg.param, Xtraintest, clabel);
+        cf= train_fun(cfg.hyperparameter, Xtraintest, clabel);
         
         % Obtain classifier output (class labels or dvals)
         cf_output{1,1,tt} = mv_get_classifier_output(cfg.output_type, cf, test_fun, Xtraintest);
-%         cf_output(:,tt) = mv_get_classifier_output(cfg.output_type, cf, test_fun, Xtraintest);
     end
 
     testlabel = clabel;

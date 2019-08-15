@@ -141,24 +141,24 @@ kparam.regularize_kernel = 10e-1;
 K = compute_kernel_matrix(kparam, dat2.trial);
 
 cfg = [];
-cfg.metric          = 'auc';
-cfg.classifier      = 'svm'; % 'kernel_fda'
-cfg.param           = [];
-cfg.param.kernel    = 'precomputed'; % indicate that the kernel matrix is precomputed
-cfg.preprocess      = 'average_kernel';
+cfg.metric                  = 'auc';
+cfg.classifier              = 'svm'; % 'kernel_fda'
+cfg.hyperparameter          = [];
+cfg.hyperparameter.kernel   = 'precomputed'; % indicate that the kernel matrix is precomputed
+% cfg.preprocess      = 'average_kernel';
 
 group_sizes = [1, 5];
 res = cell(1, numel(group_sizes));
 
-for ii=1:2
-    cfg.preprocess_param = [];
-    cfg.preprocess_param.group_size = group_sizes(ii);
+for ii=1%:2
+%     cfg.preprocess_param = [];
+%     cfg.preprocess_param.group_size = group_sizes(ii);
     
     % kernel matrix K serves as input
     [~, res{ii}] = mv_classify_across_time(cfg, K, clabel2);
 end
 
-mv_plot_result(res, dat.time)
+mv_plot_result(res{1}, dat.time)
 legend(strcat({'Group size: '}, arrayfun(@(c) {num2str(c)}, group_sizes)), ...
     'location', 'southeast')
 
