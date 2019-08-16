@@ -70,11 +70,11 @@ expect = 1;
 
 print_unittest_result('[5 classes] CV for well-separated data',expect, actual, tol);
 
-%% Check different metrics and classifiers -- just run to see if there's errors
+%% Check different metrics and classifiers for 2 classes -- just run to see if there's errors
 cfg = [];
 cfg.feedback = 0;
 
-for metric = {'acc','auc','f1','precision','recall','confusion','tval','dval'}
+for metric = {'acc','auc','confusion','dval','f1','kappa','precision','recall','tval'}
     for classifier = {'lda', 'logreg', 'multiclass_lda', 'svm', 'ensemble','kernel_fda','naive_bayes'}
         if any(ismember(classifier,{'kernel_fda' 'multiclass_lda','naive_bayes'})) && any(ismember(metric, {'tval','dval','auc'}))
             continue
@@ -89,6 +89,21 @@ for metric = {'acc','auc','f1','precision','recall','confusion','tval','dval'}
     end
 end
 
+%% same for 3 classes
+cfg = [];
+cfg.feedback = 0;
+
+for metric = {'acc','confusion','f1','kappa','precision','recall'}
+    for classifier = {'multiclass_lda','kernel_fda','naive_bayes'}
+        fprintf('%s - %s\n', metric{:}, classifier{:})
+        
+        cfg.metric      = metric{:};
+        cfg.classifier  = classifier{:};
+        cfg.k           = 5;
+        cfg.repeat      = 1;
+        tmp = mv_crossvalidate(cfg, X, clabel);
+    end
+end
 
 %% Check different cross-validation types [just run to check for errors]
 sz = [30, 7];

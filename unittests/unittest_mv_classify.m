@@ -148,7 +148,7 @@ print_unittest_result('[two-class] CV discriminable times = 1?', 1, acc_discrimi
 print_unittest_result('[two-class] CV non-discriminable times = 0.5?', 0.5, acc_nondiscriminable, tol);
 
 
-%% Check different metrics and classifiers -- just run to see if there's errors (use 5 dimensions with 3 search dims)
+%% Check different metrics and classifiers for 2 classes -- just run to see if there's errors (use 5 dimensions with 3 search dims)
 X2 = randn(12, 5, 3, 4, 2);
 clabel = ones(size(X2,1), 1); 
 clabel(ceil(end/2):end) = 2;
@@ -156,16 +156,42 @@ clabel(ceil(end/2):end) = 2;
 cfg = [];
 cfg.sample_dimension     = 1;
 cfg.feature_dimension    = 2;
-% % cfg.generalization_dimension = 4;
+cfg.generalization_dimension = 4;
 cfg.metric = 'acc';
 
 cfg.feedback = 0;
 
-for metric = {'acc','auc','f1','precision','recall','confusion','tval','dval'}
+for metric = {'acc','auc','confusion','dval','f1','kappa','precision','recall','tval'}
     for classifier = {'lda', 'logreg', 'multiclass_lda', 'svm', 'ensemble','kernel_fda','naive_bayes'}
         if any(ismember(classifier,{'kernel_fda' 'multiclass_lda','naive_bayes'})) && any(ismember(metric, {'tval','dval','auc'}))
             continue
         end
+        fprintf('%s - %s\n', metric{:}, classifier{:})
+        
+        cfg.metric      = metric{:};
+        cfg.classifier  = classifier{:};
+        cfg.k           = 5;
+        cfg.repeat      = 1;
+        tmp = mv_classify(cfg, X2, clabel);
+    end
+end
+
+%% Check different metrics and classifiers for 3 classes -- just run to see if there's errors (use 5 dimensions with 3 search dims)
+X2 = randn(18, 5, 5, 4, 2);
+clabel = ones(size(X2,1), 1); 
+clabel(7:end) = 2;
+clabel(13:end) = 3;
+
+cfg = [];
+cfg.sample_dimension     = 1;
+cfg.feature_dimension    = 2;
+cfg.generalization_dimension = 4;
+cfg.metric = 'acc';
+
+cfg.feedback = 0;
+
+for metric = {'acc','confusion','f1','kappa','precision','recall'}
+    for classifier = {'multiclass_lda','kernel_fda','naive_bayes'}
         fprintf('%s - %s\n', metric{:}, classifier{:})
         
         cfg.metric      = metric{:};

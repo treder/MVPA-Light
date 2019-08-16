@@ -154,6 +154,51 @@ perf = mv_calculate_performance(metric, output_type, cf_output, clabel);
 print_unittest_result('[dval] mean dval for class 1 is -1', -1, perf(1), tol);
 print_unittest_result('[dval] mean dval for class 2 is 2', 2, perf(2), tol);
 
+%% KAPPA
+% Use the numerical examples from the Wikipedia page on Cohen's Kappa as a
+% reference (https://en.wikipedia.org/wiki/Cohen's_kappa)
+metric = 'kappa';
+output_type = 'clabel';
+
+% "Simple example" (https://en.wikipedia.org/wiki/Cohen's_kappa)
+% Our contingency table needs to be
+% 20  5 
+% 10 15
+% hence we need 50 class labels
+
+clabel = [ones(25,1); 2*ones(25,1)];
+cf_output = clabel;
+cf_output(1:5) = 2;     % this gives us the 5
+cf_output(26:35) = 1;   % this gives us the 10
+
+perf = mv_calculate_performance(metric, output_type, cf_output, clabel);
+print_unittest_result('[kappa] example 1, kappa should be 0.4', 0.4, perf(1), tol);
+
+% Example "Same percentages but different numbers" (https://en.wikipedia.org/wiki/Cohen's_kappa)
+% contingency table:
+% 45 15 
+% 25 15
+% hence we need 100 class labels
+clabel = [ones(60,1); 2*ones(40,1)];
+cf_output = clabel;
+cf_output(1:15) = 2;     % this gives us the 15
+cf_output(61:85) = 1;    % this gives us the 25
+
+perf = mv_calculate_performance(metric, output_type, cf_output, clabel);
+print_unittest_result('[kappa] example 1, kappa should be 0.1304', 0.1304, perf(1), tol);
+
+% contingency table:
+% 25 35 
+%  5 35
+% hence we need 100 class labels
+clabel = [ones(60,1); 2*ones(40,1)];
+cf_output = clabel;
+cf_output(1:35) = 2;     % this gives us the 35
+cf_output(61:65) = 1;    % this gives us the  5
+
+perf = mv_calculate_performance(metric, output_type, cf_output, clabel);
+print_unittest_result('[kappa] example 1, kappa should be 0.2593', 0.2593, perf(1), tol);
+
 %% TVAL
 metric = 'tval';
 output_type = 'dval';

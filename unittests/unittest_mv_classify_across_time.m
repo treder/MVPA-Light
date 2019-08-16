@@ -87,7 +87,7 @@ acc_nondiscriminable = mean( acc(setdiff(1:ntime,can_discriminate)));
 tol = 0.03;
 print_unittest_result('[4 classes] CV difference between (non-)/discriminable times', 0.75, acc_discriminable-acc_nondiscriminable, tol);
 
-%% Check different metrics and classifiers -- just run to see if there's errors
+%% Check different metrics and classifiers for 2 classes -- just run to see if there's errors
 nsamples = 60;
 ntime = 2;
 nfeatures = 10;
@@ -103,7 +103,7 @@ X(:,:,2) = X;
 cfg = [];
 cfg.feedback = 0;
 
-for metric = {'acc','auc','f1','precision','recall','confusion','tval','dval'}
+for metric = {'acc','auc','confusion','dval','f1','kappa','precision','recall','tval'}
     for classifier = {'lda', 'logreg', 'multiclass_lda', 'svm', 'ensemble','kernel_fda','naive_bayes'}
         if any(ismember(classifier,{'kernel_fda' 'multiclass_lda','naive_bayes'})) && any(ismember(metric, {'tval','dval','auc'}))
             continue
@@ -118,6 +118,34 @@ for metric = {'acc','auc','f1','precision','recall','confusion','tval','dval'}
     end
 end
 
+%% same for 3 classes
+nsamples = 60;
+ntime = 2;
+nfeatures = 10;
+nclasses = 3;
+prop = [];
+scale = 0.0001;
+do_plot = 0;
+
+% Generate data
+[X,clabel] = simulate_gaussian_data(nsamples, nfeatures, nclasses, prop, scale, do_plot);
+X(:,:,2) = X + randn(size(X));
+X(:,:,3:4) = X + randn(size(X));
+
+cfg = [];
+cfg.feedback = 0;
+
+for metric = {'acc','confusion','f1','kappa','precision','recall'}
+    for classifier = {'multiclass_lda','kernel_fda','naive_bayes'}
+        fprintf('%s - %s\n', metric{:}, classifier{:})
+        
+        cfg.metric      = metric{:};
+        cfg.classifier  = classifier{:};
+        cfg.k           = 5;
+        cfg.repeat      = 1;
+        tmp = mv_classify_across_time(cfg, X, clabel);
+    end
+end
 
 %% Check different cross-validation types [just run to check for errors]
 sz = [30, 7, 100];
