@@ -7,7 +7,8 @@ function preprocess_param = mv_get_preprocess_param(preprocess, preprocess_param
 % 
 %Parameters:
 % preprocess     - [string] specifying the preprocessing function (e.g. 'average_samples')
-% preprocess_param - [struct] (optional) containing parameters. The struct
+% preprocess_param - [struct or cell array] (optional) contains parameters. 
+%                    If cell array, will be converted to struct. The struct
 %                    will be filled up with default values for non-existing
 %                    fields, but existing values are not overwritten. If
 %                    param is not provided, all values are set to default
@@ -19,7 +20,11 @@ function preprocess_param = mv_get_preprocess_param(preprocess, preprocess_param
 %Output:
 % param  - [struct] with default preprocessing parameters
 
-if nargin < 2 || ~isstruct(preprocess_param)
+if nargin < 2
+    preprocess_param = struct();
+elseif iscell(preprocess_param)
+    preprocess_param = mv_cell2struct(preprocess_param);
+elseif  ~isstruct(preprocess_param)
     preprocess_param = struct();
 end
 
