@@ -145,20 +145,25 @@ cfg.metric                  = 'auc';
 cfg.classifier              = 'svm'; % 'kernel_fda'
 cfg.hyperparameter          = [];
 cfg.hyperparameter.kernel   = 'precomputed'; % indicate that the kernel matrix is precomputed
-% cfg.preprocess      = 'average_kernel';
+cfg.repeat                  = 2;
+cfg.preprocess              = 'average_kernel';
 
 group_sizes = [1, 5];
 res = cell(1, numel(group_sizes));
 
-for ii=1%:2
-%     cfg.preprocess_param = [];
-%     cfg.preprocess_param.group_size = group_sizes(ii);
+rng(12)
+for ii=1:2
+    cfg.preprocess_param = [];
+    cfg.preprocess_param.group_size = group_sizes(ii);
+    
+    % alternative notation for preprocess_param using a cell array:
+    % cfg.preprocess_param = {'group_size' group_sizes(ii)};
     
     % kernel matrix K serves as input
     [~, res{ii}] = mv_classify_across_time(cfg, K, clabel2);
 end
 
-mv_plot_result(res{1}, dat.time)
+mv_plot_result(res, dat.time)
 legend(strcat({'Group size: '}, arrayfun(@(c) {num2str(c)}, group_sizes)), ...
     'location', 'southeast')
 
@@ -189,8 +194,18 @@ cfg.preprocess_param{2}.group_size = 2;
 
 [perf2, res2] = mv_classify_across_time(cfg, dat2.trial, clabel2);
 
-cfg.preprocess_param
+mv_plot_result({res, res2}, dat.time)
+legend(strcat({'Group size: '}, {'5' '2'}))
 
+%% alternative notation for parameters using a cell array
+% instead of providing a struct you can also provide a cell array with
+% key-value pairs as parameters
+cfg.preprocess_param = {};
+cfg.preprocess_param{2} = {'group_size'  2};
+
+[perf2, res2] = mv_classify_across_time(cfg, dat2.trial, clabel2);
+
+figure
 mv_plot_result({res, res2}, dat.time)
 legend(strcat({'Group size: '}, {'5' '2'}))
 
