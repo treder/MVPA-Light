@@ -3,7 +3,7 @@ Light-weight Matlab toolbox for multivariate pattern analysis (MVPA)
 
 ### News
 
-* (August 2019) added [`mv_classify`](#mvclassify) for classification of multi-dimensional datasets (e.g. time-frequency) and a [Naive Bayes classifier](#naivebayes)
+* (August 2019) added [`mv_classify`](#mvclassify) for classification of multi-dimensional datasets (e.g. time-frequency), a [Naive Bayes classifier](#naivebayes) and the [kappa metric](#kappa)
 * (July 2019) added [preprocessing module](#preprocessing) + precomputed kernels for [SVM](classifier/train_svm.m) and [kernel FDA](classifier/train_kernel_fda.m)
 * (May 2019) interface added for [LIBSVM](#libsvm) and [LIBLINEAR](#liblinear)
 * (Mar 2019) MVPA-Light has been integrated with FieldTrip (see [tutorial](http://www.fieldtriptoolbox.org/tutorial/mvpa_light/))
@@ -104,11 +104,11 @@ Which features contribute most to classification performance? The answer to this
 
 #### Classification of multi-dimensional data<a name="mvclassify"></a>
 
-Neuroimaging datasets can be high dimensional. For instance, time-frequency data can have 4 (e.g. samples x channels x frequencies x times) or more dimensions. The function [`mv_classify`](mv_classify.m) deal with data of an arbitrary number and order of dimensions. It combines and generalizes the capabilities of the other high-level functions and allows for flexible tailoring of classification analysis including frequency x frequency generalization and searchlight across multiple dimensions simultaneously. See [`example6_classify_multidimensional_data.m`](examples/example6_classify_multidimensional_data.m) for code to get you started.
+Neuroimaging datasets can be high dimensional. For instance, time-frequency data can have 4 (e.g. samples x channels x frequencies x times) or more dimensions. The function [`mv_classify`](mv_classify.m) deals with data of an arbitrary number and order of dimensions. It combines and generalizes the capabilities of the other high-level functions and allows for flexible tailoring of classification analysis including frequency x frequency generalization and searchlight across multiple dimensions simultaneously. See [`example6_classify_multidimensional_data.m`](examples/example6_classify_multidimensional_data.m) for code to get you started.
 
 #### Hyperparameter <a name="hyperparameter"></a>
 
-The hyperparameter for each classifier can be controlled using the `cfg.hyperparameter` field before calling any of the above functions. To this end, initialize the field using `cfg.hyperparameter = []`. Then, add the desired parameters, e.g. `cfg.hyperparameter.lambda = 0.5` for setting the regularisation parameter or `cfg.hyperparameter.kernel = 'polynomial'` for defining the kernel in SVM. The hyperparameters for each classifier are specified in the documentation for each train_ function in the folder [`classifier`](classifier/).
+The hyperparameters for each classifier can be controlled using the `cfg.hyperparameter` field before calling any of the above functions. To this end, initialize the field using `cfg.hyperparameter = []`. Then, add the desired parameters, e.g. `cfg.hyperparameter.lambda = 0.5` for setting the regularisation parameter or `cfg.hyperparameter.kernel = 'polynomial'` for defining the kernel in SVM. The hyperparameters for each classifier are specified in the documentation for each train_ function in the folder [`classifier`](classifier/).
 
 #### Classifier performance metrics <a name="metrics"></a>
 
@@ -119,6 +119,7 @@ Classifier output comes in form of decision values (=distances to the hyperplane
 * `confusion`: [confusion matrix](https://en.wikipedia.org/wiki/Confusion_matrix). Rows corresponds to true class labels, columns correspond to predicted class labels. The (i,j)-th element gives the proportion of samples of class i that have been classified as class j.
 * `dval`: Average decision value for each class.
 * `f1`: [F1 score](https://en.wikipedia.org/wiki/F1_score) is the harmonic average of precision and recall, given by `2 *(precision * recall) / (precision + recall)`.
+* `kappa`: <a name="kappa"></a> [Cohen's kappa](https://en.wikipedia.org/wiki/Cohen%27s_kappa) measures the 'inter-rater reliability' between predicted and actual class labels. See here for a [discussion on CrossValidated].(https://stats.stackexchange.com/questions/82162/cohens-kappa-in-plain-english)
 * `precision`: [precision](https://en.wikipedia.org/wiki/Precision_and_recall) is given as the number of true positives divided by true positives plus false positives. For multi-class, it is calculated per class from the confusion matrix by dividing each diagonal element by the row sum. 
 * `recall`: [recall](https://en.wikipedia.org/wiki/Precision_and_recall) is given as the number of true positives divided by true positives plus false negatives. For multi-class, it is calculated per class from the confusion matrix by dividing each diagonal element by the respective column sum. 
 * `tval`: for two classes, calculates the [t-test statistic](https://en.wikipedia.org/wiki/Student's_t-test#Equal_or_unequal_sample_sizes.2C_equal_variance) for unequal sample size, equal variance case, based on the decision values. Can be useful for a subsequent second-level analysis across subjects.
