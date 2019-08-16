@@ -268,9 +268,9 @@ if strcmp(param.reg, 'l2')
                 end
                 if param.plot
                     wspred(:,ll)= wstart;
-                    [ws(:,ll),iter_tmp(ll),delta(ll)] = TrustRegionDoglegGN(logfun, wstart, param.tolerance, param.max_iter,ll);
+                    [ws(:,ll),iter_tmp(ll),delta(ll)] = TrustRegionDoglegGN(logfun, wstart, param.tolerance, param.max_iter);
                 else
-                    ws(:,ll) = TrustRegionDoglegGN(logfun, wstart, param.tolerance, param.max_iter,ll);
+                    ws(:,ll) = TrustRegionDoglegGN(logfun, wstart, param.tolerance, param.max_iter);
                 end
             end
             if param.plot
