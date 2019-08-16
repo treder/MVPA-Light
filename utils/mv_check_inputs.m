@@ -152,6 +152,10 @@ if ~isfield(cfg,'preprocess_param') || isempty(cfg.preprocess_param)
     cfg.preprocess_param = {};
 elseif ~iscell(cfg.preprocess_param)
     cfg.preprocess_param = {cfg.preprocess_param};
+elseif iscell(cfg.preprocess_param) && ischar(cfg.preprocess_param{1})
+    % in this case a cell array with key-value pairs has been passed as
+    % options for the first preprocess operation, so we also wrap it
+    cfg.preprocess_param = {cfg.preprocess_param};
 end
 
 %% cfg.preprocess_param: if it has less elements than .preprocess, add empty structs
