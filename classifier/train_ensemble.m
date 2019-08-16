@@ -18,7 +18,7 @@ function cf = train_ensemble(param,X,clabel)
 % .nfeatures        - number of randomly subselected features. Can be an 
 %                     integer number or a fraction, e.g. 0.1 means that 
 %                     10% of the features are used for each learner. (Default 0.1)
-% .nlearners        - number of learners (default 500)
+% .nlearners        - number of learners (default 100)
 % .strategy         - strategy for making decisions. If 'vote', the class
 %                     label from each learner is obtained, then the class
 %                     associated with the majority vote it taken (randomly

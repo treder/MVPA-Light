@@ -26,7 +26,7 @@ switch(classifier)
         mv_set_default(param,'learner_param',mv_get_hyperparameter(param.learner));
         mv_set_default(param,'nsamples', 0.5);
         mv_set_default(param,'nfeatures', 0.2);
-        mv_set_default(param,'nlearners', 500);
+        mv_set_default(param,'nlearners', 100);
         mv_set_default(param,'stratify', 1);
         mv_set_default(param,'bootstrap', 1);
         mv_set_default(param,'strategy', 'vote');
