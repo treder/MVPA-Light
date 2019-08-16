@@ -222,7 +222,7 @@ switch(fun)
         if opt.new_figure, figure; end
         if any(strcmp(metric,{'auc', 'acc','accuracy','precision','recall','f1'}))
             hor = 1 / nclasses;
-        elseif any(strcmp(metric,{'dval', 'tval'}))
+        elseif any(strcmp(metric,{'dval', 'tval','kappa'}))
             hor = 0;
         end
             
@@ -274,7 +274,7 @@ switch(fun)
         end
         if any(strcmp(metric,{'auc', 'acc','accuracy','f1'}))
             cfg.climzero = 1 / nclasses;
-        elseif any(strcmp(metric,{'dval', 'tval','precision','recall'}))
+        elseif any(strcmp(metric,{'dval', 'tval','precision','recall','kappa'}))
             cfg.climzero = 0;
         end
         
