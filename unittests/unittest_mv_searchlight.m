@@ -72,15 +72,31 @@ acc2 = mv_searchlight(cfg, X, clabel);
 
 print_unittest_result('results ', 0, norm(acc1-acc2), tol);
 
-%% Check different metrics and classifiers -- just run to see if there's errors
+%% Check different metrics and classifiers for 2 classes -- just run to see if there's errors
 cfg = [];
 cfg.feedback = 0;
 
-for metric = {'acc','auc','f1','precision','recall','confusion','tval','dval'}
+for metric = {'acc','auc','confusion','dval','f1','kappa','precision','recall','tval'}
     for classifier = {'lda', 'logreg', 'multiclass_lda', 'svm', 'ensemble','kernel_fda','naive_bayes'}
         if any(ismember(classifier,{'kernel_fda' 'multiclass_lda','naive_bayes'})) && any(ismember(metric, {'tval','dval','auc'}))
             continue
         end
+        fprintf('%s - %s\n', metric{:}, classifier{:})
+        
+        cfg.metric      = metric{:};
+        cfg.classifier  = classifier{:};
+        cfg.k           = 5;
+        cfg.repeat      = 1;
+        tmp = mv_searchlight(cfg, X, clabel);
+    end
+end
+
+%% same 3 classes
+cfg = [];
+cfg.feedback = 0;
+
+for metric = {'acc','confusion','f1','kappa','precision','recall'}
+    for classifier = {'multiclass_lda','kernel_fda','naive_bayes'}
         fprintf('%s - %s\n', metric{:}, classifier{:})
         
         cfg.metric      = metric{:};
