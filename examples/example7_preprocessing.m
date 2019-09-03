@@ -169,18 +169,30 @@ legend(strcat({'Group size: '}, arrayfun(@(c) {num2str(c)}, group_sizes)), ...
 
 %% Preprocessing pipelines: concatenating preprocessing steps
 % Multiple preprocessing steps can be concatenated by providing cell arrays
-% for .preprocess and .preproces_param
+% for .preprocess and .preprocess_param
 
-% To illustrate this, let's add a nested z-scoring to the sample averaging.
-% MVPA-Light carries out the operations in order: First, z-scoring is
-% performed on the data. The resultant data is then averaged.
+% To illustrate this, let's add a nested PCA to the sample averaging.
+% MVPA-Light carries out the operations in order: First, PCA is
+% performed on the data. The resultant data is then averaged. We compare
+% this to only doing the averaging without PCA. 
 
 cfg = [];
-cfg.metric          = 'acc';
-cfg.classifier      = 'lda';
-cfg.preprocess      = {'zscore' 'average_samples' 'demean'};
+cfg.metric          = 'auc';
+cfg.classifier      = 'naive_bayes';
+cfg.preprocess      = 'average_samples';
 
-[perf, res] = mv_classify_across_time(cfg, dat2.trial, clabel2);
+[perf_no_pca, res_no_pca] = mv_classify_across_time(cfg, dat2.trial, clabel2);
+
+cfg.preprocess      = {'average_samples' 'pca'};
+
+[perf_pca, res_pca] = mv_classify_across_time(cfg, dat2.trial, clabel2);
+
+% Naive Bayes is significantly improved when using
+% PCA. This is probably due to Naive Bayes assuming independence between
+% the features: PCA decorrelates the features which is a necessary (albeit
+% not sufficient) condition for independence
+mv_plot_result({res_no_pca, res_pca}, dat.time)
+legend({'average_samples' 'average_samples + PCA'})
 
 %% Preprocessing pipelines: adding optional parameters
 % building on the previous example, let's now change the group size 
