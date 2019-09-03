@@ -242,7 +242,7 @@ cfg.feedback             = 0;
 perf = mv_classify(cfg, X2, clabel);
 szp = size(perf);
 
-print_unittest_result('is size(perf) correct for 4 input dimensions?', 0, norm(szp - sz([2,4])), tol);
+print_unittest_result('is size(perf) correct for 4 input dimensions?', sz([2,4]), szp, tol);
 
 % same but without cross-validation
 cfg.cv                   = 'none';
@@ -250,7 +250,7 @@ cfg.cv                   = 'none';
 perf = mv_classify(cfg, X2, clabel);
 szp = size(perf);
 
-print_unittest_result('[without crossval] is size(perf) correct for 4 input dimensions?', 0, norm(szp - sz([2,4])), tol);
+print_unittest_result('[without crossval] is size(perf) correct for 4 input dimensions?', sz([2,4]), szp, tol);
 
 %% 5 input dimensions with 2 search dims + 1 generalization dim - are output dimensions as expected?
 sz = [11, 8, 9, 7, 6];
@@ -283,7 +283,7 @@ for sd=1:nd   % sample dimension
             search_dim_without_gen = setdiff(search_dim, gd);
             perf = mv_classify(cfg, X2, clabel);
             szp = size(perf);
-            print_unittest_result(sprintf('[5 dimensions] sample dim %d, feature dim %d, gen dim %d', sd, fd, gd), 0, norm(szp - sz([search_dim_without_gen, gd ,gd])), tol);
+            print_unittest_result(sprintf('[5 dimensions] sample dim %d, feature dim %d, gen dim %d', sd, fd, gd), sz([search_dim_without_gen, gd ,gd]), szp, tol);
         end
     end
 end

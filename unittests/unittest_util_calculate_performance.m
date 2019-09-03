@@ -155,6 +155,9 @@ print_unittest_result('[dval] mean dval for class 1 is -1', -1, perf(1), tol);
 print_unittest_result('[dval] mean dval for class 2 is 2', 2, perf(2), tol);
 
 %% KAPPA
+
+tol = 10e-5;
+
 % Use the numerical examples from the Wikipedia page on Cohen's Kappa as a
 % reference (https://en.wikipedia.org/wiki/Cohen's_kappa)
 metric = 'kappa';
