@@ -2,7 +2,7 @@ function [pparam, X, clabel] = mv_preprocess_demean(pparam, X, clabel)
 % Demeans the data by subtracting the mean across samples.
 %
 %Usage:
-% [preprocess_param, X, clabel] = mv_preprocess_demean(preprocess_param, X, clabel)
+% [pparam, X, clabel] = mv_preprocess_demean(pparam, X, clabel)
 %
 %Parameters:
 % X              - [... x ... x ...] data matrix
