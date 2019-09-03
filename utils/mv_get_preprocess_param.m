@@ -56,6 +56,13 @@ switch(preprocess)
         mv_set_default(preprocess_param,'oversample_test_set',0);
         mv_set_default(preprocess_param,'replace',1);
         
+    case 'pca'
+        mv_set_default(preprocess_param,'is_train_set',1);
+        mv_set_default(preprocess_param,'n',20);
+        mv_set_default(preprocess_param,'feature_dimension',2);
+        mv_set_default(preprocess_param,'target_dimension',3);
+        mv_set_default(preprocess_param,'normalize',1);
+
     case 'undersample'
         mv_set_default(preprocess_param,'is_train_set',1);
         mv_set_default(preprocess_param,'sample_dimension',1);
