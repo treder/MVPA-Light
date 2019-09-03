@@ -42,13 +42,13 @@ end
 nclasses = max(clabel);
 
 % Indices and number of samples in the classes
-idx = arrayfun( @(c) find(clabel==c) , 1:nclasses,'Un',0);
-n = cellfun(@numel, idx);
+ix = arrayfun( @(c) find(clabel==c) , 1:nclasses,'Un',0);
+n = cellfun(@numel, ix);
 
 % Pool weighted covariance matrix from each class
 C = zeros(P);
 for cc=1:nclasses
-    C = C + cov(X(idx{cc},:),1) * n(cc);
+    C = C + cov(X(ix{cc},:),1) * n(cc);
 end
 
 C = C / N;
