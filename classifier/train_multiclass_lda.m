@@ -101,8 +101,9 @@ end
 [~, so] = sort(D,'descend');
 W = W(:,so(1:min(nclasses, nfeatures+1)-1));
 
-% Columns of W need to be scaled correctly such that it turns Sw into identity
-W  = W * diag(1./sqrt(diag(W'*Sw*W)));
+% Columns of W need to be scaled correctly such that it turns the 
+% covariance matrix (ie Sw/(N-1) ) into identity
+W  = W * diag(1./sqrt(diag(W'*Sw*W)/(nsamples-1)));
 
 %% Set up classifier struct
 cf= struct('classifier','multiclass_lda','W',W,'lambda',lambda,'nclasses',nclasses);
