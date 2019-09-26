@@ -198,4 +198,5 @@ if nargout>1
    result.repeat    = cfg.repeat;
    result.nclasses  = nclasses;
    result.classifier = cfg.classifier;
+   result.plot      = mv_prepare_plot(cfg.metric, perf, perf_std, cfg.dimension_names(end));
 end
