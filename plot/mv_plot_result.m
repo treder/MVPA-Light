@@ -1,7 +1,7 @@
 function h = mv_plot_result(result, varargin)
 %Provides a simple visual representation of the results obtained with the
 %functions mv_crossvalidate, mv_classify_across_time, mv_classify_timextime, 
-%and mv_searchlight. 
+%mv_searchlight, and mv_classify.
 %
 %The type of plot depends on which of these functions was used. 
 %
