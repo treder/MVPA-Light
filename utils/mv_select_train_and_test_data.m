@@ -1,21 +1,22 @@
-function [Xtrain, trainlabel, Xtest, testlabel] = mv_select_train_and_test_data(X, clabel, train_indices, test_indices, is_kernel_matrix)
+function [Xtrain, Ytrain, Xtest, Ytest] = mv_select_train_and_test_data(X, Y, train_indices, test_indices, is_kernel_matrix)
 %Splits the data into training and test set. 
 %
 %Usage:
-%[Xtrain, trainlabel, Xtest, testlabel] = 
-%    mv_select_train_and_test_data(X, clabel, train_indices, test_indices, is_kernel_matrix)
+%[Xtrain, Ytrain, Xtest, Ytest] = 
+%    mv_select_train_and_test_data(X, Y, train_indices, test_indices, is_kernel_matrix)
 %
 %Parameters:
 % X              - [samples x ... x ... ] data matrix -OR-
 %                  [samples x samples  x ... ] kernel matrix
-% clabel         - [samples x 1] vector of class labels
+% Y              - [samples x ...] vector of class labels or vector/matrix
+%                                  of responses
 % train_indices  - vector of indices of train samples
 % test_indices   - vector of indices of test samples
 % is_kernel_matrix - if 1, X represents a kernel matrix
 %
 %Returns:
-% Xtrain, trainlabel - train data and class labels
-% Xtest, testlabel   - test data and class labels
+% Xtrain, Ytrain     - train data and class labels/responses
+% Xtest, Ytest       - test data and class labels/responses
 
 if ~is_kernel_matrix
     % Standard case: samples are in the first dimension only
@@ -47,5 +48,5 @@ else
 end
 
 % Get train and test class labels
-trainlabel = clabel(train_indices);
-testlabel  = clabel(test_indices);
+Ytrain = Y(train_indices,:);
+Ytest  = Y(test_indices,:);
