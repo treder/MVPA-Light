@@ -57,7 +57,7 @@ function [perf,result] = mv_searchlight(cfg, X, clabel)
 %
 % CROSS-VALIDATION parameters:
 % .cv           - perform cross-validation, can be set to 'kfold',
-%                 'leaveout', 'holdout', or 'none' (default 'kfold')
+%                 'leaveout', 'holdout', 'leavegroupout' or 'none' (default 'kfold')
 % .k            - number of folds in k-fold cross-validation (default 5)
 % .p            - if cv is 'holdout', p is the fraction of test samples
 %                 (default 0.1)
@@ -89,13 +89,14 @@ mv_set_default(cfg,'neighbours',[]);
 mv_set_default(cfg,'size',1);
 mv_set_default(cfg,'average',0);
 mv_set_default(cfg,'feedback',1);
+mv_set_default(cfg,'dimension_names',{'samples','features'});
 
 if cfg.average && ~ismatrix(X)
     X = mean(X,3);
 end
 
 [n, nfeatures, ~] = size(X);
-[cfg, clabel, nclasses, nmetrics] = mv_check_inputs(cfg, X, clabel);
+[cfg, clabel, n_classes, n_metrics] = mv_check_inputs(cfg, X, clabel);
 
 perf = cell(nfeatures,1);
 perf_std = cell(nfeatures,1);
@@ -150,9 +151,9 @@ for ff=1:nfeatures
     
     if cfg.feedback
         if numel(nb)>1
-            fprintf('Classifying using feature %d with neighbours %s\n', ff, mat2str(setdiff(nb,ff)))
+            fprintf('Classifying using %s %d with neighbours %s\n', cfg.dimension_names{2}, ff, mat2str(setdiff(nb,ff)))
         else
-            fprintf('Classifying using feature %d with no neighbours\n', ff)
+            fprintf('Classifying using %s %d with no neighbours\n', cfg.dimension_names{2}, ff)
         end
     end
     
@@ -170,42 +171,64 @@ for ff=1:nfeatures
     
 end
 
-if nmetrics==1 
+perf_dimension_names = cell(n_metrics, 1);
+if n_metrics==1 
     cfg.metric = cfg.metric{1};
     if numel(perf{1})==1
-        % for a single univariate performance metric, 
-        % we can change the cell array into a vector
+        % univariate performance metric: change cell array to a vector
         perf = [perf{:}]';
         perf_std = [perf_std{:}]';
+    else
+        % multivariate performance metric: change cell array to nd array
+        perf = cellfun(@(x) shiftdim(x, -1), perf, 'Un', 0);
+        perf_std = cellfun(@(x) shiftdim(x, -1), perf_std, 'Un', 0);
+        perf = cat(1,perf{:});
+        perf_std = cat(1,perf_std{:});
+    end
+    % performance dimension names
+    if isvector(perf)
+        perf_dimension_names = cfg.dimension_names(end);
+    else
+        perf_dimension_names = [cfg.dimension_names(end) repmat({'metric'}, 1, ndims(perf)-1)];
     end
 else
     tmp = cat(2,perf{:})';
     tmp_std = cat(2,perf_std{:})';
-    perf = cell(nmetrics, 1);
-    perf_std = cell(nmetrics, 1);
-    for ii=1:nmetrics
-        % for each univariate performance metric, 
-        % we can change the cell array into a vector
-        if numel(tmp{1,ii})==1
-            perf{ii} = cell2mat(tmp(:,ii));
-            perf_std{ii} = cell2mat(tmp_std(:,ii));
+    perf = cell(n_metrics, 1);
+    perf_std = cell(n_metrics, 1);
+    for mm=1:n_metrics
+        if numel(tmp{1,mm})==1
+            % univariate performance metric: change cell array to a vector
+            perf{mm} = cell2mat(tmp(:,mm));
+            perf_std{mm} = cell2mat(tmp_std(:,mm));
         else
-            perf{ii} = tmp(:,ii);
-            perf_std{ii} = tmp_std(:,ii);
+            % multivariate performance metric: change cell array to nd array
+            tmp(:,mm) = cellfun(@(x) shiftdim(x, -1), tmp(:,mm), 'Un', 0);
+            tmp_std(:,mm) = cellfun(@(x) shiftdim(x, -1), tmp_std(:,mm), 'Un', 0);
+            perf{mm} = cat(1,tmp{:,mm});
+            perf_std{mm} = cat(1,tmp_std{:,mm});
+        end
+        % performance dimension names
+        if isvector(perf{mm})
+            perf_dimension_names{mm} = cfg.dimension_names(end);
+        else
+            perf_dimension_names{mm} = [cfg.dimension_names(end) repmat({'metric'}, 1, ndims(perf{mm})-1)];
         end
     end
 end
 
+
 result = [];
 if nargout>1
-   result.function  = mfilename;
-   result.perf      = perf;
-   result.perf_std  = perf_std;
-   result.metric    = cfg.metric;
-   result.cv        = cfg.cv;
-   result.k         = cfg.k;
-   result.n         = size(X,1);
-   result.repeat    = cfg.repeat;
-   result.nclasses  = nclasses;
-   result.classifier = cfg.classifier;
+   result.function              = mfilename;
+   result.task                  = 'classification';
+   result.perf                  = perf;
+   result.perf_std              = perf_std;
+   result.perf_dimension_names  = perf_dimension_names;
+   result.metric                = cfg.metric;
+   result.n                     = size(X,1);
+   result.n_metrics             = n_metrics;
+   result.n_classes             = n_classes;
+   result.classifier            = cfg.classifier;
+   result.cfg                   = cfg;
 end

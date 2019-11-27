@@ -1,4 +1,4 @@
-function [cfg, clabel, nclasses,nmetrics] = mv_check_inputs(cfg, X, clabel)
+function [cfg, clabel, n_classes,n_metrics] = mv_check_inputs(cfg, X, clabel)
 % Performs some sanity checks and sets some defaults for input parameters 
 % cfg, X, and y.
 % Also checks whether external toolboxes (LIBSVM and LIBLINEAR) are
@@ -7,30 +7,30 @@ function [cfg, clabel, nclasses,nmetrics] = mv_check_inputs(cfg, X, clabel)
 if ~iscell(cfg.metric)
     cfg.metric = {cfg.metric};
 end
-nmetrics = numel(cfg.metric);
+n_metrics = numel(cfg.metric);
 
 %% clabel: check class labels
 clabel = clabel(:);
 u = unique(clabel);
-nclasses = length(u);
+n_classes = length(u);
 
-if ~all(ismember(clabel,1:nclasses))
+if ~all(ismember(clabel,1:n_classes))
     warning('Class labels should consist of integers 1 (class 1), 2 (class 2), 3 (class 3) and so on. Relabelling them accordingly.');
     newlabel = nan(numel(clabel), 1);
-    for i = 1:nclasses
+    for i = 1:n_classes
         newlabel(clabel==u(i)) = i; % set to 1:nth classes
     end
     clabel = newlabel;
 end
 
-if nclasses==1
+if n_classes==1
     error('Only one class specified. Class labels must contain at least 2 classes')
 end
 
 %% clabel and cfg: check whether there's more than 2 classes but yet a binary classifier is used
 binary_classifiers = {'lda' 'logreg' 'svm'};
-if nclasses > 2 && ismember(cfg.classifier, binary_classifiers)
-    error('Cannot use %s for a classification task with %d classes: use a multiclass classifier instead', upper(cfg.classifier), nclasses)
+if n_classes > 2 && ismember(cfg.classifier, binary_classifiers)
+    error('Cannot use %s for a classification task with %d classes: use a multiclass classifier instead', upper(cfg.classifier), n_classes)
 end
 
 %% cfg: check whether all parameters are written in lowercase
@@ -59,6 +59,7 @@ mv_set_default(cfg,'repeat',5);
 mv_set_default(cfg,'k',5);
 mv_set_default(cfg,'p',0.1);
 mv_set_default(cfg,'stratify',1);
+mv_set_default(cfg,'group',[]);
 
 switch(cfg.cv)
     case 'leaveout', cfg.k = size(X,1);
@@ -74,7 +75,7 @@ end
 
 %% cfg: check whether different metrics are compatible with each other 
 % eg 'confusion' does not work with 'tval' because the former requires
-% class labels as ouput whereas the latter requires dvals
+% class labels as output whereas the latter requires dvals
 incompatible_metrics = { 'confusion' {'auc' 'tval' 'dval'};
     };
 
