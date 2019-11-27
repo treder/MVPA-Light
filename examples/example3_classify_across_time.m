@@ -40,7 +40,7 @@ nSbj = 3;
 acc = cell(nSbj,1);         % classification accuracies for all subjects
 auc = cell(nSbj,1);         % AUC values for all subjects
 result = cell(nSbj,1);
-cfg_LDA.metric  = 'auc';
+cfg_LDA.metric  = {'precision' 'recall'};
 
 for nn=1:nSbj
     
@@ -50,8 +50,15 @@ for nn=1:nSbj
     % Run classification across time
     [auc{nn}, result{nn}] = mv_classify_across_time(cfg_LDA, dat.trial, clabel);
     
+    % Name the result (this will appear in the legend of the plot)
+    result{nn}.name = sprintf('Subject #%d', nn);
+    
 end
 
-% Plot 3 subjects and mean across subjects
+% Plot 3 subjects together
 close all
 h = mv_plot_result(result, dat.time);
+
+%% Plot average of three subjects 
+% (shaded area is the standard deviation across subjects)
+h = mv_plot_result(result, dat.time, 'combine','average');

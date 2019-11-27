@@ -71,7 +71,8 @@ cfg_LR.metric          = cfg_LDA.metric;
 [~, result_LR] = mv_crossvalidate(cfg_LR, X, clabel);
 
 % Produce plot of result
-h = mv_plot_result({result_LDA, result_LR});
+mv_plot_result(result_LDA);
+mv_plot_result(result_LR);
 
 %% Comparing cross-validation to training and testing on the same data
 cfg_LDA.metric = 'accuracy';

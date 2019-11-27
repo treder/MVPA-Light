@@ -36,11 +36,8 @@ mv_plot_topography(cfg_plot, auc, chans.pos);
 colormap jet
 title(sprintf('Searchlight [%d neighbours]', cfg.size))
 
-%% Simpler way: call mv_plot_result
-mv_plot_result(result, chans)
-
 %% Repeat the searchlight analysis for different numbers of neighbours
-result = cell(1,6);
+perf = cell(1,6);
 for nn=0:5
 
     fprintf('\n----- Searchlight [%d neighbours] -----\n', cfg.size)
@@ -48,15 +45,9 @@ for nn=0:5
     % Vary the number of neighbours
     cfg.size    = nn;
     
-    [~, result{nn+1}] = mv_searchlight(cfg, dat.trial(:,:,time_idx), clabel);
+    perf{nn+1} = mv_searchlight(cfg, dat.trial(:,:,time_idx), clabel);
     
 end
-
-%% Plot result as topography
-mv_plot_result(result, chans)
-
-%% Plot result as bar graph
-h= mv_plot_result(result);
 
 %% -- end of example --
 return

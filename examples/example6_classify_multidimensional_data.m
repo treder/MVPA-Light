@@ -177,7 +177,7 @@ fprintf('Difference between auc and auc2: %2.2f\n', norm(auc-auc2)) % should be 
 
 cfg =  [];
 cfg.classifier      = 'lda';
-cfg.metric          = 'precision';
+cfg.metric          = 'auc';
 cfg.sample_dimension  = 1;
 cfg.feature_dimension  = 2;
 
@@ -185,7 +185,7 @@ cfg.feature_dimension  = 2;
 cfg.dimension_names = {'samples','channels','time points'};
 
 % Let's first just classify without neighbours
-perf = mv_classify(cfg, dat.trial, clabel);
+[perf, result] = mv_classify(cfg, dat.trial, clabel);
 
 % The third dimension (time) serves as search dimension. Now, for
 % every time point, we also want to take up the 2 immediately preceding and
@@ -199,14 +199,19 @@ O(1:10,1:20)
 
 cfg.neighbours = O;
 
-perf2 = mv_classify(cfg, dat.trial, clabel);
+[perf2, result2] = mv_classify(cfg, dat.trial, clabel);
 
 % the results are identical again
-figure
-plot(perf)
-hold all
-plot(perf2)
-legend({'without searchlight' ,'with searchlight'})
+% figure
+% plot(perf)
+% hold all
+% plot(perf2)
+% legend({'without searchlight' ,'with searchlight'})
+
+% let's give the results names before combining them and then plot
+result.name = 'without searchlight';
+result2.name = 'with searchlight';
+mv_plot_result({result, result2}, dat.time)
 
 %% --- Time-frequency classification [requires signal processing toolbox] ---
 % For this example, we will first calculate the time-frequency
@@ -231,7 +236,7 @@ T = T + dat.time(1);
 freq = dat; 
 freq.trial = zeros([sz(1:2), numel(F), numel(T)]);
 freq.dimord = 'rpt_chan_freq_time';
-freq.time = T + dat.time(1);
+freq.time = T;
 freq.freq = F;
 
 for nn=1:sz(1)
@@ -253,7 +258,7 @@ freq.trial = (freq.trial - BLmat) ./ BLmat;
 %% Classification for each time-frequency point separately
 cfg = [];
 cfg.classifier      = 'lda';
-cfg.metric          = 'auc';
+cfg.metric          = 'acc';
 
 % samples are in dimension 1 and features in
 % dimension 2. The last two dimensions  will be automatically devised as search
@@ -264,14 +269,18 @@ cfg.feature_dimension  = 2;
 % optional: provide the names of the dimensions for nice output
 cfg.dimension_names = {'samples','channels','frequencies', 'time points'};
 
-perf = mv_classify(cfg, freq.trial, clabel);
+[perf, result] = mv_classify(cfg, freq.trial, clabel);
 
 % perf is now a 2-D [frequencies x times] matrix of classification results
-figure
-imagesc(T,F,perf)
-colorbar
-xlabel('Time'), ylabel('Frequency')
-title('AUC at each time-frequency point')
+% figure
+% imagesc(T,F,perf)
+% colorbar
+% xlabel('Time'), ylabel('Frequency')
+% title('AUC at each time-frequency point')
+
+% call mv_plot_result: results is the first argument, followed by the
+% arguments definining the x-axis (time) and y-axis (frequency)
+mv_plot_result(result, freq.time, freq.freq)
 
 %% Classification for each time-frequency point separately including neighbours
 % Let's repeat the previous analysis but, for each time-frequency point,
@@ -298,14 +307,17 @@ time_neighbours = O;
 % Store both matrices together in a cell array
 cfg.neighbours = {freq_neighbours, time_neighbours};
 
-perf = mv_classify(cfg, freq.trial, clabel);
+% this might take a while...
+[perf, result] = mv_classify(cfg, freq.trial, clabel);
 
 % perf is a 2-D [frequencies x times] matrix of classification results
-figure
-imagesc(T,F,perf)
-colorbar
-xlabel('Time'), ylabel('Frequency')
-title('AUC at each time-frequency point including neighbours')
+% figure
+% imagesc(T,F,perf)
+% colorbar
+% xlabel('Time'), ylabel('Frequency')
+% title('AUC at each time-frequency point including neighbours')
+
+mv_plot_result(result, freq.time, freq.freq)
 
 %% Classification for each time point [using channels x frequencies as features]
 cfg = [];
@@ -319,20 +331,22 @@ cfg.sample_dimension  = 1;
 % single feature vector of length channels x frequencies
 cfg.feature_dimension  = [2, 3];
 
-perf = mv_classify(cfg, freq.trial, clabel);
+[perf, result] = mv_classify(cfg, freq.trial, clabel);
 
-figure
-plot(T, perf)
-xlabel('Time')
+% figure
+% plot(T, perf)
+% xlabel('Time')
+
+mv_plot_result(result, freq.time)
 
 %% Time-frequency classification with time generalization
 % Starting from the previous example, we perform time x time classification
 % (time generalization). All the channels/frequencies will be used as features, so
 % the feature vector has length channels x frequencies. 
 % Samples are in dimension 1 and features in
-% dimension 2. The last two dimensions  will be automatically devised as search
-% dimensions. However, this time we also need to indicate that we want to 
-% the 3rd dimension for generalization (time x time).
+% dimension 2 and 3. The last dimension will be automatically devised as search
+% dimension. However, this time we also need to indicate that we want to 
+% the 4th dimension for generalization (time x time).
 
 cfg = [];
 cfg.classifier      = 'lda';
@@ -343,12 +357,16 @@ cfg.sample_dimension  = 1;
 cfg.feature_dimension  = [2, 3];
 cfg.generalization_dimension = 4;
 
-perf = mv_classify(cfg, freq.trial, clabel);
+cfg.repeat = 2;
 
-figure
-imagesc(T, F, perf)
-mv_plot_2D(perf, 'x', T, 'y', T)
-title('Time generalization using channels-x-frequencies as features')
+[perf, result] = mv_classify(cfg, freq.trial, clabel);
+
+% figure
+% imagesc(T, F, perf)
+% mv_plot_2D(perf, 'x', T, 'y', T)
+% title('Time generalization using channels-x-frequencies as features')
+
+mv_plot_result(result, freq.time, freq.time)
 
 %% Time-frequency classification with frequency generalization
 % same as previous example, but we swap frequencies and times: time points
@@ -366,9 +384,11 @@ cfg.sample_dimension  = 1;
 cfg.feature_dimension  = [2, 4];   
 cfg.generalization_dimension = 3;
 
-perf = mv_classify(cfg, freq.trial, clabel);
+[perf, result] = mv_classify(cfg, freq.trial, clabel);
 
-figure
-mv_plot_2D(perf, 'x', F, 'y', F)
-xlabel('Test frequency [Hz]'), ylabel('Train frequency [Hz]')
-title('Frequency generalization using channels-x-times as features')
+% figure
+% mv_plot_2D(perf, 'x', F, 'y', F)
+% xlabel('Test frequency [Hz]'), ylabel('Train frequency [Hz]')
+% title('Frequency generalization using channels-x-times as features')
+
+mv_plot_result(result, freq.freq, freq.freq)

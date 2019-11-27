@@ -183,16 +183,22 @@ cfg.preprocess      = 'average_samples';
 
 [perf_no_pca, res_no_pca] = mv_classify_across_time(cfg, dat2.trial, clabel2);
 
-cfg.preprocess      = {'average_samples' 'pca'};
+cfg.preprocess      = {'pca' 'average_samples'};
 
 [perf_pca, res_pca] = mv_classify_across_time(cfg, dat2.trial, clabel2);
 
-% Naive Bayes is significantly improved when using
+% let's name the results: the names will appear in the legend of the
+% combined plot
+res_no_pca.name = 'average_samples';
+res_pca.name = 'PCA + average_samples';
+
+% plot both results together 
+mv_plot_result({res_no_pca, res_pca}, dat.time)
+
+% Conclusion: Naive Bayes is significantly improved when using
 % PCA. This is probably due to Naive Bayes assuming independence between
 % the features: PCA decorrelates the features which is a necessary (albeit
 % not sufficient) condition for independence
-mv_plot_result({res_no_pca, res_pca}, dat.time)
-legend({'average_samples' 'average_samples + PCA'})
 
 %% Preprocessing pipelines: adding optional parameters
 % building on the previous example, let's now change the group size 
@@ -206,8 +212,8 @@ cfg.preprocess_param{2}.group_size = 2;
 
 [perf2, res2] = mv_classify_across_time(cfg, dat2.trial, clabel2);
 
-mv_plot_result({res, res2}, dat.time)
-legend(strcat({'Group size: '}, {'5' '2'}))
+res2.name = 'average samples (group size 2)';
+mv_plot_result({res_no_pca, res2}, dat.time)
 
 %% alternative notation for parameters using a cell array
 % instead of providing a struct you can also provide a cell array with
@@ -217,9 +223,8 @@ cfg.preprocess_param{2} = {'group_size'  2};
 
 [perf2, res2] = mv_classify_across_time(cfg, dat2.trial, clabel2);
 
-figure
-mv_plot_result({res, res2}, dat.time)
-legend(strcat({'Group size: '}, {'5' '2'}))
+res2.name = 'average samples (group size 2)';
+mv_plot_result({res_no_pca, res2}, dat.time)
 
 %% Preprocessing pipelines with searchlight
 % The pipelines work the same way with all high-level functions. Here, we
@@ -247,6 +252,8 @@ cfg.preprocess_param{3}.group_size = 1;
 cfg.preprocess_param{3}.group_size = 5;
 [auc5, result5] = mv_searchlight(cfg, dat.trial(:,:,time_idx), clabel);
 
+result1.name = 'group size 1';
+result5.name = 'group size 5';
 mv_plot_result({result1 , result5})
 
 %% Plot classification performance as a topography

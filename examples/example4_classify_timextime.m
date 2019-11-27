@@ -49,8 +49,8 @@ cfg.cv      = 'none';
 cfg.metric     = 'accuracy';
 [acc_noCV, result_acc_noCV] = mv_classify_timextime(cfg, dat.trial, clabel);
 
-figure
-mv_plot_result({result_acc, result_acc_noCV}, dat.time, dat.time)
+mv_plot_result(result_acc, dat.time, dat.time)
+mv_plot_result(result_acc_noCV, dat.time, dat.time)
 
 %% Compare accuracy/AUC when no normalization is performed
 % the lack of normalization affects accuracy but not AUC
