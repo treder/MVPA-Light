@@ -5,11 +5,11 @@ function h = mv_plot_1D(varargin)
 %Usage: Two possible usages, either giving additional parameters in a cfg
 %       struct (with cfg.key1 = value1) or directly giving the key-value 
 %       pairs as parameters:
-% ax = mv_plot_1D(cfg, time, dat, err)
-% ax = mv_plot_1D(time, dat, err, key1, value1, key2, value2, ...)
+% ax = mv_plot_1D(cfg, xval, dat, err)
+% ax = mv_plot_1D(xval, dat, err, key1, value1, key2, value2, ...)
 %
 %Parameters:
-% time              - [N x 1] vector of times representing the x-axis
+% xval              - [N x 1] vector of values representing the x-axis
 % dat               - [N x M] data matrix with results. Plots M lines of
 %                     length M
 % err               - [N x M] data matrix specifying errorbars (optional) 
@@ -36,24 +36,27 @@ function h = mv_plot_1D(varargin)
 % bounded           - cell array with additional arguments passed to
 %                     boundedline.m when a plot with errorbars is created
 %                     (default {'alpha'})
+% mark_bold         - when a binary mask is provided (eg with statistical
+%                     significance) the corresponding lines will be
+%                     plotted bold
 %
 % Returns:
 % h        - struct with handles to the graphical elements 
 
-% (c) Matthias Treder 2017-2018
+% (c) Matthias Treder
 
 has_errorbar = 0;
 
 if isstruct(varargin{1}) || isempty(varargin{1})
     % Additional parameters are specified in struct cfg
     cfg = varargin{1};
-    time = varargin{2};
+    xval = varargin{2};
     dat = varargin{3};
     if nargin < 4, 	err = []; 
     else,           err = varargin{4}; end
 else
     % Additional parameters are given as key-value pairs
-    time = varargin{1};
+    xval = varargin{1};
     dat = varargin{2};
     if nargin < 3, 	err = []; 
     else,           err = varargin{3}; end
@@ -76,6 +79,10 @@ mv_set_default(cfg,'hor',0.5);
 mv_set_default(cfg,'ver',0);
 mv_set_default(cfg,'cross',{'--k'});
 mv_set_default(cfg,'bounded',{'alpha'});
+mv_set_default(cfg,'mark_bold',[]);
+
+mv_set_default(cfg,'label_options ', {'Fontsize', 14});
+mv_set_default(cfg,'title_options', {'Fontsize', 16, 'Fontweight', 'bold'});
 
 h = struct();
 h.ax = gca;
@@ -86,10 +93,10 @@ if has_errorbar
     % We use boundedline to plot the error as well
     tmp = zeros( size(err,1), 1, size(err,2));
     tmp(:,1,:) = err;
-    [h.plt, h.patch] = boundedline(time, dat, tmp, cfg.bounded{:});
+    [h.plt, h.patch] = boundedline(xval, dat, tmp, cfg.bounded{:});
 else
     % Ordinary plot without errorbars
-    h.plt = plot(time, dat);
+    h.plt = plot(xval, dat);
 end
 
 %% Set line styles
@@ -97,9 +104,16 @@ for ii=1:nY
     set(h.plt(ii),'LineStyle',cfg.lineorder{ mod(ii-1,numel(cfg.lineorder)) + 1 })
 end
 
+%% mark parts of the data using a bold line
+if ~isempty(cfg.mark_bold)
+    dat(~cfg.mark_bold) = nan;
+    tmp_h = boundedline(xval, dat, tmp, cfg.bounded{:});
+    set(tmp_h,'LineWidth', 4*get(tmp_h,'LineWidth'));
+end
+
 %% Mark zero line
 if ~isempty(cfg.cross)
-    if time(1)<0 && time(end)>0 && ~isempty(cfg.ver)
+    if xval(1)<0 && xval(end)>0 && ~isempty(cfg.ver)
         % vertical zero line
         hold on
         yl = ylim(gca);
@@ -117,14 +131,14 @@ if ~isempty(cfg.cross)
 end
 
 %% Add labels and title
-xlabel(cfg.xlabel);
-ylabel(cfg.ylabel);
-title(cfg.title,'Interpreter','none');
+xlabel(cfg.xlabel, cfg.label_options{:});
+ylabel(cfg.ylabel, cfg.label_options{:});
+title(cfg.title, cfg.title_options{:});
 
 %% Add grid
 grid(h.ax, cfg.grid{:})
 
 %% Set xlim
-xlim([time(1) time(end)])
+xlim([xval(1) xval(end)])
 
 

@@ -37,7 +37,7 @@ function h = mv_plot_2D(varargin)
 % climzero          - if clim = 'sym' a "zero-point" needs to be defined
 %                     (for instance 0.5 for classification accuracies)
 %                     (default 0.5)
-% globalclim        - if 1 equalises the clim across all plots (if P>1)
+% global_clim       - if 1 equalises the clim across all plots (if P>1)
 %                     (default 1)
 % zero              - marks the zero point with a horizontal and vertical
 %                     line. Give the line options as cell array (default 
@@ -53,14 +53,15 @@ function h = mv_plot_2D(varargin)
 %                     taken as the centers of the image pixels (the border
 %                     of the pixel could be <= 0, makes it impossible to
 %                     render on a log scale)
+% title_options, label_options  - key/value pairs with options
 %
 % Specific options for the COLORBAR:
 % colorbar          - if 1 a colorbar is added to each plot. If there is
-%                     multiple plots and globalclim=1, a single colorbar is
+%                     multiple plots and global_clim=1, a single colorbar is
 %                     plotted if the colorbar location is outside (default 1)
-% cblocation        - colorbar location, see help colorbar (default
+% colorbar_location - colorbar location, see help colorbar (default
 %                     'EastOutside')
-
+% colorbar_title    - [string] title for colorbar
 %
 % Returns:
 % h        - struct with handles to the graphical elements 
@@ -92,16 +93,22 @@ mv_set_default(cfg,'ylabel','Training time');
 mv_set_default(cfg,'title','');
 mv_set_default(cfg,'clim','sym');
 mv_set_default(cfg,'climzero',0.5);
-mv_set_default(cfg,'globalclim',1);
+mv_set_default(cfg,'global_clim',1);
 mv_set_default(cfg,'grid',{'on'});
 mv_set_default(cfg,'zero',{'--k'});
 mv_set_default(cfg,'ncol',ceil(sqrt(P)));
 mv_set_default(cfg,'nrow',ceil(P/cfg.ncol));
 mv_set_default(cfg,'colorbar',1);
-mv_set_default(cfg,'cblocation','EastOutside');
+mv_set_default(cfg,'colorbar_location','South');
+mv_set_default(cfg,'colorbar_title','');
 mv_set_default(cfg,'ydir','normal');
 mv_set_default(cfg,'yscale','linear');
 mv_set_default(cfg,'xscale','linear');
+
+mv_set_default(cfg,'label_options ', {'Fontsize', 14});
+mv_set_default(cfg,'title_options', {'Fontsize', 16, 'Fontweight', 'bold'});
+mv_set_default(cfg,'colorbar_title_options', {'Fontsize', 12 ,'Fontweight', 'normal'});
+
 
 if ~iscell(cfg.grid), cfg.grid={cfg.grid}; end
 if ~iscell(cfg.xlabel)
@@ -154,12 +161,12 @@ if isnumeric(cfg.clim) && numel(cfg.clim)==2
 elseif strcmp(cfg.clim,'maxmin') 
     % this is the default - we need only need to do smth when global clim
     % is requestedxt{ii}
-    if cfg.globalclim
+    if cfg.global_clim
         set(h.ax,'clim',[min(cl) max(cl)]);
     end
     
 elseif strcmp(cfg.clim,'sym')
-   if cfg.globalclim
+   if cfg.global_clim
        clabs= max(abs(cl - cfg.climzero));
        set(h.ax,'clim',[cfg.climzero-clabs, cfg.climzero+clabs] );
    else
@@ -194,22 +201,24 @@ end
 
 %% Add colorbar
 if cfg.colorbar
-    if cfg.globalclim && ~isempty(strfind(lower(cfg.cblocation),'outside')) && P>1
+    if cfg.global_clim && ~isempty(strfind(lower(cfg.colorbar_location),'outside')) && P>1
         % We place a single colorbar left/above the first image if
         % location='WestOutside'/'NorthOutside', right/below of the last 
         % image if location='EastOutside'/'Southoutside'
-        if any(strcmpi(cfg.cblocation,{'westoutside','northoutside'}))
+        if any(strcmpi(cfg.colorbar_location,{'westoutside','northoutside'}))
             cbpos = 1;
         else
             cbpos = P;
         end
         
 %         oldpos = get(h.ax(cbpos),'Position');
-        h.colorbar = colorbar('peer',h.ax(cbpos),'location',cfg.cblocation);
+        h.colorbar = colorbar('peer',h.ax(cbpos),'location',cfg.colorbar_location);
+        set(get(h.colorbar,'title'),'String', cfg.colorbar_title, cfg.colorbar_title_options{:})
 %         set(h.ax(cbpos),'Position',oldpos);
     else
         for ii=1:P
-            h.colorbar(ii) = colorbar('peer',h.ax(ii),'location',cfg.cblocation);
+            h.colorbar(ii) = colorbar('peer',h.ax(ii),'location',cfg.colorbar_location);
+            set(get(h.colorbar(ii),'title'),'String', cfg.colorbar_title, cfg.colorbar_title_options{:})
         end
     end
 else
@@ -218,9 +227,9 @@ end
 
 %% Add labels and title
 for ii=1:P  
-    if ~isempty(cfg.xlabel{ii}), h.xlabel(ii) = xlabel(h.ax(ii),cfg.xlabel{ii}); end
-    if ~isempty(cfg.ylabel{ii}), h.ylabel(ii) = ylabel(h.ax(ii),cfg.ylabel{ii}); end
-    if ~isempty(cfg.title{ii}), h.title(ii) = title(h.ax(ii),cfg.title{ii},'Interpreter','none'); end
+    if ~isempty(cfg.xlabel{ii}), h.xlabel(ii) = xlabel(h.ax(ii),cfg.xlabel{ii}, cfg.label_options{:}); end
+    if ~isempty(cfg.ylabel{ii}), h.ylabel(ii) = ylabel(h.ax(ii),cfg.ylabel{ii}, cfg.label_options{:}); end
+    if ~isempty(cfg.title{ii}), h.title(ii) = title(h.ax(ii),cfg.title{ii}, cfg.title_options{:}); end
 end
 
 %% Set Y-Dir
