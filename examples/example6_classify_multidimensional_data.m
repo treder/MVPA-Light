@@ -100,7 +100,7 @@ perf = mv_classify_timextime(cfg, dat.trial, clabel);
 
 % Like in the previous example, samples are in dimension 1 and features in
 % dimension 2. The last dimension will be automatically devised as search
-% dimension. However, this time we also need to indicate that we want to 
+% dimension. However, this time we also need to indicate that we want 
 % the 3rd dimension for generalization (time x time).
 cfg.sample_dimension  = 1;
 cfg.feature_dimension  = 2;

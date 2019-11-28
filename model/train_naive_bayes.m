@@ -20,7 +20,7 @@ function cf = train_naive_bayes(param, X, clabel)
 % p(C | x1, x2, ..., xn) for class C and features x1, x2, ... xn, is
 % proportional to p(C) p(x1|C) p(x2|C) ... p(xn|C).
 % In this implementation, probabilities are modelled using Gaussians. That
-% is, the class-conditional means and standard deviations are estimated for
+% is, the class-conditional means and variances are estimated for
 % every feature for training.
 % At testing time, the maximum a posteriori (MAP) rule is applied to assign
 % a sample to the class with the maximum posterior probability.
