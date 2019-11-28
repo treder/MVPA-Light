@@ -249,18 +249,6 @@ acc = mv_searchlight(cfg, dat.trial, clabel);
 See [`examples/example5_searchlight.m`](examples/example5_searchlight.m) for more details.
 -->
 
-#### Regression using mv_regress
-
-```Matlab
-cfg                = [];
-cfg.model          = 'ridge';
-cfg.metric         = 'mse';
-cfg.hyperparameter = [];
-cfg.hyperparameter.lambda = 0.1;
-
-mse = mv_regress(cfg, X, y);
-```
-
 #### Preprocessing pipeline
 
 ```Matlab
@@ -272,7 +260,19 @@ acc = mv_classify_across_time(cfg, dat.trial, clabel);
 
 See [`examples/example7_preprocessing.m`](examples/example7_preprocessing.m) for more details.
 
+#### Regression
 
+```Matlab
+cfg                = [];
+cfg.model          = 'ridge';
+cfg.metric         = 'mse';
+cfg.hyperparameter = [];
+cfg.hyperparameter.lambda = 0.1;
+
+mse = mv_regress(cfg, X, y);
+```
+
+See [`examples/example8_regression.m`](examples/example8_regression.m) for more details.
 
 
 ### References
