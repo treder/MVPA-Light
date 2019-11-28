@@ -150,7 +150,7 @@ A *regression model* performs statistical predictions, similar to a classifier. 
 * [`kernel_ridge`](model/train_kernel_ridge.m)<a name="kernelridge"></a>: [Kernel Ridge regression](https://www.ics.uci.edu/~welling/classnotes/papers_class/Kernel-Ridge.pdf) is the kernelized version of ridge regression. It allows the modelling of non-linear relationships by setting the `.kernel` hyperparameter (e.g. to 'polynomial' or 'rbf').  See [`train_kernel_ridge`](model/train_kernel_ridge.m) for a full description of the parameters.
 * [LIBSVM](#libsvm) and [LIBLINEAR](#liblinear): both packages provide Support Vector Regression (SVR) models in addition to classifiers. For [LIBSVM](#libsvm), setting the hyperparameter `svm_type` allows for the training of epsilon-SVR (svm_type = 3) and nu-SVR (svm_type = 4). [LIBLINEAR](#liblinear) allows for the training of *linear* SVR by setting the hyperparameter `type` allows, namely primal L2-loss SVR (type = 11), dual L2-loss SVR (type = 12), and L1-loss SVR (type = 13). See [`train_libsvm`](model/train_libsvm.m) and [`train_liblinear`](model/train_liblinear.m) for a full description of the parameters.
 
-#### Regression performance metrics <a name="metrics"></a>
+#### Regression performance metrics
 
 Often, one is not interested in the concrete predictions of the regression model, but rather in a performance metric that quantifies how good the predictions are. The following metrics can be calculated by the function [`mv_calculate_performance`](utils/mv_calculate_performance.m):
 
@@ -162,7 +162,7 @@ Often, one is not interested in the concrete predictions of the regression model
 There is usually no need to call [`mv_calculate_performance`](utils/mv_calculate_performance.m) directly. By setting the `cfg.metric` field, the performance metric is calculated automatically in [`mv_regress`](mv_regress.m). You can provide a cell array of metrics, e.g. `cfg.metric = {'mae', 'mse'}` to calculate multiple metrics at once.
 
 
-## Examples<a name="examples"></a>
+## Examples <a name="examples"></a>
 
 This section gives some basic examples. More detailed examples and data can be found in the [`examples/`](examples) subfolder.
 
