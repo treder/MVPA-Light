@@ -260,7 +260,7 @@ acc = mv_classify_across_time(cfg, dat.trial, clabel);
 
 See [`examples/example7_preprocessing.m`](examples/example7_preprocessing.m) for more details.
 
-#### Regression
+#### Ridge Regression
 
 ```Matlab
 cfg                = [];
