@@ -28,7 +28,7 @@ function [perf, result, testlabel] = mv_classify_across_time(cfg, X, clabel)
 %
 % CROSS-VALIDATION parameters:
 % .cv           - perform cross-validation, can be set to 'kfold',
-%                 'leaveout', 'holdout', 'leavegroupout' or 'none' (default 'kfold')
+%                 'leaveout', 'holdout', 'predefined' or 'none' (default 'kfold')
 % .k            - number of folds in k-fold cross-validation (default 5)
 % .p            - if cv is 'holdout', p is the fraction of test samples
 %                 (default 0.1)
@@ -36,6 +36,8 @@ function [perf, result, testlabel] = mv_classify_across_time(cfg, X, clabel)
 %                 in each fold (default 1)
 % .repeat       - number of times the cross-validation is repeated with new
 %                 randomly assigned folds (default 1)
+% .fold         - if cv='predefined', fold is a vector of length
+%                 #samples that specifies the fold each sample belongs to
 %
 % PREPROCESSING parameters:
 % .preprocess         - cell array containing the preprocessing pipeline. The
@@ -100,7 +102,7 @@ if ~strcmp(cfg.cv,'none')
     for rr=1:cfg.repeat                 % ---- CV repetitions ----
         if cfg.feedback, fprintf('Repetition #%d. Fold ',rr), end
 
-        CV = mv_get_crossvalidation_folds(cfg.cv, clabel, cfg.k, cfg.stratify, cfg.p, cfg.group);
+        CV = mv_get_crossvalidation_folds(cfg.cv, clabel, cfg.k, cfg.stratify, cfg.p, cfg.fold);
 
         for kk=1:CV.NumTestSets                     % ---- CV folds ----
             if cfg.feedback, fprintf('%d ',kk), end

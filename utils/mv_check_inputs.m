@@ -59,7 +59,7 @@ mv_set_default(cfg,'repeat',5);
 mv_set_default(cfg,'k',5);
 mv_set_default(cfg,'p',0.1);
 mv_set_default(cfg,'stratify',1);
-mv_set_default(cfg,'group',[]);
+mv_set_default(cfg,'fold',[]);
 
 switch(cfg.cv)
     case 'leaveout', cfg.k = size(X,1);

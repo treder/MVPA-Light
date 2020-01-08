@@ -1,27 +1,30 @@
-function CV = mv_get_crossvalidation_folds(cv, y, k, stratify, frac, group)
+function CV = mv_get_crossvalidation_folds(cv, y, k, stratify, frac, fold)
 % Defines a cross-validation scheme and returns a cvpartition object with
 % the definition of the folds.
 %
 % Usage:
-% CV = mv_get_crossvalidation_folds(cv, y, k, stratify, frac, group)
+% CV = mv_get_crossvalidation_folds(cv, y, k, stratify, frac, fold)
 %
 %Parameters:
 % cv          - cross-validation type:
 %               'kfold':     K-fold cross-validation. The parameter K specifies
 %                            the number of folds
 %               'leaveout': leave-one-out cross-validation
-%               'holdout':   Split data just once into training and
+%               'holdout':  Randomly splits data just once into training and
 %                            hold-out/test set
-%               'leavegroupout': uses pre-defined groups (no randomness). In
-%                            this case, group should be a vector of
-%                            length=samples of 1's, 2's, 3's etc specifying
-%                            to which group each sample belongs.
+%               'predefined': uses folds predefined by the user. In
+%                            this case, fold needs to be set. You should
+%                            set cfg.repeat = 1 since there is no
+%                            randomness.
 % y           - vector of class labels or regression outputs
 % k           - number of folds (the k in k-fold) (default 5)
 % stratify    - if 1, class proportions are roughly preserved in
 %               each fold (default 0)
 % frac        - if cv_type is 'holdout', frac is the fraction of test samples
 %                 (default 0.1)
+% fold        - if cv_type='predefined', fold is a vector of length
+%                 #samples containing of 1's, 2's, 3's etc that specifies 
+%                 for each sample the fold that it belongs to
 %
 %Output:
 % CV - struct with cross-validation folds
@@ -51,24 +54,25 @@ switch(cv)
         else
             CV= cvpartition(N,'holdout',frac);
         end
-    case 'leavegroupout'
+        
+    case 'predefined'
         CV = struct();
-        u = unique(group);
+        u = unique(fold);
         n_groups = numel(u);
         CV.u            = u;
-        CV.group        = group;
+        CV.group        = fold;
         CV.NumTestSets  = numel(u);
-        CV.NumObservations  = numel(group);
-        if iscell(group)
+        CV.NumObservations  = numel(fold);
+        if iscell(fold)
             CV.training     = @(x) ~ismember(CV.group, CV.u(x));
             CV.test         = @(x) ismember(CV.group, CV.u(x));
-            CV.TrainSize    = arrayfun(@(x) sum(~ismember(group, u(x))), 1:n_groups);
-            CV.TestSize     = arrayfun(@(x) sum(ismember(group, u(x))), 1:n_groups);
+            CV.TrainSize    = arrayfun(@(x) sum(~ismember(fold, u(x))), 1:n_groups);
+            CV.TestSize     = arrayfun(@(x) sum(ismember(fold, u(x))), 1:n_groups);
         else
             CV.training     = @(x) CV.group ~= CV.u(x);
             CV.test         = @(x) CV.group == CV.u(x);
-            CV.TrainSize    = arrayfun(@(x) sum(group ~= u(x)), 1:n_groups);
-            CV.TestSize     = arrayfun(@(x) sum(group == u(x)), 1:n_groups);
+            CV.TrainSize    = arrayfun(@(x) sum(fold ~= u(x)), 1:n_groups);
+            CV.TestSize     = arrayfun(@(x) sum(fold == u(x)), 1:n_groups);
         end
     otherwise error('Unknown cross-validation type: %s',cv)
 end
