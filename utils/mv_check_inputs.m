@@ -117,9 +117,6 @@ for ii=1:numel(idx)
     end
 end
 
-%% cfg: set defaults for classifier hyperparameter
-cfg.hyperparameter = mv_get_hyperparameter(cfg.classifier, cfg.hyperparameter);
-
 %% cfg: check for parameter names that have been changed
 changed_fields = { 'nb'      'neighbours';
                       };
@@ -257,7 +254,11 @@ if strcmp(cfg.classifier, 'liblinear')
 end
 
 %% Deprecation checks
-if isfield(cfg,'param') && ~isfield(cfg,'hyperparameter')
-    warning('cfg.param is now called cfg.hyperparameter, renaming...');
+if isfield(cfg,'param') && (~isfield(cfg,'hyperparameter') || isempty(cfg.hyperparameter))
+    warning('cfg.param has been renamed to cfg.hyperparameter, changing cfg accordingly..');
     cfg.hyperparameter = cfg.param;
+    cfg = rmfield(cfg,'param');
 end
+
+%% cfg: set defaults for classifier hyperparameter
+cfg.hyperparameter = mv_get_hyperparameter(cfg.classifier, cfg.hyperparameter);
