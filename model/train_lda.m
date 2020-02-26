@@ -143,7 +143,7 @@ elseif strcmp(form, 'dual')
 
     % Regularization - this assures equivalence to the primal approach
     % Note that for the primal: w' (Sw + lambda I) w
-    % we get the dual: alpha' (N + lambda K) w
+    % we get the dual: alpha' (N + lambda K) alpha
     % for ridge regularizarion. An analogous result is obtained for shrinkage. 
     % This means that the regularization target is K (not I, as in the primal case).
     if strcmp(param.reg,'shrink')
