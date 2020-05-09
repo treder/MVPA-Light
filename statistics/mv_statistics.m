@@ -189,7 +189,7 @@ level = double(numel(result)>1) + 1;
 %% Statistical testing
 stat = struct('test',cfg.test,'alpha',cfg.alpha);
 
-%% --- Level 1 ---
+%% --------- Level 1 ---------
 if level == 1
     switch(cfg.test)
         case 'binomial'
@@ -335,7 +335,7 @@ if level == 1
     end
     
 else
-    %% --- Level 2 ---
+    %% --------- Level 2 ---------
     switch(cfg.test)
     
         case 'permutation'
@@ -515,8 +515,9 @@ end
     end
 
     function perf_stat = within_subject_statistic(statistic, cperf)
+        % calculates one-sample statistic along the first dimension. 
         switch(statistic)
-            case 'mean', perf_stat = squeeze(mean(cperf, 1));
+            case 'mean', perf_stat = mean(cperf, 1);
             case 'ttest', [~,~,~,sts] = ttest(cperf); perf_stat = sts.tstat;
 %             case 'wilcoxon', [~,~,sts] = signrank(cperf);
         end

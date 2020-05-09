@@ -1,6 +1,8 @@
 function [dat,clabel, chans] = load_example_data(filename, do_zscore)
 % Loads an example dataset. 
 %
+% filename  - epoched1.mat, epoched2.mat, epoched3.mat
+%
 % Output: 
 % dat       - struct containing the data
 % clabel    - class labels
