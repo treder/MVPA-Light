@@ -130,6 +130,8 @@ function stat = mv_statistics(cfg, result, X, y)
 %                          Within-subject design: the difference
 %                          (between two conditions or between one condition
 %                          and the null value) is compared against 0.
+%                          clustercritval corresponds to t-values (ttest)
+%                          or z-values (Wilcoxon).
 %
 % Specific parameters for between-subjects design:
 %   .group               - vector of 1's and 2's specifying which group
@@ -519,7 +521,7 @@ end
         switch(statistic)
             case 'mean', perf_stat = mean(cperf, 1);
             case 'ttest', [~,~,~,sts] = ttest(cperf); perf_stat = sts.tstat;
-%             case 'wilcoxon', [~,~,sts] = signrank(cperf);
+            case 'wilcoxon', perf_stat = mv_stat_wilcoxon_signrank(cperf);
         end
         perf_stat = squeeze(perf_stat);
     end
