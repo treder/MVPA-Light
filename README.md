@@ -3,12 +3,12 @@ Matlab toolbox for classification and regression of multi-dimensional data
 
 ### News
 
+* (June 2020) the [MVPA Light toolbox paper](https://www.frontiersin.org/articles/10.3389/fnins.2020.00289/full) has been published
 * (November 2019) added [`mv_regress`](mv_regress.m) for regression of multi-dimensional data, and [ridge](#ridge) and [kernel ridge](#kernelridge) models. Furthermore, [`mv_statistics`](statistics/mv_statistics.m) now includes permutation and cluster permutation tests
 * (August 2019) added [`mv_classify`](#mvclassify) for classification of multi-dimensional datasets (e.g. time-frequency), a [Naive Bayes classifier](#naivebayes) and the [kappa metric](#kappa)
 * (July 2019) added [preprocessing module](#preprocessing) + precomputed kernels for [SVM](model/train_svm.m) and [kernel FDA](model/train_kernel_fda.m)
 * (May 2019) interface added for [LIBSVM](#libsvm) and [LIBLINEAR](#liblinear)
 * (Mar 2019) MVPA-Light has been integrated with FieldTrip (see [tutorial](http://www.fieldtriptoolbox.org/tutorial/mvpa_light/))
-* (Feb 2019) added [kernel Fisher Discriminant Analysis](model/train_kernel_fda.m) and new metrics `precision`, `recall`, and `f1`
 
 ### Table of contents<a name="contents"></a>
 1. [Installation](#installation)
