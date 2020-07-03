@@ -13,3 +13,7 @@ addpath(fullfile(MVPA_path,'plot'));
 addpath(fullfile(MVPA_path,'preprocess'));
 addpath(fullfile(MVPA_path,'statistics'));
 addpath(fullfile(MVPA_path,'utils'));
+
+% uncomment for running the unittests
+% addpath(fullfile(MVPA_path,'simulation'));
+% addpath(fullfile(MVPA_path,'unittests'));
