@@ -242,7 +242,7 @@ else
     len_loop = prod(sz_search);
     dim_loop = zeros(numel(sz_search), len_loop);
     for rr = 1:numel(sz_search)  % row
-        seq = repelem(1:sz_search(rr), prod(sz_search(1:rr-1)));
+        seq = mv_repelem(1:sz_search(rr), prod(sz_search(1:rr-1)));
         dim_loop(rr, :) = repmat(seq, [1, len_loop/numel(seq)]);
     end
     

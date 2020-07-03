@@ -52,7 +52,7 @@ if pparam.is_train_set
         len_loop = prod(sz_search);
         dim_loop = zeros(nd, len_loop);
         for rr = 1:numel(sz_search)  % row
-            seq = repelem(1:sz_search(rr), prod(sz_search(1:rr-1)));
+            seq = mv_repelem(1:sz_search(rr), prod(sz_search(1:rr-1)));
             dim_loop(search_dim(rr), :) = repmat(seq, [1, len_loop/numel(seq)]);
         end
         % to use dim_loop for indexing, we need to convert it to a cell array
