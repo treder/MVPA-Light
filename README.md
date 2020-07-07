@@ -1,6 +1,9 @@
 # MVPA-Light
 Matlab toolbox for classification and regression of multi-dimensional data
 
+[![HitCount](http://hits.dwyl.com/treder/MVPA-Light.svg)](http://hits.dwyl.com/treder/MVPA-Light)
+
+
 ### News
 
 * (June 2020) the [MVPA Light toolbox paper](https://www.frontiersin.org/articles/10.3389/fnins.2020.00289/full) has been published
