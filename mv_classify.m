@@ -305,6 +305,16 @@ if ~strcmp(cfg.cv,'none')
             sz_Xtrain = size(Xtrain);
             sz_Xtest = size(Xtest);
             
+            if strcmp(cfg.classifier, 'naive_bayes')
+              cf = train_fun(cfg.hyperparameter, Xtrain, trainlabel);             
+              cfg.hyperparameter.class_means = cf.class_means;
+              cfg.hyperparameter.var         = cf.var;
+              cfg.hyperparameter.nclasses    = 4;
+              
+              [~, ~, ~, dval_univariate] = test_fun(cf, Xtest);
+              
+            end
+            
             for ix = dim_loop                       % ---- search dimensions ----
                                 
                 % Training data for current search position
@@ -315,8 +325,12 @@ if ~strcmp(cfg.cv,'none')
                     X_ix = Xtrain(sample_skip{:}, ix_nb{:}, feature_skip{:});
                     X_ix = reshape(X_ix, [sz_Xtrain(sample_dim), prod(cellfun(@numel, ix_nb)) * nfeat]);
                     % test data
-                    Xtest_ix = squeeze(Xtest(sample_skip{:}, ix_nb{:}, feature_skip{:}));
-                    Xtest_ix = reshape(Xtest_ix, [sz_Xtest(sample_dim), prod(cellfun(@numel, ix_nb)) * nfeat]);
+                    if exist('dval_univariate', 'var')
+                      Xtest_ix = dval_univariate;
+                    else
+                      Xtest_ix = squeeze(Xtest(sample_skip{:}, ix_nb{:}, feature_skip{:}));
+                      Xtest_ix = reshape(Xtest_ix, [sz_Xtest(sample_dim), prod(cellfun(@numel, ix_nb)) * nfeat]);
+                    end
                 else
                     if isempty(gen_dim),    ix_test = ix;
                     else,                   ix_test = ix(1:end-1);
@@ -325,9 +339,10 @@ if ~strcmp(cfg.cv,'none')
                     Xtest_ix = squeeze(Xtest(sample_skip{:}, ix_test{:}, feature_skip{:}));
                 end
                 
-                % Train classifier
-                cf= train_fun(cfg.hyperparameter, X_ix, trainlabel);
-
+                % Train classifier -> HACK JM
+                cfg.hyperparameter.ix_nb = ix_nb;
+                cf = train_fun(cfg.hyperparameter, X_ix, trainlabel);
+                
                 % Obtain classifier output (labels, dvals or probabilities)
                 if isempty(gen_dim)
                     cf_output{rr,kk,ix{:}} = mv_get_classifier_output(cfg.output_type, cf, test_fun, Xtest_ix);
@@ -336,7 +351,10 @@ if ~strcmp(cfg.cv,'none')
                     cf_output{rr,kk,ix{:}} = reshape( mv_get_classifier_output(cfg.output_type, cf, test_fun, Xtest_ix), numel(testlabel{rr,kk}),[]);
                 end
             end
-
+            
+            if strcmp(cfg.classifier, 'naive_bayes')
+              cfg.hyperparameter = rmfield(cfg.hyperparameter, {'class_means' 'var' 'nclasses' 'ix_nb'});
+            end
         end
         if cfg.feedback, fprintf('\n'), end
     end
