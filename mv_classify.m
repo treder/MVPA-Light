@@ -309,7 +309,7 @@ if ~strcmp(cfg.cv,'none')
               cf = train_fun(cfg.hyperparameter, Xtrain, trainlabel);             
               cfg.hyperparameter.class_means = cf.class_means;
               cfg.hyperparameter.var         = cf.var;
-              cfg.hyperparameter.nclasses    = 4;
+              cfg.hyperparameter.nclasses    = cf.nclasses;
               
               [~, ~, ~, dval_univariate] = test_fun(cf, Xtest);
               
