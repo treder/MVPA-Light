@@ -26,10 +26,11 @@ dval = bsxfun(@plus, dval, cf.prior);
 
 % For each sample, find the closest centroid and assign it to the
 % respective class
-clabel = zeros(size(X,1),1);
-for ii=1:size(X,1)
-    [~, clabel(ii)] = max(dval(ii,:));
-end
+%clabel = zeros(size(X,1),1);
+%for ii=1:size(X,1)
+%    [~, clabel(ii)] = max(dval(ii,:));
+%end
+[~, clabel] = max(dval, [], 2);
 
 if nargout>2
     % apply softmax to obtain the posterior probabilities
