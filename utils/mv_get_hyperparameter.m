@@ -102,7 +102,11 @@ switch(model)
          
     case 'naive_bayes'
         mv_set_default(param,'prior','equal');
-        
+    
+    case 'naive_bayes2'
+        mv_set_default(param,'prior','equal');
+        mv_set_default(param,'neighbours', {});
+    
     case 'svm'
         mv_set_default(param,'bias','auto');
         mv_set_default(param,'c',1);
