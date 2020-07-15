@@ -27,28 +27,19 @@ function cf = train_naive_bayes(param, X, clabel)
 
 % (c) Matthias Treder
 
-if ~isfield(param, 'class_means') || isempty(param.class_means)
-  
-  nclasses = max(clabel);
-  nfeatures = size(X);
-  nfeatures = nfeatures(2:end);
-  
-  % Indices of class samples
-  ix = arrayfun(@(c) find(clabel == c), 1:nclasses, 'Un', 0);
-  
-  %% Estimate class-conditional means and standard deviations
-  class_means = zeros([nclasses, nfeatures]);
-  va = zeros([nclasses, nfeatures]);
-  
-  for cc=1:nclasses
-    class_means(cc,:,:) = mean(X(ix{cc}, :, :), 1);
-    va(cc,:,:) = var(X(ix{cc}, :, :), [], 1);
-  end
-else
-  
-  class_means = param.class_means(:, param.ix_nb{:});
-  va          = param.var(:, param.ix_nb{:});
-  nclasses    = param.nclasses;
+nclasses = max(clabel);
+nfeatures = size(X,2);
+
+% Indices of class samples
+ix = arrayfun(@(c) find(clabel == c), 1:nclasses, 'Un', 0);
+
+%% Estimate class-conditional means and standard deviations
+class_means = zeros(nclasses, nfeatures);
+va = zeros(nclasses, nfeatures);
+
+for cc=1:nclasses
+    class_means(cc,:) = mean(X(ix{cc}, :), 1);
+    va(cc,:) = var(X(ix{cc}, :), [], 1);
 end
 
 %% Set up classifier struct
@@ -56,9 +47,6 @@ cf              = [];
 cf.class_means  = class_means;
 cf.var          = va;
 cf.nclasses     = nclasses;
-if isfield(param, 'ix_nb')
-  cf.ix_nb = param.ix_nb;
-end
 
 if ischar(param.prior)
     cf.prior        = log(ones(1,nclasses)/nclasses);

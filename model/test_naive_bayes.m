@@ -1,4 +1,4 @@
-function [clabel, dval, prob, dval_univariate] = test_naive_bayes(cf,X)
+function [clabel, dval, prob] = test_naive_bayes(cf,X)
 % Applies a Naive Bayes classifier to test data.
 %
 % Usage:
@@ -18,37 +18,25 @@ function [clabel, dval, prob, dval_univariate] = test_naive_bayes(cf,X)
 % dval and prob comes as matrices and hence should not be used
 % within the high-level functions. They can be used when test_naive_bayes
 % is called by hand.
-if iscell(X) && isfield(cf, 'ix_nb')
-  dval = zeros(size(X{1},1), numel(X));
-  for k = 1:numel(X)
-    tmp = X{k}(:,cf.ix_nb{:});
-    dval(:,k) = sum(tmp(:,:),2)/2;    
-  end
-else
-  dval = arrayfun( @(c) -( bsxfun(@minus, X, cf.class_means(c,:,:)) .^2) ./ cf.var(c*ones(size(X,1),1),:,:), 1:cf.nclasses, 'Un',0);
-  if nargout>3
-    dval_univariate = dval;
-  end
-  dval = cell2mat( cellfun(@(d) sum(d,2)/2, dval, 'Un',0));
-end
+dval = arrayfun( @(c) -( bsxfun(@minus, X, cf.class_means(c,:)) .^2) ./ repmat(cf.var(c,:), [size(X,1) ,1]), 1:cf.nclasses, 'Un',0);
+dval = cell2mat( cellfun(@(d) sum(d,2)/2, dval, 'Un',0));
 
 % add prior
 dval = bsxfun(@plus, dval, cf.prior);
 
 % For each sample, find the closest centroid and assign it to the
 % respective class
-[~, clabel] = max(dval, [], 2); % this avoids an expensive for-loop
-% clabel = zeros(size(X,1),1);
-% for ii=1:size(X,1)
-%     [~, clabel(ii)] = max(dval(ii,:));
-% end
+clabel = zeros(size(X,1),1);
+for ii=1:size(X,1)
+    [~, clabel(ii)] = max(dval(ii,:));
+end
 
 if nargout>2
     % apply softmax to obtain the posterior probabilities
     prob = exp(dval);
     Px = sum(prob,2);
     for cc=1:cf.nclasses
-        prob(:,cc,:) = prob(:,cc,:) ./ Px;
+        prob(:,cc) = prob(:,cc) ./ Px;
     end
 end
 
