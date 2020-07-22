@@ -74,13 +74,31 @@ function [perf, result, testlabel] = mv_classify(cfg, X, clabel)
 %                      info.
 %
 % SEARCHLIGHT parameters:
-% .neighbours  - [... x ...] matrix specifying which features
+% Every non-sample, non-feature dimension is designated as a 'searchlight
+% dimesion'. For instance, if the data is [samples x features x time], the
+% time dimension usually serves as a searchlight dimension. This means that
+% a separate classification is performed for each element of the
+% searchlight dimension. Normally, every element is considered on its own,
+% but the neighbours field can be used to consider multiple elements at
+% once. 
+% .neighbours  - [... x ...] matrix specifying which elements of the search
 %                are neighbours of each other. If there is multiple search
 %                dimensions, a cell array of such matrices should be
 %                provided. (default: identity matrix). Note: this
 %                corresponds to the GRAPH option in mv_searchlight.
 %                There is no separate parameter for neighbourhood size, the
 %                size of the neighbourhood is specified by the matrix.
+% append       - if true, searchlight dimensions are appended to the train 
+%                data instead of
+%                being looped over. This can be useful for performance, 
+%                since the model receives the whole data which obliterates 
+%                the loop. For instance, if the data is 
+%                [samples x features x time] and cfg.append = 1, 
+%                the model receives a whole [train_samples x features x time] 
+%                array at once, instead of the usual [train_samples x features] 
+%                array. This also obliterates the loop across time. Note: 
+%                at the moment only naive_bayes supports this feature.
+%                (default false)
 %
 % CROSS-VALIDATION parameters:
 % .cv           - perform cross-validation, can be set to 'kfold',
@@ -122,6 +140,7 @@ mv_set_default(cfg,'feedback',1);
 mv_set_default(cfg,'sample_dimension', 1);
 mv_set_default(cfg,'feature_dimension', 2);
 mv_set_default(cfg,'generalization_dimension',[]);
+mv_set_default(cfg,'append', false);
 mv_set_default(cfg,'flatten_features',1);
 mv_set_default(cfg,'dimension_names',strcat('dim', arrayfun(@(x) {num2str(x)}, 1:ndims(X))));
 
@@ -151,8 +170,16 @@ n = arrayfun( @(c) sum(clabel==c) , 1:n_classes);
 mv_set_default(cfg,'is_kernel_matrix', isfield(cfg.hyperparameter,'kernel') && strcmp(cfg.hyperparameter.kernel,'precomputed'));
 
 % generalization does not work together with precomputed kernel matrices
-if cfg.is_kernel_matrix && ~isempty(gen_dim)
-    error('generalization does not work together with precomputed kernel matrices')
+if ~isempty(gen_dim)
+    if cfg.is_kernel_matrix
+        error('generalization does not work together with precomputed kernel matrices')
+    elseif ~all(ismember(gen_dim, search_dim))
+        error('generalization dimension must be one of the search dimensions (different from sample and feature dimensions)')
+    end
+end
+
+if cfg.append && ~isempty(gen_dim)
+    error('generalization does not work together with appended dimensions')
 end
 
 if cfg.feedback, mv_print_classification_info(cfg,X,clabel); end
@@ -188,9 +215,9 @@ if has_neighbours && numel(gen_dim)>0
 end
 %% order the dimensions by samples -> search dimensions -> features
 
-% the generalization dimension should be the  last of the search dimensions,
-% if it is not then permute the dimensions accordingly
 if ~isempty(gen_dim) && (search_dim(end) ~= gen_dim)
+    % the generalization dimension should be the last of the search dimensions,
+    % if it is not then permute the dimensions accordingly
     ix = find(ismember(search_dim, gen_dim));
     % push gen dim to the end
     search_dim = [search_dim(1:ix-1), search_dim(ix+1:end), search_dim(ix)];
@@ -229,14 +256,15 @@ sz_search = sz_search(search_dim);
 if isempty(sz_search), sz_search = 1; end
 
 % sample_skip and feature_skip helps us access the search dimensions by 
-% skipping over sample and feature dimensions
+% skipping over sample(incl appending) and feature dimensions
 % sample_skip = repmat({':'},[1, numel([sample_dim, feature_dim])] );
 sample_skip = repmat({':'},[1, numel(sample_dim)] );
 feature_skip = repmat({':'},[1, numel(feature_dim)] );
 
 %% Create all combinations of elements in the search dimensions
-if isempty(search_dim)
-    % no search dimensions, we just perform cross-validation once
+if isempty(search_dim) || cfg.append
+    % no search dimensions or search dimensions are appended, so we just
+    % perform cross-validation once
     dim_loop = {':'};
 else
     len_loop = prod(sz_search);
@@ -255,7 +283,7 @@ nfeat = nfeat(feature_dim);
 if isempty(nfeat), nfeat = 1; end
 
 %% Perform classification
-if ~strcmp(cfg.cv,'none') 
+if ~strcmp(cfg.cv,'none')
     % -------------------------------------------------------
     % Perform cross-validation
 
@@ -313,7 +341,7 @@ if ~strcmp(cfg.cv,'none')
             for ix = dim_loop                       % ---- search dimensions ----
                                 
                 % Training data for current search position
-                if has_neighbours
+                if has_neighbours && ~cfg.append
                     % --- searchlight --- define neighbours for current iteration
                     ix_nb = cellfun( @(N,f) find(N(f,:)), cfg.neighbours, ix, 'Un',0);
                     % train data
@@ -322,6 +350,11 @@ if ~strcmp(cfg.cv,'none')
                     % test data
                     Xtest_ix = squeeze(Xtest(sample_skip{:}, ix_nb{:}, feature_skip{:}));
                     Xtest_ix = reshape(Xtest_ix, [sz_Xtest(sample_dim), prod(cellfun(@numel, ix_nb)) * nfeat]);
+                elseif cfg.append
+                    % search dimensions are appended to train data
+                    X_ix = Xtrain;
+                    Xtest_ix = Xtest;
+                    cfg.hyperparameter.neighbours = cfg.neighbours;
                 else
                     if isempty(gen_dim),    ix_test = ix;
                     else,                   ix_test = ix(1:end-1);
