@@ -262,10 +262,17 @@ sample_skip = repmat({':'},[1, numel(sample_dim)] );
 feature_skip = repmat({':'},[1, numel(feature_dim)] );
 
 %% Create all combinations of elements in the search dimensions
-if isempty(search_dim) || cfg.append
-    % no search dimensions or search dimensions are appended, so we just
-    % perform cross-validation once
+if isempty(search_dim)
+    % no search dimensions, so we just perform cross-validation once
     dim_loop = {':'};
+elseif cfg.append
+    % search dimensions are appended, so we just perform corss-validation
+    % once
+    if has_neighbours
+        dim_loop(1:numel(cfg.neighbours),1) = {':'};
+    else
+        dim_loop = {':'};
+    end
 else
     len_loop = prod(sz_search);
     dim_loop = zeros(numel(sz_search), len_loop);
@@ -367,7 +374,11 @@ if ~strcmp(cfg.cv,'none')
                 cf= train_fun(cfg.hyperparameter, X_ix, trainlabel);
 
                 % Obtain classifier output (labels, dvals or probabilities)
-                if isempty(gen_dim)
+                if cfg.append
+                    tmp = mv_get_classifier_output(cfg.output_type, cf, test_fun, Xtest_ix);
+                    alloc_vecs = arrayfun(@(x)(ones(1,x)), size(shiftdim(Xtest_ix(1,:,:,:),1)), 'Un', 0);
+                    cf_output(rr,kk,ix{:}) = mat2cell(tmp, size(tmp,1), 1, alloc_vecs{:});
+                elseif isempty(gen_dim)
                     cf_output{rr,kk,ix{:}} = mv_get_classifier_output(cfg.output_type, cf, test_fun, Xtest_ix);
                 else
                     % we have to reshape classifier output back
