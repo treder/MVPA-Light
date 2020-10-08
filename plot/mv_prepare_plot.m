@@ -69,7 +69,14 @@ for mm = 1:n_metrics
         p.xlabel = 'Predicted class';
         p.ylabel = 'True class';
         p.title  = 'Confusion matrix';
-            
+    elseif strcmp(metric,'none')   %%% --- for NONE/RAW output ---
+        error('TODO')
+        
+        %% HIER WEITER MACHEN %%
+        
+%         if n_result_dimensions
+        error('Cannot plot a result that has %d data dimensions. Try to reduce the data to <= 2 dimensions\n', n_result_dimensions)
+
     else
         switch(n_result_dimensions)
             case 0      %%% --- for BAR PLOT ---
