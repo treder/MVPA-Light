@@ -89,7 +89,6 @@ if ~is_precomputed
     if numel(param.degree)>1, tune_params = [tune_params {'degree'}]; tune_kernel_params = 1; end
 end
 
-
 %% Compute kernel
 use_K = 0;
 if is_precomputed
@@ -139,4 +138,35 @@ else
     model.coef0        = param.coef0;
     model.degree       = param.degree;
     
+end
+
+%% Correlation constraint
+if ~isempty(param.correlation_bound)
+    
+    % calculate correlation between y and residual
+    yc = Y - mean(Y);
+    yhat = K * model.alpha;
+    yhatc = yhat - mean(yhat);
+    
+    y_residual_correlation_uncorrected = corr(yc, yc - yhatc);
+    
+    if y_residual_correlation_uncorrected < param.correlation_bound
+        % dont fix it if it aint broken
+        model.theta = 1;
+    elseif param.correlation_bound == 0
+        model.theta = (yc'*yc) / (yc' * yhatc);
+    else
+        y2 = yc' * yc;
+        yhat2 = yhatc' * yhatc;
+        yyhat = yc' * yhatc;
+        rho2 = param.correlation_bound^2;
+        c = yyhat^2 - rho2*y2*yhat2;
+
+        % since we use a square to solve for a we get two solutions
+        % one gives us corr(y,e) = rho, the other corr(y,e) = -rho
+        model.theta = y2 * yyhat * (1-rho2)/c - y2/c * sqrt( rho2 * (1-rho2) * (y2*yhat2 - yyhat^2));
+    end
+    
+    % scale coefficients
+    model.alpha = model.alpha * model.theta;
 end

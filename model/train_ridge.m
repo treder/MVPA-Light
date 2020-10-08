@@ -22,6 +22,9 @@ function model = train_ridge(param, X, Y)
 %                  efficient form depending on whether #samples > #features
 %                  (default 'auto').
 % .k             - number of cross-validation folds for tuning (default 5)
+% .correlation_bound - float in [0, 1] specifying the maximum permissible
+%                      corelation between y and the residuals (useful in
+%                      e.g. brain-age prediction) (default [])
 %
 % IMPLEMENTATION DETAILS:
 % The classical solution to the ridge regression problem in both the primal
@@ -85,6 +88,35 @@ if strcmp(form, 'primal')
     model.w = (X'*X + param.lambda * eye(P)) \ (X' * Y);   % primal
 else
     model.w = X' * ((X*X' + param.lambda * eye(N)) \ Y);   % dual
+end
+
+%% Correlation constraint
+if ~isempty(param.correlation_bound)
+    
+    % calculate correlation between y and residual
+    yc = Y - mean(Y);
+    yhatc = X*model.w;
+    y_residual_correlation_uncorrected = corr(yc, yc - yhatc);
+    
+    if y_residual_correlation_uncorrected < param.correlation_bound
+        % dont fix it if it aint broken
+        model.theta = 1;
+    elseif param.correlation_bound == 0
+        model.theta = (yc'*yc) / (yc' * yhatc);
+    else
+        y2 = yc' * yc;
+        yhat2 = yhatc' * yhatc;
+        yyhat = yc' * yhatc;
+        rho2 = param.correlation_bound^2;
+        c = yyhat^2 - rho2*y2*yhat2;
+
+        % since we use a square to solve for a we get two solutions
+        % one gives us corr(y,e) = rho, the other corr(y,e) = -rho
+        model.theta = y2 * yyhat * (1-rho2)/c - y2/c * sqrt( rho2 * (1-rho2) * (y2*yhat2 - yyhat^2));
+    end
+    
+    % scale coefficients
+    model.w = model.w * model.theta;
 end
 
 %% Estimate intercept

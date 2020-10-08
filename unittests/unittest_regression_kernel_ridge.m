@@ -12,7 +12,8 @@ N = 500;
 nrevolutions = 2;       % how often each class spins around the zero point
 nclasses = 1;
 scale = 0.001;
-[X,~] = simulate_spiral_data(N, nrevolutions, nclasses, prop, scale, 1);
+prop = [];
+[X,~] = simulate_spiral_data(N, nrevolutions, nclasses, prop, scale, 0);
 
 % as response variable we choose the Euclidean distance to the origin
 y = sqrt(sum(X.^2 ,2 ));
@@ -78,6 +79,30 @@ param.lambda    = [10^-3, 10^-2, 10^-1, 1, 10, 10, 10^3, 10^4, 10^5, 10^6];
 param.gamma     = [0.1, 1, 10, 100];
 param.kernel    = 'rbf';
 train_kernel_ridge(param, X, y);
+
+
+%% correlation_bound: checking whether target-residual correlation corresponds to correlation bound
+param = mv_get_hyperparameter('kernel_ridge');
+
+param.correlation_bound = 0;
+model = train_kernel_ridge(param, X, y);
+yhat = test_kernel_ridge(model, X);
+print_unittest_result('correlation_bound = 0', 0, corr(y, y - yhat), tol);
+
+param.correlation_bound = 0.1;
+model = train_kernel_ridge(param, X, y);
+yhat = test_kernel_ridge(model, X);
+print_unittest_result('correlation_bound = 0.1', 0.1, corr(y, y - yhat), tol);
+
+param.correlation_bound = 0.2;
+model = train_kernel_ridge(param, X, y);
+yhat = test_kernel_ridge(model, X);
+print_unittest_result('correlation_bound = 0.2', 0.2, corr(y, y - yhat), tol);
+
+param.correlation_bound = 0.9;
+model = train_kernel_ridge(param, X, y);
+yhat = test_kernel_ridge(model, X);
+print_unittest_result('correlation_bound = 0.9', true, corr(y, y - yhat)<=0.9, tol);
 
 %% multivariate Y: predictions should be equal when columns of Y are equal
 Y = X * rand(2, 10) +10.01*randn(N,10);       % multivariate model

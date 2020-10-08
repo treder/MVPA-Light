@@ -126,6 +126,7 @@ switch(model)
         mv_set_default(param,'k',5);
         mv_set_default(param,'plot',0);
         mv_set_default(param,'evtol',10^8);
+        mv_set_default(param,'correlation_bound', []);
 
     case 'kernel_ridge'
         mv_set_default(param,'lambda',1);
@@ -136,6 +137,7 @@ switch(model)
         mv_set_default(param,'gamma','auto'); % RBF and polynomial kernel
         mv_set_default(param,'coef0',1);    % polynomial kernel
         mv_set_default(param,'degree',3);   % degree of polynomial kernel
+        mv_set_default(param,'correlation_bound', []);
 
     case 'svr'  
         % note: uses the same libary as 'libsvm' just default parameters

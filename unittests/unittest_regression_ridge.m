@@ -56,6 +56,30 @@ param.lambda = [10^-3, 10^-2, 10^-1, 1, 10, 10, 10^3, 10^4, 10^5, 10^6];
 param.plot = 0;
 train_ridge(param, X, y);
 
+%% correlation_bound: checking whether target-residual correlation corresponds to correlation bound
+param = mv_get_hyperparameter('ridge');
+param.lambda = 0.1;
+
+param.correlation_bound = 0;
+model = train_ridge(param, X, y);
+yhat = test_ridge(model, X);
+print_unittest_result('correlation_bound = 0', 0, corr(y, y - yhat), tol);
+
+param.correlation_bound = 0.1;
+model = train_ridge(param, X, y);
+yhat = test_ridge(model, X);
+print_unittest_result('correlation_bound = 0.1', 0.1, corr(y, y - yhat), tol);
+
+param.correlation_bound = 0.2;
+model = train_ridge(param, X, y);
+yhat = test_ridge(model, X);
+print_unittest_result('correlation_bound = 0.2', 0.2, corr(y, y - yhat), tol);
+
+param.correlation_bound = 0.9;
+model = train_ridge(param, X, y);
+yhat = test_ridge(model, X);
+print_unittest_result('correlation_bound = 0.9', true, corr(y, y - yhat)<=0.9, tol);
+
 %% multivariate Y: weights should be equal when columns of Y are equal
 param = mv_get_hyperparameter('ridge');
 param.lambda = 0.1;
