@@ -290,3 +290,36 @@ for sd=1:nd   % sample dimension
 end
 
 
+%% embed dimensions
+% embedding dimensions should give the same result as not embedding them,
+% but it should be faster -> so far only possible with naive_bayes
+
+nsamples = 50;
+ntime = 100;
+nfeatures = 10;
+nclasses = 2;
+prop = [];
+scale = 0.0001;
+
+% Generate data
+X2 = zeros(nsamples, nfeatures, ntime, ntime+10);
+[~,clabel2] = simulate_gaussian_data(nsamples, nfeatures, nclasses, prop, scale, 0);
+
+for tt=1:ntime
+    X2(:,:,tt,tt) = simulate_gaussian_data(nsamples, nfeatures, nclasses, prop, scale, 0);
+end
+
+% mv_classify_across_time
+rng(21)   % reset rng to get the same random folds
+cfg = [];
+cfg.feedback = 0;
+cfg.embed = true;
+acc1 = mv_classify(cfg, X2, clabel2);
+
+% mv_classify
+rng(21)   % reset rng to get the same random folds
+cfg.sample_dimension = 1;
+cfg.feature_dimension = 2;
+acc2 = mv_classify(cfg, X2, clabel2);
+
+print_unittest_result('compare to mv_classify_across_time', 0, norm(acc1-acc2), tol);
