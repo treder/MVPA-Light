@@ -24,7 +24,7 @@ end
 
 %%% CLASS LABELS 
 
-% attenden_deviant contains the information about the trials. Use this to
+% attended_deviant contains the information about the trials. Use this to
 % create the true class labels, indicating whether the trial corresponds to
 % an attended deviant (1) or an unattended deviant (2).
 clabel = zeros(nTrial, 1);

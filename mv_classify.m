@@ -75,7 +75,7 @@ function [perf, result, testlabel] = mv_classify(cfg, X, clabel)
 %
 % SEARCHLIGHT parameters:
 % Every non-sample, non-feature dimension is designated as a 'searchlight
-% dimesion'. For instance, if the data is [samples x features x time], the
+% dimension'. For instance, if the data is [samples x features x time], the
 % time dimension usually serves as a searchlight dimension. This means that
 % a separate classification is performed for each element of the
 % searchlight dimension. Normally, every element is considered on its own,
