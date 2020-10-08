@@ -182,6 +182,7 @@ for mm=1:n_metrics
     if strcmp(cfg.metric{mm},'none')
         perf{mm} = cf_output;
         perf_std{mm} = [];
+        perf_dimension_names{mm} = {'repetition' 'fold' 'metric'};
     else
         [perf{mm}, perf_std{mm}] = mv_calculate_performance(cfg.metric{mm}, cfg.output_type, cf_output, testlabel, avdim);
         % performance dimension names
