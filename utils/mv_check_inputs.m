@@ -62,7 +62,9 @@ mv_set_default(cfg,'stratify',1);
 mv_set_default(cfg,'fold',[]);
 
 switch(cfg.cv)
-    case 'leaveout', cfg.k = size(X,1);
+    case 'leaveout' 
+        cfg.k = size(X,1);
+        cfg.repeat = 1;
     case 'holdout', cfg.k = 1;
 end
 
