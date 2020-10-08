@@ -121,7 +121,7 @@ switch(metric)
             % create a function that compares the predicted labels to the
             % true labels and takes the mean of the comparison. This gives
             % us the classification performance for each test fold.
-            fun = @(cfo,lab) mean(bsxfun(@eq,cfo,lab(:)));
+            fun = @(cfo,lab) mean(bsxfun(@eq,cfo,lab(:)), 1);
         elseif strcmp(output_type,'dval')
             % We want class 1 labels to be positive, and class 2 labels to
             % be negative, because then their sign corresponds to the sign
@@ -134,14 +134,14 @@ switch(metric)
             % product is positive, so compare whether the result is > 0.
             % Taking the mean of this comparison gives classification
             % performance.
-            fun = @(cfo,lab) mean(bsxfun(@times, cfo, -lab(:)+1.5) > 0);
+            fun = @(cfo,lab) mean(bsxfun(@times, cfo, -lab(:)+1.5) > 0, 1);
         elseif strcmp(output_type,'prob')
             % Probabilities represent the posterior probability for class
             % being class 1, ranging from 0 to 1. To transform 
             % probabilities into class labels, subtract 0.5 from the
             % probabilities and also transform the labels (see previous
             % paragraph about dvals for details)
-            fun = @(cfo,lab) mean(bsxfun(@times, cfo-0.5, -lab(:)+1.5) > 0);
+            fun = @(cfo,lab) mean(bsxfun(@times, cfo-0.5, -lab(:)+1.5) > 0, 1);
         end
         
         % Looping across the extra dimensions if model_output is multi-dimensional
