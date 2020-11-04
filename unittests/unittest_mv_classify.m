@@ -61,7 +61,7 @@ cfg.sample_dimension = 1;
 cfg.feature_dimension = 2;
 acc2 = mv_classify(cfg, X2, clabel2);
 
-print_unittest_result('compare to mv_classify_across_time', 0, norm(acc1-acc2), tol);
+print_unittest_result('compare to mv_classify_across_time', acc1, acc2, tol);
 
 %% compare to mv_classify_timextime
 
@@ -78,7 +78,7 @@ cfg.feature_dimension = 2;
 cfg.generalization_dimension = 3;
 acc2 = mv_classify(cfg, X2, clabel2);
 
-print_unittest_result('compare to mv_classify_timextime', 0, norm(acc1-acc2), tol);
+print_unittest_result('compare to mv_classify_timextime', acc1, acc2, tol);
 
 %% compare to mv_searchlight
 
@@ -91,9 +91,10 @@ acc1 = mv_searchlight(cfg, X, clabel);
 % mv_classify
 rng(22)
 cfg.sample_dimension = 1;
+cfg.feature_dimension = [];
 acc2 = mv_classify(cfg, X, clabel);
 
-print_unittest_result('compare to mv_searchlight', 0, norm(acc1-acc2), tol);
+print_unittest_result('compare to mv_searchlight', acc1, acc2, tol);
 
 %% Create a dataset where classes can be perfectly discriminated for only some time points [two-class]
 nsamples = 100;
