@@ -31,7 +31,7 @@ else
   
     dim1 = cellfun('size', N, 1); % dim1 and dim2 could be different
     dim2 = cellfun('size', N, 2);
-    assert(isequal(dim2, size(shiftdim(X(1,:,:,:,:)))), 'neighbours specification does not match the dimension of the features');
+    assert(isequal(prod(dim2), prod(size(shiftdim(X(1,:,:,:,:))))), 'neighbours specification does not match the dimension of the features');
   
     dval    = cat(1, dval{:});
     dvalnew = zeros([size(dval,1), dim1]);
