@@ -3,7 +3,7 @@ function [pparam, X, clabel] = mv_preprocess_pca(pparam, X, clabel)
 % the n leading eigenvectors of the covariance matrix.
 %
 %Usage:
-% [pparam, X, clabel] = mv_preprocess_zscore(pparam, X, clabel)
+% [pparam, X, clabel] = mv_preprocess_pca(pparam, X, clabel)
 %
 %Parameters:
 % X              - [... x ... x ...] data matrix

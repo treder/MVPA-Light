@@ -28,14 +28,15 @@ function cf = train_naive_bayes(param, X, clabel)
 % (c) Matthias Treder
 
 nclasses = max(clabel);
-nfeatures = size(X,2);
+siz      = size(X);
+nfeatures = siz(2:end);
 
 % Indices of class samples
 ix = arrayfun(@(c) find(clabel == c), 1:nclasses, 'Un', 0);
 
 %% Estimate class-conditional means and standard deviations
-class_means = zeros(nclasses, nfeatures);
-va = zeros(nclasses, nfeatures);
+class_means = zeros([nclasses, nfeatures]);
+va = zeros([nclasses, nfeatures]);
 
 for cc=1:nclasses
     class_means(cc,:) = mean(X(ix{cc}, :), 1);
@@ -47,6 +48,11 @@ cf              = [];
 cf.class_means  = class_means;
 cf.var          = va;
 cf.nclasses     = nclasses;
+
+if isfield(param, 'neighbours')
+    % pass the neighbours on so that the test function can use it.
+    cf.neighbours = param.neighbours;
+end
 
 if ischar(param.prior)
     cf.prior        = log(ones(1,nclasses)/nclasses);

@@ -137,7 +137,12 @@ if ~strcmp(cfg.cv,'none') && ~hasX2
         CV = mv_get_crossvalidation_folds(cfg.cv, clabel, cfg.k, cfg.stratify, cfg.p, cfg.fold);
         
         for kk=1:CV.NumTestSets                      % ---- CV folds ----
-            if cfg.feedback, fprintf('%d ',kk), end
+            if cfg.feedback
+                if kk<=20, fprintf('%d ',kk), % print first 20 folds
+                elseif kk==21, fprintf('... ') % then ... and stop to not spam the console too much
+                elseif kk>CV.NumTestSets-5, fprintf('%d ',kk) % then the last 5 ones
+                end
+            end
 
             % Get train and test data
             [Xtrain, trainlabel, Xtest, testlabel{rr,kk}] = mv_select_train_and_test_data(X, clabel, CV.training(kk), CV.test(kk), 0);
