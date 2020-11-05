@@ -376,8 +376,15 @@ if ~strcmp(cfg.cv,'none')
                 % Obtain classifier output (labels, dvals or probabilities)
                 if cfg.append
                     tmp = mv_get_classifier_output(cfg.output_type, cf, test_fun, Xtest_ix);
-                    alloc_vecs = arrayfun(@(x)(ones(1,x)), size(shiftdim(Xtest_ix(1,:,:,:),1)), 'Un', 0);
-                    cf_output(rr,kk,ix{:}) = mat2cell(tmp, size(tmp,1), 1, alloc_vecs{:});
+                    
+                    % check whether the size of tmp coincides with the
+                    % pre-allocated output -> this might change due to the
+                    % neighbourhood matrices being non-square
+                    if size(tmp,3)~=sz_search(1),  cf_output = cf_output(:,:,1:size(tmp,3),:); end
+                    if size(tmp,4)~=sz_search(2),  cf_output = cf_output(:,:,:,1:size(tmp,4)); end
+                    
+                    alloc_vecs = arrayfun(@(x)(ones(1,x)), size(shiftdim(tmp(1,:,:,:),1)), 'Un', 0);
+                    cf_output(rr,kk,ix{:}) = mat2cell(tmp, size(tmp,1), alloc_vecs{:});
                 elseif isempty(gen_dim)
                     cf_output{rr,kk,ix{:}} = mv_get_classifier_output(cfg.output_type, cf, test_fun, Xtest_ix);
                 else
