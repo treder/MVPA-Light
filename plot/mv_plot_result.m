@@ -1,7 +1,7 @@
 function h = mv_plot_result(result, varargin)
 %Provides a simple visual representation of the results obtained with the
-%functions mv_crossvalidate, mv_classify_across_time, mv_classify_timextime, 
-%mv_searchlight, mv_classify, and mv_regress.
+%functions  mv_classify_across_time, mv_classify_timextime, mv_classify, 
+%and mv_regress.
 %
 %The type of plot depends on which of these functions was used and on the
 %dimensionality of the data.
@@ -18,7 +18,6 @@ function h = mv_plot_result(result, varargin)
 %                     If multiple metrics have been used, a separate plot
 %                     is generated for each metric.
 %                     
-%
 % ADDITIONAL KEY-VALUE ARGUMENTS:
 % new_figure     - if 1, results are plotted in a new figure. If 0, results
 %                  are plotted in the current axes instead (default 1)
@@ -44,7 +43,7 @@ if iscell(result) && numel(result)>1
     if isempty(result.perf), error('Could not combine results'), end
 end
 
-% prepare plot if necessary
+% prepare plotting instructions if there's none yet
 if ~isfield(result, 'plot')
     result = mv_prepare_plot(result);
 end
@@ -62,6 +61,7 @@ end
 for mm=1:n_metrics
     
     if opt.new_figure, figure, else, clf; end
+    set(gcf,'defaultLegendAutoUpdate','off');
 
     p = result.plot{mm};
     metric                  = result.metric{mm};
@@ -99,8 +99,7 @@ for mm=1:n_metrics
             if p.combined   % multiple results combined
                 if ~isvector(perf)
                     % grouped bar graph
-                    set(gcf,'defaultLegendAutoUpdate','off');
-                    legend(result.plot{mm}.legend_labels);
+                    legend(p.legend_labels);
                     % find centers of grouped bars
                     offset = [h.bar.XOffset];
                     xd = h.bar(1).XData;
@@ -145,7 +144,43 @@ for mm=1:n_metrics
                 end
             end
 
-        case 'image'                
+        case 'dots'                 
+            % ---------- DOTS PLOT for 'none' metric ----------
+            if (nargin > 1) && ~ischar(varargin{1}),    x = varargin{1};
+            else,         x = 1:size(perf, 3);
+            end
+
+            cfg = [];
+            cfg.label_options   = p.label_options;
+            cfg.title_options   = p.title_options;
+            cfg.hor             = p.hor;
+            cfg.mark_bold       = opt.mask; 
+            if strcmp(result.task, 'classification')
+                for rep = 1:p.n_repetitions
+                    for fold = 1:p.n_folds
+                        subplot(p.n_repetitions, p.n_folds, (rep-1)*p.n_folds + fold)
+                        cla
+                        for c = 1:result.n_classes % each class separately
+                            ix_class = result.testlabel{rep,fold}==c;
+                            % need to repeat x for number of instances in each class
+                            xx = mv_repelem(x, sum(ix_class));
+                            % get values corresponding to class
+                            vals = cellfun(@(dat) dat(ix_class), squeeze(perf(rep, fold, :)), 'Un', 0);
+                            vals = cat(1, vals{:});                
+                            plot(xx, vals,'.')
+                            hold all
+                        end                        
+                        legend(p.legend_labels);
+                        title(p.title{rep,fold})
+                        ylabel(p.ylabel)
+                        grid on
+                    end
+                end
+            else
+                error('todo: implement DOTS plot for regression')
+            end
+
+        case 'image'
             % ----------  IMAGE ---------- 
             % apply mask
             if ~isempty(opt.mask)

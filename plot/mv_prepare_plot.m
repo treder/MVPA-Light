@@ -69,14 +69,29 @@ for mm = 1:n_metrics
         p.xlabel = 'Predicted class';
         p.ylabel = 'True class';
         p.title  = 'Confusion matrix';
+        
     elseif strcmp(metric,'none')   %%% --- for NONE/RAW output ---
-        error('TODO')
-        
-        %% HIER WEITER MACHEN %%
-        
-%         if n_result_dimensions
-        error('Cannot plot a result that has %d data dimensions. Try to reduce the data to <= 2 dimensions\n', n_result_dimensions)
-
+        if n_result_dimensions > 3 || ~isvector(perf{1}) %% too high-dimensional
+            error('Cannot plot a result that has more than 1 data dimension. Try to reduce the data to 1 dimension')
+        end
+        p.plot_type = 'dots';
+        p.n_repetitions = sz(1);
+        p.n_folds = sz(2);
+        p.ylabel = sprintf('classifier output (%s)', result.cfg.output_type);
+        if prod(sz(1:2)) == 1
+            p.title = {''};
+        else
+            p.title = cell(sz(1:2));
+            for rep = 1:p.n_repetitions
+                for fold = 1:p.n_folds
+                    p.title{rep, fold} = sprintf('rep. %d, fold %d', rep, fold);
+                end
+            end
+        end
+        p.add_legend = strcmp(result.task,'classification');
+        if p.add_legend
+            p.legend_labels = class_labels;
+        end
     else
         switch(n_result_dimensions)
             case 0      %%% --- for BAR PLOT ---
@@ -115,7 +130,7 @@ for mm = 1:n_metrics
                 p.xlabel        = perf_dimension_names{p.plot_dimensions(2)};
             
             otherwise   %% too high-dimensional
-                error('Cannot plot a result that has %d data dimensions. Try to reduce the data to <= 2 dimensions\n', n_result_dimensions)
+                error('Cannot plot a result that has %d data dimensions. Try to reduce the data to <= 2 dimensions', n_result_dimensions)
 
         end
     end
