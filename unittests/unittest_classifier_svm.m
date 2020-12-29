@@ -63,7 +63,7 @@ cf_nokernel = train_svm(param, X, clabel);
 print_unittest_result('providing kernel matrix vs calculating it from scratch should be equal',0, norm(cf_kernel.alpha - cf_nokernel.alpha), tol);
 
 
-%% Check probabilities
+%% Check probabilities (RBF kernel)
 
 % Get classifier params
 param = mv_get_hyperparameter('svm');
@@ -77,4 +77,22 @@ cf = train_svm(param, X, clabel);
 [~, dval, prob] = test_svm(cf, X);
 
 % Are all returned values between 0 and 1?
-print_unittest_result('all probabilities in [0,1]',1, all(prob>=0 | prob<=1), tol);
+print_unittest_result('[rbf kernel] all probabilities in [0,1]',1, all(prob>=0 | prob<=1), tol);
+
+
+%% Check probabilities (linear kernel)
+
+% Get classifier params
+param = mv_get_hyperparameter('svm');
+param.prob      = 1;
+param.kernel    = 'linear';
+
+% Train SVM
+cf = train_svm(param, X, clabel);
+
+% Test SVM
+[~, dval, prob] = test_svm(cf, X);
+
+% Are all returned values between 0 and 1?
+print_unittest_result('[linear kernel] all probabilities in [0,1]',1, all(prob>=0 | prob<=1), tol);
+
