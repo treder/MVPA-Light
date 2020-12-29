@@ -468,6 +468,7 @@ for mm=1:n_metrics
     if strcmp(cfg.metric{mm},'none')
         perf{mm} = cf_output;
         perf_std{mm} = [];
+        perf_dimension_names{mm} = {'repetition' 'fold' cfg.dimension_names{end}};
     else
         [perf{mm}, perf_std{mm}] = mv_calculate_performance(cfg.metric{mm}, cfg.output_type, cf_output, testlabel, avdim);
         % performance dimension names
@@ -501,6 +502,7 @@ if nargout>1
    result.perf                  = perf;
    result.perf_std              = perf_std;
    result.perf_dimension_names  = perf_dimension_names;
+   result.testlabel             = testlabel;
    result.metric                = cfg.metric;
    result.n                     = size(X, 1);
    result.n_metrics             = n_metrics;
