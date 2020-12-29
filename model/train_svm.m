@@ -263,7 +263,7 @@ if cf.prob == 1
     
     % Calculate decision values for training data
     if strcmp(cf.kernel,'linear')
-        dval = X*cf.w + cf.b;
+        dval = X(:,1:end-(param.bias>0)) * cf.w + cf.b;
     else
         dval = K(:, cf.support_vector_indices) * cf.alpha_y   + cf.b;
     end
