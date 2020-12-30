@@ -150,6 +150,8 @@ for mm=1:n_metrics
             else,         x = 1:size(perf, 3);
             end
 
+            testlabel = result.testlabel;
+            if ~iscell(testlabel), testlabel = {testlabel}; end
             cfg = [];
             cfg.label_options   = p.label_options;
             cfg.title_options   = p.title_options;
@@ -161,7 +163,7 @@ for mm=1:n_metrics
                         subplot(p.n_repetitions, p.n_folds, (rep-1)*p.n_folds + fold)
                         cla
                         for c = 1:result.n_classes % each class separately
-                            ix_class = result.testlabel{rep,fold}==c;
+                            ix_class = testlabel{rep,fold}==c;
                             % need to repeat x for number of instances in each class
                             xx = mv_repelem(x, sum(ix_class));
                             % get values corresponding to class
