@@ -42,7 +42,7 @@ If you do not want to use the `startup.m` file, you can directly add the `MVPA-L
 
 ## Overview <a name="overview"></a>
 
-*Multivariate pattern analysis* (MVPA) is an umbrella term that covers many multivariate methods such classification, regression and related approaches such as Representational Similarity Analysis. `MVPA-Light` provides functions for the classification and regression of neuroimaging data. It is meant to address the basic issues in MVPA (such as classification across time and generalisation) in a fast and robust way while retaining a slim and readable codebase. For Fieldtrip users, the use of the toolbox will be familiar: The first argument to the main functions is a configuration struct `cfg` that contains all the parameters. The toolbox does *not* require or use Fieldtrip, but a FieldTrip integration is available (see [tutorial](http://www.fieldtriptoolbox.org/tutorial/mvpa_light/)).
+*Multivariate pattern analysis* (MVPA) is an umbrella term that covers many multivariate methods such classification, regression and related approaches such as Representational Similarity Analysis. `MVPA-Light` provides functions for the classification and regression of neuroimaging data. It is meant to address the basic issues in MVPA (such as classification across time and generalization) in a fast and robust way while retaining a slim and readable codebase. For FieldTrip users, the use of the toolbox will be familiar: The first argument to the main functions is a configuration struct `cfg` that contains all the parameters. The toolbox does *not* require or use FieldTrip, but a FieldTrip integration is available (see [tutorial](http://www.fieldtriptoolbox.org/tutorial/mvpa_light/)).
 
 Classifiers and regression models (jointly referred to as models) can be trained and tested by hand using the `train_*` and `test_*` functions. All classifiers and regression models are available in the [`model`](model) folder.
 
@@ -58,16 +58,16 @@ Model performance is evaluated on a dataset called *test data*. To this end, the
 
 To obtain a realistic estimate of model performance and control for overfitting, a model should be tested on an independent dataset that has not been used for training. In most neuroimaging experiments, there is only one dataset with a restricted number of trials. *K-fold cross-validation* makes efficient use of this data by splitting it into k different folds. In each iteration, one of the k folds is held out and used as test set, whereas all other folds are used for training. This is repeated until every fold has been used as test set once. See [[Lemm2011]](#Lemm2011) for a discussion of cross-validation and potential pitfalls. Cross-validation is implemented in all high-level functions in MVPA-Light, i.e. [`mv_classify`](mv_classify.m), [`mv_regress`](mv_regress.m), [`mv_classify_across_time`](mv_classify_across_time.m), and [`mv_classify_timextime`](mv_classify_timextime.m). It is controlled by the following parameters:
 
-* `cfg.cv`: cross-validation type, either 'kfold', 'leaveout', 'leavegroupout', or 'holdout' (default 'kfold')
+* `cfg.cv`: cross-validation type, either 'kfold', 'leaveout', 'predefined', or 'holdout' (default 'kfold')
 * `cfg.k`: number of folds in k-fold cross-validation (default 5)
 * `cfg.repeat`: number of times the cross-validation is repeated with new randomly assigned folds (default 5)
 * `cfg.p`: if cfg.cv is 'holdout', p is the fraction of test samples (default 0.1)
 * `cfg.stratify`: if 1, the class proportions are approximately preserved in each test fold (default 1)
-* `cfg.group`: a vector that defines the groups if `cfg.cv = 'leavegroupout'` 
+* `cfg.fold`: if `cfg.cv = 'predefined'` then `cfg.fold` is a fold is a vector of length containing of that specifies for each sample the fold that it belongs to
 
 #### Hyperparameter <a name="hyperparameter"></a>
 
-[Hyperparameters](https://en.wikipedia.org/wiki/Hyperparameter_(machine_learning)) are model parameters that have to be specified by the user. Examples are the choice of the kernel in SVM and the amount of regularization. They can be controlled by setting the `cfg.hyperparameter` field before calling any of the high-level functions. To this end, initialize the field using `cfg.hyperparameter = []`. Then, add the desired parameters, e.g. `cfg.hyperparameter.lambda = 0.5` for setting the regularisation parameter or `cfg.hyperparameter.kernel = 'polynomial'` for defining a polynomial kernel for SVM. The hyperparameters for each model are specified in the documentation for each train_ function in the folder [`model`](model/).
+[Hyperparameters](https://en.wikipedia.org/wiki/Hyperparameter_(machine_learning)) are parameters for the models that have to be specified by the user. Examples are the choice of the kernel in SVM and the amount of regularization. These parameters are passed on to the train functions of the models. They can be controlled by setting the `cfg.hyperparameter` field before calling any of the high-level functions. To this end, initialize the field using `cfg.hyperparameter = []`. Then, add the desired parameters, e.g. `cfg.hyperparameter.lambda = 0.5` for setting the regularization parameter or `cfg.hyperparameter.kernel = 'polynomial'` for defining a polynomial kernel for SVM. The hyperparameters for each model are specified in the documentation for each train_ function in the folder [`model`](model/). 
 
 #### Preprocessing<a name="preprocessing"></a>
 
@@ -88,17 +88,17 @@ A *classifier* is one of the main workhorses of MVPA. The input brain data, e.g.
 
 #### Classifiers for two classes <a name="classifiers"></a>
 
-* [`lda`](model/train_lda.m): Regularized Linear Discriminant Analysis (LDA). LDA searches for a projection of the data into 1D such that the class means are separated as far as possible and the within-class variability is as small as possible. To counteract overfitting, ridge regularization and shrinkage regularization are available. In shrinkage, the regularization parameter λ (lambda) ranges from λ=0 (no regularization) to λ=1 (maximum regularization). It can also be set to 'auto' to have λ be estimated automatically. For more details on regularized LDA see [[Bla2011]](#Bla2011). LDA has been shown to be formally equivalent to LCMV beamforming and it can be used for recovering time series of ERP sources [[Tre2011]](#Tre2016). See [`train_lda`](model/train_lda.m) for a full description of the parameters.
+* [`lda`](model/train_lda.m): Regularized Linear Discriminant Analysis (LDA). LDA searches for a projection of the data into 1D such that the class means are separated as far as possible and the within-class variability is as small as possible. To counteract overfitting, ridge regularization and shrinkage regularization are available. In shrinkage, the regularization hyperparameter λ (lambda) ranges from λ=0 (no regularization) to λ=1 (maximum regularization). It can also be set to 'auto' to have λ be estimated automatically. For more details on regularized LDA see [[Bla2011]](#Bla2011). LDA has been shown to be formally equivalent to LCMV beamforming and it can be used for recovering time series of ERP sources [[Tre2011]](#Tre2016). See [`train_lda`](model/train_lda.m) for a full description of the parameters.
 
-* [`logreg`](model/train_logreg.m): Logistic regression (LR). LR directly models class probabilities by fitting a logistic function to the data. Like LDA, LR is a linear classifier and hence its operation is expressed by a weight vector w and a bias b. By default, *logf* regularization is used to prevent overfitting. It is implemented by data augmentation and  does not require hyperparameters. Alternatively, L2-regularization can be used. It requires setting a positive but unbounded parameter λ (lambda) that controls the L2-penalty on the classifier weights. It can also be set to 'auto'. In this case, different λ's are tried out using a searchgrid; the value of λ maximizing cross-validation performance is then used for training on the full dataset. See [`train_logreg`](model/train_logreg.m) for a full description of the parameters.
+* [`logreg`](model/train_logreg.m): Logistic regression (LR). LR directly models class probabilities by fitting a logistic function to the data. Like LDA, LR is a linear classifier and hence its operation is expressed by a weight vector w and a bias b. By default, *logf* regularization is used to prevent overfitting. It is implemented by data augmentation and  does not require hyperparameters. Alternatively, L2-regularization can be used. It requires setting a positive but unbounded hyperparameter λ (lambda) that controls the L2-penalty on the classifier weights. It can also be set to 'auto'. In this case, different λ's are tried out using a searchgrid; the value of λ maximizing cross-validation performance is then used for training on the full dataset. See [`train_logreg`](model/train_logreg.m) for a full description of the parameters.
 
-* [`svm`](model/train_svm.m): Support Vector Machine (SVM). The parameter `c` is the cost parameter that controls the amount of regularization. It is inversely related to the λ defined above. By default, a linear SVM is used. By setting the `kernel` parameter (e.g. to 'polynomial' or 'rbf'), non-linear SVMs can be trained as well. See [`train_svm`](model/train_svm.m) for a full description of the parameters.
+* [`svm`](model/train_svm.m): Support Vector Machine (SVM). The parameter `c` is the cost hyperparameter that controls the amount of regularization. It is inversely related to the λ defined above. By default, a linear SVM is used. By setting the `kernel` parameter (e.g. to 'polynomial' or 'rbf'), non-linear SVMs can be trained as well. See [`train_svm`](model/train_svm.m) for a full description of the parameters.
 
 #### Multi-class classifiers (two or more classes)
 
 * [`ensemble`](model/train_ensemble.m): Uses an [ensemble of classifiers](http://www.scholarpedia.org/article/Ensemble_learning) trained on random subsets of the features and random subsets of the samples. Can use any classifier with train/test functions as a learner. See [`train_ensemble`](model/train_ensemble.m) for a full description of the parameters.
 
-* [`kernel_fda`](model/train_kernel_fda.m) : Regularized [kernel Fisher Discriminant Analysis (KFDA)](https://en.wikipedia.org/wiki/Kernel_Fisher_discriminant_analysis). This is the kernelized version of LDA. By setting the `.kernel` parameter (e.g. to 'polynomial' or 'rbf'), non-linear classifiers can be trained. See [`train_kernel_fda`](model/train_kernel_fda.m) for a full description of the parameters.
+* [`kernel_fda`](model/train_kernel_fda.m) : Regularized [kernel Fisher Discriminant Analysis (KFDA)](https://en.wikipedia.org/wiki/Kernel_Fisher_discriminant_analysis). This is the kernelized version of LDA. By setting the `kernel` parameter (e.g. to 'polynomial' or 'rbf'), non-linear classifiers can be trained. See [`train_kernel_fda`](model/train_kernel_fda.m) for a full description of the parameters.
 
 * [`liblinear`](model/train_liblinear.m)<a name="liblinear"></a>  : interface for the [LIBLINEAR](https://www.csie.ntu.edu.tw/~cjlin/liblinear/) toolbox for linear SVM and logistic regression. It is a state-of-the-art implementation of linear SVM and Logistic Regression using compiled C code. Follow the installation and compilation instructions on the [LIBLINEAR website](https://www.csie.ntu.edu.tw/~cjlin/liblinear/) and the [GitHub repository](https://github.com/cjlin1/liblinear). Refer to [`train_liblinear`](model/train_liblinear.m) to see how to call LIBLINEAR in `MVPA-Light`.
 
@@ -150,8 +150,8 @@ A *regression model* performs statistical predictions, similar to a classifier. 
 #### Regression models <a name="regressionmodels"></a>
 
 * [`ridge`](model/train_ridge.m)<a name="ridge"></a>: Ridge regression (includes linear regression). To counteract overfitting, the hyperparameter λ (lambda) controls the amount of regularization. For λ=0 (no regularization), ridge regression is equal to linear regression. Setting λ>0 is necessary in cases of [multicollinearity](https://en.wikipedia.org/wiki/Multicollinearity), which is common in neuroimaging data due to high correlations between neighbouring channels/voxels. See [`train_ridge`](model/train_ridge.m) for a full description of the parameters.
-* [`kernel_ridge`](model/train_kernel_ridge.m)<a name="kernelridge"></a>: [Kernel Ridge regression](https://www.ics.uci.edu/~welling/classnotes/papers_class/Kernel-Ridge.pdf) is the kernelized version of ridge regression. It allows the modelling of non-linear relationships by setting the `.kernel` hyperparameter (e.g. to 'polynomial' or 'rbf').  See [`train_kernel_ridge`](model/train_kernel_ridge.m) for a full description of the parameters.
-* [LIBSVM](#libsvm) and [LIBLINEAR](#liblinear): both packages provide Support Vector Regression (SVR) models in addition to classifiers. For [LIBSVM](#libsvm), setting the hyperparameter `svm_type` allows for the training of epsilon-SVR (svm_type = 3) and nu-SVR (svm_type = 4). [LIBLINEAR](#liblinear) allows for the training of *linear* SVR by setting the hyperparameter `type` allows, namely primal L2-loss SVR (type = 11), dual L2-loss SVR (type = 12), and L1-loss SVR (type = 13). See [`train_libsvm`](model/train_libsvm.m) and [`train_liblinear`](model/train_liblinear.m) for a full description of the parameters.
+* [`kernel_ridge`](model/train_kernel_ridge.m)<a name="kernelridge"></a>: [Kernel Ridge regression](https://www.ics.uci.edu/~welling/classnotes/papers_class/Kernel-Ridge.pdf) is the kernelized version of ridge regression. It allows the modelling of non-linear relationships by setting the `kernel` hyperparameter (e.g. to 'polynomial' or 'rbf').  See [`train_kernel_ridge`](model/train_kernel_ridge.m) for a full description of the parameters.
+* [LIBSVM](#libsvm) and [LIBLINEAR](#liblinear): both packages provide Support Vector Regression (SVR) models in addition to classifiers. For [LIBSVM](#libsvm), setting the hyperparameter `svm_type` allows for the training of epsilon-SVR (svm_type = 3) and nu-SVR (svm_type = 4). [LIBLINEAR](#liblinear) allows for the training of *linear* SVR by setting the hyperparameter `type`, namely primal L2-loss SVR (type = 11), dual L2-loss SVR (type = 12), and L1-loss SVR (type = 13). See [`train_libsvm`](model/train_libsvm.m) and [`train_liblinear`](model/train_liblinear.m) for a full description of the parameters.
 
 #### Regression performance metrics
 
@@ -227,13 +227,12 @@ acc = mv_classify_across_time(cfg, dat.trial, clabel);
 
 See [`examples/example3_classify_across_time.m`](examples/example3_classify_across_time.m) for more details.
 
-#### Time generalisation (time x time classification)
+#### Time generalization (time x time classification)
 
 
 ```Matlab
 cfg = [];
 cfg.metric     = 'auc';
-
 auc = mv_classify_timextime(cfg, dat.trial, clabel);
 
 ```
