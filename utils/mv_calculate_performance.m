@@ -415,6 +415,14 @@ if isvector(perf_std), perf_std = perf_std(:); end
         % counts are normalized to fractions by dividing each row by the
         % row total
         
+        if any(strcmp(output_type, {'dval' 'prob'}))
+            % if the data is given as dvals or probabilities we need to convert
+            % it to class labels first (this only works for 2 classes)
+            new_model_output = convert_to_clabel(output_type);
+        else
+            new_model_output = model_output;
+        end
+        
         conf = cell(sz_output);
 
         % Must compare each class with each other class, therefore create
@@ -449,7 +457,7 @@ if isvector(perf_std), perf_std = perf_std(:); end
         % Looping across the extra dimensions if model_output is multi-dimensional
         for xx=1:nextra
             % Use cellfun to apply the function defined above to each cell
-            tmp = cellfun(confusion_fun, y, model_output(dim_skip_token{:},xx), 'Un', 0);
+            tmp = cellfun(confusion_fun, y, new_model_output(dim_skip_token{:},xx), 'Un', 0);
             
             % We're almost done. We just need to transform the cell
             % matrices contained in each cell of tmp into ordinary
@@ -542,5 +550,15 @@ if isvector(perf_std), perf_std = perf_std(:); end
             end
         end
     end
+
+    function new_model_output = convert_to_clabel(from)
+        % Converts dvals and probabilities to class labels (only works for 2 classes)            
+        if strcmp(from, 'dval')
+            new_model_output = cellfun(@(x) double(x < 0)+1, model_output, 'Un', 0);
+        elseif strcmp(from, 'prob')
+            new_model_output = cellfun(@(x) double((x-0.5) < 0)+1, model_output, 'Un', 0);
+        end
+    end
+
 end
 
