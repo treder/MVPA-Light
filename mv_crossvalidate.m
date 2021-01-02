@@ -52,6 +52,7 @@ function [perf, result, testlabel] = mv_crossvalidate(cfg, X, clabel)
 % testlabel     - r x k cell array of test labels. Can be useful if
 %                 metric='none'
 % 
+warning('mv_crossvalidate is deprecated and will be removed in the future, please use mv_classify instead')
 
 % (c) Matthias Treder
 

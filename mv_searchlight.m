@@ -77,6 +77,7 @@ function [perf,result] = mv_searchlight(cfg, X, clabel)
 % perf          - [features x 1] vector of classifier performances 
 %                 corresponding to the selected metric
 %                 If multiple metrics are requested, perf is a cell array
+warning('mv_searchlight is deprecated and will be removed in the future, please use mv_classify instead')
 
 % (c) Matthias Treder
 
