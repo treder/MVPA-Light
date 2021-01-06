@@ -217,9 +217,17 @@ train_fun = eval(['@train_' cfg.model]);
 test_fun = eval(['@test_' cfg.model]);
 
 % Define search dimension
-sz_search = size(X);
-sz_search = sz_search(search_dim);
-if isempty(sz_search), sz_search = 1; end
+if has_neighbours
+    % size of the search dimension corresponds to the rows of the
+    % neighbourhood matrices
+    sz_search = cell2mat(cellfun(@(neigh) size(neigh,1), cfg.neighbours, 'Un', 0))';
+else
+    % size of the search dimensions is equal to size of the corresponding X
+    % dimensions
+    sz_search = size(X);
+    sz_search = sz_search(search_dim);
+    if isempty(sz_search), sz_search = 1; end    
+end
 
 % sample_skip and feature_skip helps us access the search dimensions by 
 % skipping over sample and feature dimensions
@@ -295,8 +303,8 @@ if ~strcmp(cfg.cv,'none')
                 X_test = permute(X_test, [sample_dim, circshift(search_dim,1), feature_dim]);
                 
                 % reshape samples x gen dim into one dimension
-                sz_search = size(X_test);
-                X_test = reshape(X_test, [sz_search(1)*sz_search(2), sz_search(3:end)]);
+                new_sz_search = size(X_test);
+                X_test = reshape(X_test, [new_sz_search(1)*new_sz_search(2), new_sz_search(3:end)]);
             end
             
             % Remember sizes

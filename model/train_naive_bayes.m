@@ -5,7 +5,9 @@ function cf = train_naive_bayes(param, X, clabel)
 % cf = train_naive_bayes(param, X, clabel)
 %
 %Parameters:
-% X              - [samples x features] matrix of training samples
+% X              - [samples x features] matrix of training samples or
+%                  [samples x ... x ... x features] matrix with additional
+%                   dimensions (useful in searchlight analysis)
 % clabel         - [samples x 1] vector of class labels
 %
 % param          - struct with hyperparameters:
@@ -13,6 +15,14 @@ function cf = train_naive_bayes(param, X, clabel)
 %                  every class has an equal probability. Otherwise, provide
 %                  a vector of prior probabilities for each class (should
 %                  add up to 1). (default 'equal')
+% .is_multivariate - by default the last dimension of X is assumed to 
+%                  represent the features, in other words, it is
+%                  multivariate. For prediction, the sum across features is
+%                  calculated. If is_multivariate = 0, no summing is
+%                  performed and the last dimension is assumed to be a
+%                  search dimension. When using the mv_classify, this
+%                  hyperparameter is set automatically based on
+%                  cfg.feature_dimension (default 1)
 %
 % IMPLEMENTATION DETAILS:
 % The main (and quite naive) assumption in Naive Bayes is that the features
@@ -44,15 +54,12 @@ for cc=1:nclasses
 end
 
 %% Set up classifier struct
-cf              = [];
-cf.class_means  = class_means;
-cf.var          = va;
-cf.nclasses     = nclasses;
-
-if isfield(param, 'neighbours')
-    % pass the neighbours on so that the test function can use it.
-    cf.neighbours = param.neighbours;
-end
+cf                  = [];
+cf.class_means      = class_means;
+cf.var              = va;
+cf.nclasses         = nclasses;
+cf.neighbours       = param.neighbours;
+cf.is_multivariate  = param.is_multivariate;
 
 if ischar(param.prior)
     cf.prior        = log(ones(1,nclasses)/nclasses);
