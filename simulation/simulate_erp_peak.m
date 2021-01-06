@@ -1,8 +1,7 @@
 function X = simulate_erp_peak(n_trials, n_time_points, pos, width, amplitude, weight, shape, scale)
 % Simulates ERP data.
 %
-% Usage:  [X,y] = simulate_erp_peak(n_samples, n_time_points, pos, width,
-% amplitude, shape)
+% Usage:  X = simulate_erp_peak(n_samples, n_time_points, pos, width, amplitude, weight, shape, scale)
 %
 % Parameters:
 % n_trials        [int]  total number of samples (e.g. trials)
@@ -46,8 +45,8 @@ function X = simulate_erp_peak(n_trials, n_time_points, pos, width, amplitude, w
 %             if weight vector is provided
 
 if nargin<5, amplitude = 1; end
-if nargin<6, weight =[]; else, weight = weight(:); end
-if nargin<7, shape ='gaussian'; end
+if nargin<6, weight =[]; end
+if nargin<7 || isempty(shape), shape ='gaussian'; end
 if nargin<8, scale = 0; end
 
 check_assertions(pos, 'pos');
@@ -58,12 +57,18 @@ check_assertions(amplitude, 'amplitude')
 if isempty(weight)
     X = zeros(n_trials, n_time_points);
 else
-    n_channels = numel(weight);
+    if isvector(weight)
+        n_channels = numel(weight);
+    else
+        n_channels = size(weight,1);
+    end
     X = zeros(n_trials, n_channels, n_time_points);
 end
 
-if ismatrix(pos), n_peaks = size(pos,2);
-else, n_peaks = numel(pos);
+if isvector(pos)
+    n_peaks = numel(pos);
+else
+    n_peaks = size(pos,2);
 end
 
 % repeat pos, width and amplitude into a matrix if necessary
@@ -71,12 +76,13 @@ pos = expand_to_matrix(pos);
 width = expand_to_matrix(width);
 amplitude = expand_to_matrix(amplitude);
 
+%% Create signal
 for n=1:n_trials
-    signal = zeros(1, n_time_points);
+    signal = zeros(n_peaks, n_time_points);
     
     % create peaks for current trial
     for p=1:n_peaks
-        signal = signal + create_peak(signal, pos(n,p), width(n,p), amplitude(n,p));
+        signal(p, :) = create_peak(signal(p, :), pos(n,p), width(n,p), amplitude(n,p));
     end
     
     % turn to multivariate
@@ -88,9 +94,24 @@ for n=1:n_trials
 end
 
 
-%% Add noise
-X = X + randn(size(X)) * scale;
+%% Add noise sources
+if ~isempty(weight)
+    % create #weight-1 noise sources and project them into multivariate
+    % space
+    n_noise_sources = max(n_channels-2, 1);
+    weights = randn(n_channels, n_noise_sources);
+    for n=1:n_trials
+        noise = randn(n_noise_sources, n_time_points); % create Gaussian noise
+        noise = filter([.15, .35, .35 .15], 1, noise);  % smoothen the noise to make it temporally correlated
+        X(n,:,:) = squeeze(X(n,:,:)) + weights * noise * scale;
+    end
+else
+    X = X + randn(size(X)) * scale;
+end
 
+
+%% Add a bit of uncorrelated sensor space noise too
+X = X + randn(size(X)) / 20;
 
 %% helper functions
 
@@ -104,7 +125,7 @@ X = X + randn(size(X)) * scale;
                 sig = a * cos(linspace(-pi/2, pi/2, 2*w+1));
                 r_start = max(1, p-w); % make sure we don't shoot out beyond the boundaries
                 r_end = min(n_time_points, p+w);
-                signal(r_start, r_end) = signal(r_start, r_end) + sig(r_start, r_end);
+                signal(r_start:r_end) = signal(r_start:r_end) + sig;
                 
             case 'triangle'
                 slope = linspace(0, a, w+1);
@@ -125,9 +146,13 @@ X = X + randn(size(X)) * scale;
     end
 
     function val = expand_to_matrix(val)
-        if isvector(val)
-            if numel(val)>1, val = repmat(val(:)', n_trials, 1);
-            else, val = val * ones(n_trials, n_peaks);
+        if ~all(size(val) == [n_trials, n_peaks])
+            if isvector(val)
+                if numel(val)>1
+                    val = repmat(val(:)', n_trials, 1);
+                else
+                    val = val * ones(n_trials, n_peaks);
+                end
             end
         end
     end
