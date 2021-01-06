@@ -17,7 +17,10 @@ expect = expect(:);
 actual = actual(:);
 
 % Difference between expected and actual result
-if numel(expect) == 1
+if numel(expect) ~= numel(actual)
+    % dimensions don't match, distance is infinite
+    d = inf;
+elseif numel(expect) == 1
     % input is scalar
     d = abs(expect-actual);
 else
