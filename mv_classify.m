@@ -153,6 +153,7 @@ mv_set_default(cfg,'preprocess',{});
 mv_set_default(cfg,'preprocess_param',{});
 
 % mv_check_inputs assumes samples are in dimension 1 so need to permute
+% FIXME: permutation is inefficient, consider providing sample_dimension as an extra input argument to mv_check_inputs
 [cfg, clabel, n_classes, n_metrics] = mv_check_inputs(cfg, permute(X,[cfg.sample_dimension, setdiff(1:ndims(X), cfg.sample_dimension)]), clabel);
 
 % sort dimension vectors
@@ -213,6 +214,7 @@ end
 if has_neighbours && numel(gen_dim)>0
     error('Searchlight and generalization are currently not supported simultaneously')
 end
+
 %% order the dimensions by samples -> search dimensions -> features
 
 if ~isempty(gen_dim) && (search_dim(end) ~= gen_dim)
@@ -251,9 +253,17 @@ train_fun = eval(['@train_' cfg.classifier]);
 test_fun = eval(['@test_' cfg.classifier]);
 
 % Define search dimension
-sz_search = size(X);
-sz_search = sz_search(search_dim);
-if isempty(sz_search), sz_search = 1; end
+if has_neighbours
+    % size of the search dimension corresponds to the rows of the
+    % neighbourhood matrices
+    sz_search = cell2mat(cellfun(@(neigh) size(neigh,1), cfg.neighbours, 'Un', 0))';
+else
+    % size of the search dimensions is equal to size of the corresponding X
+    % dimensions
+    sz_search = size(X);
+    sz_search = sz_search(search_dim);
+    if isempty(sz_search), sz_search = 1; end    
+end
 
 % sample_skip and feature_skip helps us access the search dimensions by 
 % skipping over sample(incl appending) and feature dimensions
@@ -266,13 +276,10 @@ if isempty(search_dim)
     % no search dimensions, so we just perform cross-validation once
     dim_loop = {':'};
 elseif cfg.append
-    % search dimensions are appended, so we just perform corss-validation
-    % once
-    if has_neighbours
-        dim_loop(1:numel(cfg.neighbours),1) = {':'};
-    else
-        dim_loop = {':'};
-    end
+    % search dimensions are appended, so we just perform cross-validation once
+    dim_loop = {':'};
+    cfg.hyperparameter.neighbours       = cfg.neighbours;
+    cfg.hyperparameter.is_multivariate  =  ~isempty(cfg.feature_dimension);    
 else
     len_loop = prod(sz_search);
     dim_loop = zeros(numel(sz_search), len_loop);
@@ -295,7 +302,11 @@ if ~strcmp(cfg.cv,'none')
     % Perform cross-validation
 
     % Initialise classifier outputs
-    cf_output = cell([cfg.repeat, cfg.k, sz_search]);
+    if cfg.append
+        cf_output = cell([cfg.repeat, cfg.k]);
+    else
+        cf_output = cell([cfg.repeat, cfg.k, sz_search]);
+    end
     testlabel = cell([cfg.repeat, cfg.k]);
     
     for rr=1:cfg.repeat                 % ---- CV repetitions ----
@@ -337,8 +348,8 @@ if ~strcmp(cfg.cv,'none')
                 Xtest = permute(Xtest, [sample_dim, circshift(search_dim,1), feature_dim]);
                 
                 % reshape samples x gen dim into one dimension
-                sz_search = size(Xtest);
-                Xtest = reshape(Xtest, [sz_search(1)*sz_search(2), sz_search(3:end)]);
+                new_sz_search = size(Xtest);
+                Xtest = reshape(Xtest, [new_sz_search(1)*new_sz_search(2), new_sz_search(3:end)]);
             end
             
             % Remember sizes
@@ -361,7 +372,6 @@ if ~strcmp(cfg.cv,'none')
                     % search dimensions are appended to train data
                     X_ix = Xtrain;
                     Xtest_ix = Xtest;
-                    cfg.hyperparameter.neighbours = cfg.neighbours;
                 else
                     if isempty(gen_dim),    ix_test = ix;
                     else,                   ix_test = ix(1:end-1);
@@ -374,14 +384,10 @@ if ~strcmp(cfg.cv,'none')
                 cf= train_fun(cfg.hyperparameter, X_ix, trainlabel);
 
                 % Obtain classifier output (labels, dvals or probabilities)
-                if cfg.append
-                    tmp = mv_get_classifier_output(cfg.output_type, cf, test_fun, Xtest_ix);
-                    alloc_vecs = arrayfun(@(x)(ones(1,x)), size(shiftdim(Xtest_ix(1,:,:,:),1)), 'Un', 0);
-                    cf_output(rr,kk,ix{:}) = mat2cell(tmp, size(tmp,1), 1, alloc_vecs{:});
-                elseif isempty(gen_dim)
+                if isempty(gen_dim)
                     cf_output{rr,kk,ix{:}} = mv_get_classifier_output(cfg.output_type, cf, test_fun, Xtest_ix);
                 else
-                    % we have to reshape classifier output back
+                    % generalization: we have to reshape classifier output back
                     cf_output{rr,kk,ix{:}} = reshape( mv_get_classifier_output(cfg.output_type, cf, test_fun, Xtest_ix), numel(testlabel{rr,kk}),[]);
                 end
             end
@@ -406,7 +412,12 @@ elseif strcmp(cfg.cv,'none')
     end
     
     % Initialise classifier outputs
-    cf_output = cell([1, 1, sz_search]);
+    if cfg.append
+        cf_output = cell([1, 1]);
+    else
+        cf_output = cell([1, 1, sz_search]);
+    end
+
     
     if ~isempty(gen_dim)
         Xtest= permute(X, [sample_dim, circshift(search_dim,1), feature_dim]);
@@ -434,6 +445,10 @@ elseif strcmp(cfg.cv,'none')
             % test data
             Xtest_ix = squeeze(Xtest(sample_skip{:}, ix_nb{:}, feature_skip{:}));
             Xtest_ix = reshape(Xtest_ix, [sz_Xtest(sample_dim), prod(cellfun(@numel, ix_nb)) * nfeat]);
+        elseif cfg.append
+            % search dimensions are appended to train data
+            X_ix = X;
+            Xtest_ix = Xtest;
         else
             if isempty(gen_dim),    ix_test = ix;
             else,                   ix_test = ix(1:end-1);
