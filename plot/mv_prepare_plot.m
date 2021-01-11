@@ -29,7 +29,7 @@ if n_metrics == 1
     tmp.perf_dimension_names = {tmp.perf_dimension_names};
 end
 
-plt = cell(n_metrics);
+plt = cell(n_metrics,1);
 if strcmp(result.task,'classification')
     class_labels = strcat({'Class ' }, arrayfun(@(x) {num2str(x)}, 1:result.n_classes));
 end
@@ -77,7 +77,11 @@ for mm = 1:n_metrics
         p.plot_type = 'dots';
         p.n_repetitions = sz(1);
         p.n_folds = sz(2);
-        p.ylabel = sprintf('classifier output (%s)', result.cfg.output_type);
+        if strcmp(result.task, 'classification')
+            p.ylabel = sprintf('classifier output (%s)', result.cfg.output_type);
+        else
+            p.ylabel = sprintf('regression output (prediction)');
+        end
         if prod(sz(1:2)) == 1
             p.title = {''};
         else
@@ -119,6 +123,8 @@ for mm = 1:n_metrics
                 p.metric_ix     = metric_ix;
                 if strcmp(result.task,'classification') && size_metric_dimension>1
                     p.title     = class_labels;
+                else
+                    p.title     = result.function;
                 end
                 p.colorbar_location = 'EastOutside';
                 p.global_clim       = 1;
