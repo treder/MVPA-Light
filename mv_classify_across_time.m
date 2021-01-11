@@ -91,9 +91,9 @@ train_fun = eval(['@train_' cfg.classifier]);
 test_fun = eval(['@test_' cfg.classifier]);
 
 %% Classify across time
+if cfg.feedback, mv_print_classification_info(cfg,X,clabel); end
 
 if ~strcmp(cfg.cv,'none')
-    if cfg.feedback, mv_print_classification_info(cfg,X,clabel); end
 
     % Initialise classifier outputs
     cf_output = cell(cfg.repeat, cfg.k, ntime);
@@ -147,12 +147,8 @@ else
     % training/testing time. This gives the classification performance for
     % the training set, but it may lead to overfitting and thus to an
     % artifically inflated performance.
-    
-    if cfg.feedback
-        fprintf('Training and testing on the same dataset (note: this can lead to overfitting).\n')
-    end
 
-    % Initialise classifier outputs
+    % Initialize classifier outputs
     cf_output = cell(1, 1, ntime);
 
     % Preprocess train/test data
