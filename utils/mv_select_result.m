@@ -34,7 +34,7 @@ for n=1:n_results
             result{n}.perf_std  = result{n}.perf_std{ix};
             result{n}.perf_dimension_names = result{n}.perf_dimension_names{ix};
             if isfield(result{n},'plot')
-                result{n}.plot  = result{n}.plot{ix};
+                result{n}.plot  = result{n}.plot(ix);
             end
             if isfield(result{n},'cfg')
                 result{n}.cfg.metric = metric;
