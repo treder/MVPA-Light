@@ -106,9 +106,9 @@ end
 
 %% mark parts of the data using a bold line
 if ~isempty(cfg.mark_bold)
-    dat(~cfg.mark_bold) = nan;
+    dat(~cfg.mark_bold, :) = nan;
     tmp_h = boundedline(xval, dat, tmp, cfg.bounded{:});
-    set(tmp_h,'LineWidth', 4*get(tmp_h,'LineWidth'));
+    set(tmp_h,'LineWidth', get(tmp_h(1),'LineWidth')+3);
 end
 
 %% Mark zero line
