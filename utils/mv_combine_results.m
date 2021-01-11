@@ -68,6 +68,7 @@ name_labels = cellfun(@(res) res.name, results, 'Un', 0);
 result = results{1};
 rm_idx = [];  % store indices of plots that need to be removed
 for mm=1:n_metrics
+    % ------ merge ------
     if strcmp(combine,'merge')
         % only bar plots and line plots can be combined
         if strcmp(results{1}.plot{mm}.plot_type, 'bar')
@@ -105,11 +106,23 @@ for mm=1:n_metrics
             result.perf{mm} = cat(catdim, c{:});
             c = cellfun( @(res) res.perf_std{mm}, results, 'Un', 0);
             result.perf_std{mm} = cat(catdim, c{:});
+            
+        elseif strcmp(results{1}.plot{mm}.plot_type, 'image')
+            catdim = ndims(results{1}.perf{1})+1;
+            c = cellfun( @(res) res.perf{mm}, results, 'Un', 0);
+            result.perf{mm} = cat(catdim, c{:});
+            c = cellfun( @(res) res.perf_std{mm}, results, 'Un', 0);
+            result.perf_std{mm} = cat(catdim, c{:});
+            
+            result.plot{mm}.add_legend = false;
+            result.plot{mm}.title = name_labels;
+
         else
             warning('Cannot merge plots of type ''%s'', skipping...', results{1}.plot{mm}.plot_type)
             rm_idx = [rm_idx mm];
         end
         
+    % ------ average ------
     elseif strcmp(combine,'average')
         % find last non-singleton index 
         ix = find(size(results{1}.perf{mm})>1,1,'last');
@@ -131,8 +144,8 @@ if ~isempty(rm_idx)
     result.plot(rm_idx) = [];
 end
 
-if n_metrics == 1 && ~isempty(result.perf)
-    result.perf = result.perf{1};
-    result.perf_std = result.perf_std{1};
-    result.perf_dimension_names = result.perf_dimension_names{1};
-end
+% if n_metrics == 1 && ~isempty(result.perf)
+%     result.perf = result.perf{1};
+%     result.perf_std = result.perf_std{1};
+%     result.perf_dimension_names = result.perf_dimension_names{1};
+% end
