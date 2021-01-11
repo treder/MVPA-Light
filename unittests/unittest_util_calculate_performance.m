@@ -278,8 +278,8 @@ y_hat = y;
 perf0 = mv_calculate_performance(metric, '', y_hat, y);
 perf1 = mv_calculate_performance(metric, '', y_hat+2, y);
 
-print_unittest_result('[MSE] when y_hat = y', 0, perf0, tol);
-print_unittest_result('[MSE] when y_hat = y+2', 4, perf1, tol);
+print_unittest_result('[MSE] when y_hat = y', [0;0;0], perf0, tol);
+print_unittest_result('[MSE] when y_hat = y+2', [4;4;4], perf1, tol);
 
 %% MAE / mean absolute error
 metric = 'mae';
