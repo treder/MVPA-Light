@@ -196,9 +196,6 @@ new_dim_order = [sample_dim, search_dim, feature_dim];
 X = permute(X, new_dim_order);
 cfg.dimension_names = cfg.dimension_names(new_dim_order);
 
-% rearrange dimensions in preprocess fields according to the new dimension order
-cfg.preprocess_param = mv_rearrange_preprocess_dimensions(cfg.preprocess_param, new_dim_order);
-
 % adapt the dimensions to reflect the permuted X
 sample_dim = 1:numel(sample_dim);
 search_dim = (1:numel(search_dim))  + numel(sample_dim);
@@ -207,8 +204,6 @@ if ~isempty(gen_dim), gen_dim = search_dim(end); end
 
 %% flatten features to one dimension if requested
 if numel(feature_dim) > 1 && cfg.flatten_features
-    % FIXME: when dimensions are flattened, preprocess_param dimensions
-    % should be adapted again
     sz_search = size(X);
     all_feat = prod(sz_search(feature_dim));
     X = reshape(X, [sz_search(sample_dim), sz_search(search_dim), all_feat]);
@@ -217,6 +212,9 @@ if numel(feature_dim) > 1 && cfg.flatten_features
     cfg.dimension_names(feature_dim(2:end)) = [];
     feature_dim = feature_dim(1);
 end
+
+% rearrange dimensions in preprocess fields according to the new dimension order
+cfg.preprocess_param = mv_rearrange_preprocess_dimensions(cfg.preprocess_param, new_dim_order, ndims(X));
 
 %% Get train and test functions
 train_fun = eval(['@train_' cfg.model]);
@@ -468,6 +466,7 @@ if nargout>1
    result.perf                  = perf;
    result.perf_std              = perf_std;
    result.perf_dimension_names  = perf_dimension_names;
+   result.n                     = size(X, 1);
    result.n_metrics             = n_metrics;
    result.metric                = cfg.metric;
    result.model                 = cfg.model;

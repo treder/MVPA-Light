@@ -2,13 +2,14 @@ function [perf, result, testlabel] = mv_classify(cfg, X, clabel)
 % Classification of multi-dimensional data.
 %
 % mv_classify allows for the classification of data of arbitrary number and
-% order of dimensions. It combines and generalizes the capabilities of the 
-% other high-level functions (mv_crossvalidate, mv_searchlight,
-% mv_classify_across_time, mv_classify_timextime).
+% order of dimensions. It can perform searchlight analysis and
+% generalization. 
 %
-% It is most useful for multi-dimensional datasets such as time-frequency
-% data e.g. [samples x channels x frequencies x time points] which do not
-% work well with the other, more specialised high-level functions.
+% Note: For data that has the dimensions [samples x features x time points], 
+% you can alternatively use the more specialized functions 
+% mv_classify_across_time and mv_classify_timextime. They have presets like
+% the dimension names and are slightly faster. They provide the same
+% numerical results as mv_classify.
 %
 % Usage:
 % [perf, res] = mv_classify(cfg, X, clabel)
@@ -232,9 +233,6 @@ new_dim_order = [sample_dim, search_dim, feature_dim];
 X = permute(X, new_dim_order);
 cfg.dimension_names = cfg.dimension_names(new_dim_order);
 
-% rearrange dimensions in preprocess fields according to the new dimension order
-cfg.preprocess_param = mv_rearrange_preprocess_dimensions(cfg.preprocess_param, new_dim_order);
-
 % adapt the dimensions to reflect the permuted X
 sample_dim = 1:numel(sample_dim);
 search_dim = (1:numel(search_dim))  + numel(sample_dim);
@@ -243,8 +241,6 @@ if ~isempty(gen_dim), gen_dim = search_dim(end); end
 
 %% flatten features to one dimension if requested
 if numel(feature_dim) > 1 && cfg.flatten_features
-    % FIXME: when dimensions are flattened, preprocess_param dimensions
-    % should be adapted again
     sz_search = size(X);
     all_feat = prod(sz_search(feature_dim));
     X = reshape(X, [sz_search(sample_dim), sz_search(search_dim), all_feat]);
@@ -253,6 +249,9 @@ if numel(feature_dim) > 1 && cfg.flatten_features
     cfg.dimension_names(feature_dim(2:end)) = [];
     feature_dim = feature_dim(1);
 end
+
+% rearrange dimensions in preprocess fields according to the new dimension order
+cfg.preprocess_param = mv_rearrange_preprocess_dimensions(cfg.preprocess_param, new_dim_order, ndims(X));
 
 %% Get train and test functions
 train_fun = eval(['@train_' cfg.classifier]);
@@ -489,7 +488,7 @@ for mm=1:n_metrics
     if strcmp(cfg.metric{mm},'none')
         perf{mm} = cf_output;
         perf_std{mm} = [];
-        perf_dimension_names{mm} = {'repetition' 'fold' cfg.dimension_names{end}};
+        perf_dimension_names{mm} = [{'repetition'} {'fold'} cfg.dimension_names(search_dim)];
     else
         [perf{mm}, perf_std{mm}] = mv_calculate_performance(cfg.metric{mm}, cfg.output_type, cf_output, testlabel, avdim);
         % performance dimension names
