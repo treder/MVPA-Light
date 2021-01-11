@@ -88,15 +88,19 @@ function stat = mv_statistics(cfg, result, X, y)
 % options determine how the metrics will be thresholded and combined into
 % one statistical value per cluster.
 % To use cluster permutation tests, set test = 'permutation' and correctm =
-% 'cluster'. The following parameters control the behaviour of the test:
+% 'cluster'. In addition to the parameters available for the permutation
+% test, the following parameters control the behaviour of the cluster
+% correction:
 %
 %   .clusterstatistic    - how to combine the single samples that belong to
-%                          a cluster, 'maxsum', 'maxsize' (default = 'maxsum')
+%                          a cluster, 'maxsum', 'maxsize' (default =
+%                          'maxsum'). This is the actual statistic for the
+%                          cluster permutation test.
 %   .clustercritval      - cutoff-value for thresholding (this parameter
 %                          must be set by the user). For instance it could
 %                          be 0.7 for classification accuracy so that all
 %                          accuracy values >= 0.7 would be considered for
-%                          clusters. If clustertail=0, a vector of two
+%                          clusters. If tail=0, a vector of two
 %                          numbers must be provided (high and low cutoff).
 %                          The exact numerical choice of the critical
 %                          value is up to the user (see Maris & Oostenveld,
@@ -114,15 +118,19 @@ function stat = mv_statistics(cfg, result, X, y)
 %                          purely spatially (eg when one dimension encodes
 %                          channels). A cell array of binary matrices can
 %                          be used in this case. [TODO]
-%                          (see mv_classify or mv_searchlight for details)
+%                          (see mv_classify for details)
 %
 % LEVEL 2 PERMUTATION AND CLUSTER PERMUTATION TEST:
+% Level 2 tests are tests at a group level. Typically, a set of MVPA
+% results is available (imagine MVPA has been performed for 12 different
+% participants). The goal of the Level 2 test is to establish whether an
+% effect is significant at the group level.
 % Both between-subject and within-subject designs are supported. The
 % following parameters apply to both within- and between-subject designs:
 % 
 %   .design              - 'within' or 'between'
 %   .statistic           - statistic used to measure the difference (within
-%                          or between groups): 'mean' 'ttest' 'wilcoxon'
+%                          or between groups): 'ttest' 'wilcoxon' 'mean'
 %                          If cluster correction is used, this statistic
 %                          will be compared against the clustercritval.
 %                          Between-subject design: the independent
@@ -131,8 +139,12 @@ function stat = mv_statistics(cfg, result, X, y)
 %                          (between two conditions or between one condition
 %                          and the null value) is compared against 0.
 %                          clustercritval corresponds to t-values (ttest)
-%                          or z-values (Wilcoxon).
-%
+%                          or z-values (wilcoxon).
+%   .clustercritval      - the meaning of clustercritval for a level 2 test
+%                          is different from a level 1 test. In level 2, it
+%                          refers to the critical t or z value (depending
+%                          on whether ttest or Wilcoxon signrank is used).
+%   
 % Specific parameters for between-subjects design:
 %   .group               - vector of 1's and 2's specifying which group
 %                          each result struct belongs to
@@ -147,12 +159,11 @@ function stat = mv_statistics(cfg, result, X, y)
 %                          assumed that the metric itself is
 %                          two-dimensional, such as dval (default [])
 %
-%
 % Returns:
 % stat       - structure with description of the statistical result.
 %              Important fields:
-%           stat.p       - p-values
-%           stat.mask    - logical significance mask (giving 1 when p < alpha)
+%                stat.p       - p-values
+%                stat.mask    - logical significance mask (giving 1 when p < alpha)
 %
 % Reference:
 % Maris, E., & Oostenveld, R. (2007). Nonparametric statistical testing of
@@ -191,7 +202,9 @@ level = double(numel(result)>1) + 1;
 %% Statistical testing
 stat = struct('test',cfg.test,'alpha',cfg.alpha);
 
+%  ---------------------------
 %% --------- Level 1 ---------
+%  ---------------------------
 if level == 1
     switch(cfg.test)
         case 'binomial'
@@ -247,9 +260,8 @@ if level == 1
                 % Initialize cluster test: find initial clusters and calculate
                 % cluster sizes. Keep it stored in vector
                 conn = conndef(ndims(result.perf), cfg.conndef); % init connectivity type
-                critval = cfg.clustercritval;
-                if cfg.tail == 1, C = (perf > critval);
-                else C = (perf < critval);
+                if cfg.tail == 1, C = (perf > cfg.clustercritval);
+                else C = (perf < cfg.clustercritval);
                 end
                 CC_init = bwconncomp(C,conn);
                 n_clusters = numel(CC_init.PixelIdxList);
@@ -281,8 +293,8 @@ if level == 1
                 if cfg.keep_null_distribution, null_distribution(n,:,:,:,:,:,:,:,:,:,:,:) = permutation_perf; end
                 
                 if is_clustertest
-                    if cfg.tail == 1, C = (permutation_perf > critval);
-                    else C = (permutation_perf < critval);
+                    if cfg.tail == 1, C = (permutation_perf > cfg.clustercritval);
+                    else C = (permutation_perf < cfg.clustercritval);
                     end
                     CC = bwconncomp(C,conn);
                     permutation_clusterstat = compute_cluster_statistic(CC, permutation_perf, 1);
@@ -337,7 +349,9 @@ if level == 1
     end
     
 else
+    %  ---------------------------
     %% --------- Level 2 ---------
+    %  ---------------------------
     switch(cfg.test)
     
         case 'permutation'
@@ -354,14 +368,14 @@ else
             metric = result{1}.metric;
             
             % some sanity checks
-            if strcmp(cfg.correctm, 'cluster') && ~isfield(cfg, 'clustercritval')
-                error('cfg.correctm = ''cluster'' but cfg.clustercritval is not set')
-            end
-            if isempty(cfg.design), error('You need to specify cfg.design'), end
+            assert(~strcmp(cfg.correctm, 'cluster') || isfield(cfg, 'clustercritval'),'cfg.correctm = ''cluster'' but cfg.clustercritval is not set')
+            assert(~isempty(cfg.design), 'You need to specify cfg.design')
             is_within = strcmp(cfg.design, 'within'); 
             
-            % within-subject: need to calculate difference value
             if is_within
+                % subtract either null value or subtract two dimensions
+                % from each other to turn the problem from a paired-samples
+                % to a one-sample test
                 if ~isempty(cfg.null)
                     if cfg.feedback, fprintf('Subtracting null value %2.2f.\n', cfg.null); end
                     perf_all_subjects = perf_all_subjects - cfg.null;
@@ -372,7 +386,9 @@ else
                     else
                         before = repmat({':'}, [1 ix-1]);
                         after = repmat({':'}, [1 ndims(result{1}.perf)-ix]);
-                        % subtract the two dimensions of the metric
+                        % subtract the two dimensions of the metric from
+                        % each other so we can perform a one-sample test
+                        % later on
                         for n=1:n_results
                             p = result{n}.perf;
                             p = p(before{:}, 1, after{:}) - p(before{:}, 2, after{:});
@@ -389,13 +405,17 @@ else
             end
             
             if is_clustertest
+                % Calculate statistic for the real data
+                if is_within
+                    perf = within_subject_statistic(cfg.statistic, perf_all_subjects);
+                else
+                    perf = between_subjects_statistic(cfg.statistic, perf_all_subjects, cfg.group);
+                end
                 % Initialize cluster test: find initial clusters and calculate
                 % cluster sizes. Keep it stored in vector
-                perf = within_subject_statistic(cfg.statistic, perf_all_subjects);
                 conn = conndef(ndims(result{1}.perf), cfg.conndef); % init connectivity type
-                critval = cfg.clustercritval;
-                if cfg.tail == 1, C = (perf > critval);
-                else C = (perf < critval);
+                if cfg.tail == 1, C = (perf > cfg.clustercritval);
+                else C = (perf < cfg.clustercritval);
                 end
                 CC_init = bwconncomp(C,conn);
                 n_clusters = numel(CC_init.PixelIdxList);
@@ -418,21 +438,23 @@ else
             
             % run permutations
             for n=1:cfg.n_permutations
-                
+                % Permute data and calculate statistic
                 if is_within
-                    % Permutation for within-subject design involves 
-                    % randomly reversing the sign of the perf for a subject
+                    % Permutation for within-subject design: 
+                    % randomly reverse the sign of the perf for a subject
                     permutation_perf_all_subjects = bsxfun(@times, perf_all_subjects, sign(randn(n_results, 1)));
                     permutation_perf = within_subject_statistic(cfg.statistic, permutation_perf_all_subjects);
                 else
-                    % Permutation for between-subjects design
-                    error('between-subjects TODO')
+                    % Permutation for between-subjects design: 
+                    % Randomly permute the group
+                    permutation_group = cfg.group(randperm(length(cfg.group)));
+                    permutation_perf = between_subjects_statistic(cfg.statistic, perf_all_subjects, permutation_group);
                 end
                 if cfg.keep_null_distribution, null_distribution(n,:,:,:,:,:,:,:,:,:,:,:) = permutation_perf; end
                 
                 if is_clustertest
-                    if cfg.tail == 1, C = (permutation_perf > critval);
-                    else C = (permutation_perf < critval);
+                    if cfg.tail == 1, C = (permutation_perf > cfg.clustercritval);
+                    else C = (permutation_perf < cfg.clustercritval);
                     end
                     CC = bwconncomp(C,conn);
                     permutation_clusterstat = compute_cluster_statistic(CC, permutation_perf, 1);
@@ -486,6 +508,7 @@ else
             if cfg.keep_null_distribution, stat.null_distribution = null_distribution; end
     end 
 end
+
 %% -- helper functions --
     function res = select_metric(res)
         % selects the metric specified in cfg.metric from result
@@ -526,9 +549,20 @@ end
         perf_stat = squeeze(perf_stat);
     end
 
+    function perf_stat = between_subjects_statistic(statistic, cperf, group)
+        % calculates two-samples independent samples statistic along the first dimension. 
+        switch(statistic)
+            case 'mean', perf_stat = mean(cperf(group==1,:), 1) - mean(cperf(group==2,:), 1);
+            case 'ttest', [~,~,~,sts] = ttest2(cperf(group==1,:),cperf(group==2,:)); perf_stat = sts.tstat;
+            case 'wilcoxon', perf_stat = mv_stat_wilcoxon_ranksum(cperf, group);
+        end
+        perf_stat = squeeze(perf_stat);
+    end
+
     function clusterstat = compute_cluster_statistic(CC, P, max_only)
-        % max_only : if 1 returns only the cluster statistic for the
-        % largest cluster
+        % Compute statistic for the cluster permutation test
+        %     max_only - if 1 returns only the cluster statistic for the
+        %                largest cluster
         switch(cfg.clusterstatistic)
             case 'maxsize'
                 clusterstat = cellfun(@numel, CC.PixelIdxList);
