@@ -6,12 +6,9 @@ Matlab toolbox for classification and regression of multi-dimensional data
 
 ### News
 
+* (Jan 2021) new set of tutorial-like examples is available in the [`examples`](examples/) folder. The old examples have been moved into the [`old_examples`](examples/old_examples/) subfolder
 * (June 2020) the [MVPA Light toolbox paper](https://www.frontiersin.org/articles/10.3389/fnins.2020.00289/full) has been published
 * (November 2019) added [`mv_regress`](mv_regress.m) for regression of multi-dimensional data, and [ridge](#ridge) and [kernel ridge](#kernelridge) models. Furthermore, [`mv_statistics`](statistics/mv_statistics.m) now includes permutation and cluster permutation tests
-* (August 2019) added [`mv_classify`](#mvclassify) for classification of multi-dimensional datasets (e.g. time-frequency), a [Naive Bayes classifier](#naivebayes) and the [kappa metric](#kappa)
-* (July 2019) added [preprocessing module](#preprocessing) + precomputed kernels for [SVM](model/train_svm.m) and [kernel FDA](model/train_kernel_fda.m)
-* (May 2019) interface added for [LIBSVM](#libsvm) and [LIBLINEAR](#liblinear)
-* (Mar 2019) MVPA-Light has been integrated with FieldTrip (see [tutorial](http://www.fieldtriptoolbox.org/tutorial/mvpa_light/))
 
 ### Table of contents<a name="contents"></a>
 1. [Installation](#installation)
@@ -71,11 +68,11 @@ To obtain a realistic estimate of model performance and control for overfitting,
 
 #### Preprocessing<a name="preprocessing"></a>
 
-Preprocessing refers to operations applied to the data before training the classifier. In some cases, preprocessing operations such as oversampling, PCA, or Common Spatial Patterns (CSP) need to be performed as nested operations within a cross-validation analysis. In nested preprocessing, parameters are estimated on the train data and then applied to the test data. This avoids possible information flow from test set to the train set. A prepocessing pipeline can be added by setting the `cfg.preprocess` and `cfg.preprocess_param` fields. Currently implemented preprocessing functions are collected in the [`preprocess subfolder`](preprocess/). See code snippet below and [`examples/example7_preprocessing.m`](examples/example7_preprocessing.m) for examples.
+Preprocessing refers to operations applied to the data before training the classifier. In some cases, preprocessing operations such as oversampling, PCA, or Common Spatial Patterns (CSP) need to be performed as nested operations within a cross-validation analysis. In nested preprocessing, parameters are estimated on the train data and then applied to the test data. This avoids possible information flow from test set to the train set. A prepocessing pipeline can be added by setting the `cfg.preprocess` and `cfg.preprocess_param` fields. Currently implemented preprocessing functions are collected in the [`preprocess subfolder`](preprocess/). See code snippet below and [`examples/understanding_preprocessing.m`](examples/understanding_preprocessing.m) for examples.
 
 #### Metrics and statistical significance
 
-Classification and regression performance is typically measured using metrics such as accuracy and AUC for classification, or mean squared error for regression. These performance metrics do not come with p-values, however. To establish statistical significance, the function [`mv_statistics`](statistics/mv_statistics.m) can be used. It implements binomial test and permutation testing (including a cluster permutation test). See [`example9_statistics`](examples/example9_statistics.m) for code to get started.
+Classification and regression performance is typically measured using metrics such as accuracy and AUC for classification, or mean squared error for regression. These performance metrics do not come with p-values, however. To establish statistical significance, the function [`mv_statistics`](statistics/mv_statistics.m) can be used. It implements binomial test and permutation testing (including a cluster permutation test). See [`understanding_statistics`](examples/understanding_statistics.m) for code to get started.
 
 
 ## Classification <a name="classification"></a>
@@ -119,7 +116,7 @@ Classification across time does not give insight into whether information is sha
 
 Neuroimaging datasets can be high dimensional. For instance, time-frequency data can have 4 (e.g. samples x channels x frequencies x times) or more dimensions. The function [`mv_classify`](mv_classify.m) deals with data of an arbitrary number and order of dimensions. It combines and generalizes the capabilities of the other high-level functions and allows for flexible tailoring of classification analysis including frequency x frequency generalization.
 
-[`mv_classify`](mv_classify.m) also implements searchlight analysis, which investigates which features contribute most to classification performance. The answer to this question can be used to better interpret the data or to perform feature selection. If there is a spatial structure in the features (e.g. neighbouring eletrodes, neighbouring voxels), groups of features rather than single features can be considered. The result is a classification performance measure for each feature. If the features are e.g. channels, the result can be plotted as a topography. See [`example6_classify_multidimensional_data.m`](examples/example6_classify_multidimensional_data.m) for code to get you started.
+[`mv_classify`](mv_classify.m) also implements searchlight analysis, which investigates which features contribute most to classification performance. The answer to this question can be used to better interpret the data or to perform feature selection. If there is a spatial structure in the features (e.g. neighbouring eletrodes, neighbouring voxels), groups of features rather than single features can be considered. The result is a classification performance measure for each feature. If the features are e.g. channels, the result can be plotted as a topography. See [`getting_started_with_classification.m`](examples/getting_started_with_classification.m) for code to get you started.
 
 #### Classification performance metrics <a name="metrics"></a>
 
@@ -143,7 +140,8 @@ There is usually no need to call [`mv_calculate_performance`](utils/mv_calculate
 
 #### Introduction to regression
 
-A *regression model* performs statistical predictions, similar to a classifier. The main difference between both types of models is that a classifier predicts class labels (a discrete variable) whereas a regression model predicts responses (a continuous variable). 
+A *regression model* performs statistical predictions, similar to a classifier. The main difference between both types of models is that a classifier predicts class labels (a discrete variable) whereas a regression model predicts responses (a continuous variable). The function [`mv_regress`](mv_regress.m) deals with regression data of an arbitrary number and order of dimensions. It implements cross-validation, generalization, searchlight analysis, and so on. See [`getting_started_with_regression.m`](examples/getting_started_with_regression.m) for code to get you started.
+
 
 *Example*: We hypothesize that reaction time (RT) in a task is predicted by the magnitude of the BOLD response in brain areas. To investigate this, we perform a searchlight analysis: In every iteration, the single-trial BOLD response in a subset of contiguous voxels serves as features, whereas RT serves as response variable. We assume that this relationship is non-linear, so we use [kernel ridge regression](model/train_kernel_ridge.m) to predict RT.
 
@@ -169,13 +167,51 @@ There is usually no need to call [`mv_calculate_performance`](utils/mv_calculate
 
 This section gives some basic examples. More detailed examples and data can be found in the [`examples/`](examples) subfolder.
 
-#### Training and testing a classifier by hand
+#### Getting started with classification
+
+```Matlab
+% Load ERP data (in /examples folder)
+[dat,clabel] = load_example_data('epoched3');
+
+% Perform classification for each time point
+% Calculate AUC using 10-fold cross-validation with 2 repetitions and an LDA classifier
+cfg = [];
+cfg.metric     = 'auc';
+cfg.cv         = 'kfold';
+cfg.k          = 10;
+cfg.repeat     = 2;
+cfg.classifier = 'lda'; 
+acc = mv_classify(cfg, dat.trial, clabel);
+
+```
+
+See [`examples/getting_started_with_classification.m`](examples/getting_started_with_classification.m) for more details.
+
+#### Getting started with regression
 
 ```Matlab
 
-% Load data (in /examples folder)
-[dat,clabel] = load_example_data('epoched3');
+% Perform Ridge Regression with 10-fold cross-validation
+% and 2 repetitions.
+% Sets regularization hyperparameter lambda to 0.01 
+% and calculates MSE as a performance metric.
+cfg                = [];
+cfg.metric         = 'mse';
+cfg.cv             = 'kfold';
+cfg.k              = 10;
+cfg.repeat         = 2;
+cfg.model          = 'ridge';
+cfg.hyperparameter = [];
+cfg.hyperparameter.lambda = 0.1;
 
+mse = mv_regress(cfg, X, y);
+```
+
+See [`examples/getting_started_with_regression.m`](examples/getting_started_with_regression.m) for more details.
+
+#### Training and testing by hand
+
+```Matlab
 % Fetch the data from the 100th time sample
 X = dat.trial(:,:,100);
 
@@ -192,64 +228,7 @@ predlabel = test_lda(cf, X);
 acc = mv_calculate_performance('accuracy','clabel',predlabel,clabel)
 ```
 
-See [`examples/example1_train_and_test.m`](examples/example1_train_and_test.m) for more details. In most cases, you would not perform training/testing by hand but rather call one of the high-level functions described below.
-
-<!-- 
-#### Cross-validation
-
-
-```Matlab
-cfg = [];
-cfg.classifier      = 'lda';
-cfg.metric          = 'accuracy';
-cfg.cv              = 'kfold';
-cfg.k               = 5;
-cfg.repeat          = 2;
-
-% Perform 5-fold cross-validation with 2 repetitions.
-% As classification performance measure we request accuracy (acc).
-acc = mv_crossvalidate(cfg, X, clabel);
-```
-
-See [`examples/example2_crossvalidate.m`](examples/example2_crossvalidate.m) for more details.
-
--->
-
-#### Classification across time
-
-```Matlab
-
-% Classify across time using default settings
-cfg = [];
-acc = mv_classify_across_time(cfg, dat.trial, clabel);
-
-```
-
-See [`examples/example3_classify_across_time.m`](examples/example3_classify_across_time.m) for more details.
-
-#### Time generalization (time x time classification)
-
-
-```Matlab
-cfg = [];
-cfg.metric     = 'auc';
-auc = mv_classify_timextime(cfg, dat.trial, clabel);
-
-```
-
-See [`examples/example4_classify_timextime.m`](examples/example4_classify_timextime.m) for more details.
-
-<!-- 
-#### Searchlight analysis
-
-```Matlab
-cfg = [];
-acc = mv_searchlight(cfg, dat.trial, clabel);
-
-```
-
-See [`examples/example5_searchlight.m`](examples/example5_searchlight.m) for more details.
--->
+Many MVPA problems can be addressed with the high-level functions such as [`mv_classify`](mv_classify.m) and [`mv_regress`](mv_regress.m). However, for more specialized analyses you may need low-level access to the train and test functions.  [`examples/understanding_train_and_test_functions.m`](examples/understanding_train_and_test_functions.m) gives more details on how to use the train/test functions directly.
 
 #### Preprocessing pipeline
 
@@ -260,21 +239,9 @@ acc = mv_classify_across_time(cfg, dat.trial, clabel);
 
 ```
 
-See [`examples/example7_preprocessing.m`](examples/example7_preprocessing.m) for more details.
+See [`examples/understanding_preprocessing.m`](examples/understanding_preprocessing.m) for more details.
 
-#### Ridge Regression
 
-```Matlab
-cfg                = [];
-cfg.model          = 'ridge';
-cfg.metric         = 'mse';
-cfg.hyperparameter = [];
-cfg.hyperparameter.lambda = 0.1;
-
-mse = mv_regress(cfg, X, y);
-```
-
-See [`examples/example8_regression.m`](examples/example8_regression.m) for more details.
 
 
 ### References
