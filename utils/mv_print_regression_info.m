@@ -45,4 +45,10 @@ if nargin <= 3
 %         fprintf('.\n')
     end
 
+%% Print preprocessing pipeline
+if isfield(cfg, 'preprocess') && ~isempty(cfg.preprocess)
+    preprocess = cellfun(@(pp) char(pp), cfg.preprocess, 'Un', 0);
+    fprintf('Preprocessing: %s\n', strjoin(preprocess, ' -> '))
+end
+
 end
