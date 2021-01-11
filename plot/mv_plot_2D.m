@@ -66,7 +66,7 @@ function h = mv_plot_2D(varargin)
 % Returns:
 % h        - struct with handles to the graphical elements 
 
-% (c) Matthias Treder 2017-2018
+% (c) Matthias Treder
 
 if isstruct(varargin{1}) || isempty(varargin{1})
     % Additional parameters are specified in struct cfg
