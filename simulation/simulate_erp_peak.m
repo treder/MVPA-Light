@@ -56,6 +56,7 @@ check_assertions(amplitude, 'amplitude')
 % decide whether output is 2D or 3D
 if isempty(weight)
     X = zeros(n_trials, n_time_points);
+    n_channels = nan;
 else
     if isvector(weight)
         n_channels = numel(weight);
@@ -66,7 +67,11 @@ else
 end
 
 if isvector(pos)
-    n_peaks = numel(pos);
+    if numel(pos) == n_trials
+        n_peaks = 1;
+    else
+        n_peaks = numel(pos);
+    end
 else
     n_peaks = size(pos,2);
 end
