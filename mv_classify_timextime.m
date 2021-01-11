@@ -231,11 +231,8 @@ elseif strcmp(cfg.cv,'none')
     % One dataset X has been provided as input. X is hence used for both
     % training and testing. However, cross-validation is not performed.
     % Note that this can lead to overfitting.
+    if cfg.feedback, mv_print_classification_info(cfg,X,clabel); end
 
-    if cfg.feedback
-        fprintf('Training and testing on the same dataset (note: this can lead to overfitting).\n')
-    end
-    
     % Preprocess train/test data
     [~, X, clabel] = mv_preprocess(cfg, X, clabel);
 
@@ -274,11 +271,10 @@ perf_dimension_names = cell(n_metrics, 1);
 for mm=1:n_metrics
     if strcmp(cfg.metric{mm},'none')
         perf{mm} = cf_output;
-        perf_std{mm} = [];
+        perf_std{mm} = [];        
         perf_dimension_names{mm} = {'repetition' 'fold' cfg.dimension_names{end}};
     else
         [perf{mm}, perf_std{mm}] = mv_calculate_performance(cfg.metric{mm}, cfg.output_type, cf_output, testlabel, avdim);
-        % performance dimension names
         perf_dimension_names{mm} = [{['train ' cfg.dimension_names{end}]} repmat({'metric'}, 1, ndims(perf{mm})-2) {['test ' cfg.dimension_names{end}]}];
     end
 end
