@@ -66,6 +66,12 @@ switch(cfg.cv)
         cfg.k = size(X,1);
         cfg.repeat = 1;
     case 'holdout', cfg.k = 1;
+    case 'predefined'
+        if isempty(cfg.fold)
+            error('if cfg.cv=''predefined'' then cfg.fold must be specified')
+        end
+        cfg.k = max(cfg.fold);
+        cfg.repeat = 1;
 end
 
 %% cfg: given a metric, set default for output_type
@@ -75,48 +81,10 @@ else
     mv_set_default(cfg,'output_type','clabel');
 end
 
-%% cfg: check whether different metrics are compatible with each other 
-% eg 'confusion' does not work with 'tval' because the former requires
-% class labels as output whereas the latter requires dvals
-incompatible_metrics = { 'confusion' {'auc' 'tval' 'dval'};
-    };
-
-idx = find(ismember(incompatible_metrics(:,1), cfg.metric));
-
-if any(idx) && any(ismember(incompatible_metrics{idx,2}, cfg.metric))
-    error('The metric ''%s'' cannot be calculated together with metrics %s', incompatible_metrics{idx,1}, strjoin(incompatible_metrics{idx,2}))
-end
-
-%% cfg: check whether classifier and metric are compatible (eg 'auc' does not work for multiclass_lda)
-
-% Combinations of classifier and metrics that do not work together
-classifier_metric = { 'multiclass_lda' {'auc' 'tval' 'dval'};
-                      'kernel_fda'     {'auc' 'tval' 'dval'};
-    };
-
-idx = find(ismember(classifier_metric(:,1), cfg.classifier));
-if any(idx) && any(ismember(classifier_metric{idx,2}, cfg.metric))
-    error('The following metrics cannot be used with %s: %s', cfg.classifier, strjoin(classifier_metric{idx,2}))
-end
-
-%% cfg: check whether metrics are compatible with output_type
-% eg 'confusion' does not work with 'tval' because the former requires
-% class labels as ouput whereas the latter requires dvals
-metric_outputtype = { 'auc'       {'dval' 'prob'};
-                      'dval'      {'dval' 'prob'};
-                      'tval'      {'dval' 'prob'};
-                      'confusion' 'clabel';
-                      'precision' 'clabel';
-                      'recall'    'clabel';
-                      'f1'        'clabel'
-                      };
-
-idx = find(ismember(metric_outputtype(:,1), cfg.metric));
-
-for ii=1:numel(idx)
-    if ~any(strcmp(metric_outputtype{idx(ii),2}, cfg.output_type))
-        error('The metric ''%s'' requires %s as output_type', metric_outputtype{idx(ii),1},metric_outputtype{idx(ii),2})
-    end
+%% cfg: check whether number of classes and metric are compatible (eg 'auc' does not work for more than 2 classes)
+only_binary = {'auc' 'dval' 'tval'};
+if  (n_classes > 2) && any(ismember(only_binary, cfg.metric))
+    error('The following metrics work only for 2 classes: %s', strjoin(only_binary))
 end
 
 %% cfg: check for parameter names that have been changed
@@ -170,10 +138,13 @@ for ii=1:numel(cfg.preprocess_param)
     end
 end
 
-%% cfg.preprocess: convert preprocessing function to function handle
+%% cfg.preprocess: add preprocessing function handles
+cfg.preprocess_fun = cell(numel(cfg.preprocess), 1);
 for ii=1:numel(cfg.preprocess)
     if ~isa(cfg.preprocess{ii}, 'function_handle')
-        cfg.preprocess{ii} = eval(['@mv_preprocess_' cfg.preprocess{ii}]);
+        cfg.preprocess_fun{ii} = eval(['@mv_preprocess_' cfg.preprocess{ii}]);
+    else
+        cfg.preprocess_fun{ii} = cfg.preprocess{ii};
     end
 end
 

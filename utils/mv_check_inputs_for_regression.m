@@ -23,7 +23,7 @@ end
 %% X and Y: check whether the number of instances is matched
 if isvector(Y), len = length(Y);
 else, len = size(Y,1); end
-if len ~= size(X,cfg.sample_dimension)
+if len ~= size(X, cfg.sample_dimension)
     error('Number of responses (%d) does not match number of instances (%d) in data', len, size(X,cfg.sample_dimension))
 end
 
@@ -55,8 +55,16 @@ mv_set_default(cfg,'p',0.1);
 mv_set_default(cfg,'fold',[]);
 
 switch(cfg.cv)
-    case 'leaveout', cfg.k = size(X, cfg.sample_dimension);
+    case 'leaveout' 
+        cfg.k = size(X,1);
+        cfg.repeat = 1;
     case 'holdout', cfg.k = 1;
+    case 'predefined'
+        if isempty(cfg.fold)
+            error('if cfg.cv=''predefined'' then cfg.fold must be specified')
+        end
+        cfg.k = max(cfg.fold);
+        cfg.repeat = 1;
 end
 
 %% cfg: set defaults for model hyperparameter
@@ -98,10 +106,13 @@ for ii=1:numel(cfg.preprocess_param)
     end
 end
 
-%% cfg.preprocess: convert preprocessing function to function handle
+%% cfg.preprocess: add preprocessing function handles
+cfg.preprocess_fun = cell(numel(cfg.preprocess), 1);
 for ii=1:numel(cfg.preprocess)
     if ~isa(cfg.preprocess{ii}, 'function_handle')
-        cfg.preprocess{ii} = eval(['@mv_preprocess_' cfg.preprocess{ii}]);
+        cfg.preprocess_fun{ii} = eval(['@mv_preprocess_' cfg.preprocess{ii}]);
+    else
+        cfg.preprocess_fun{ii} = cfg.preprocess{ii};
     end
 end
 
