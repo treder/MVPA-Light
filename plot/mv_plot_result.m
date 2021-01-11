@@ -51,10 +51,10 @@ end
 n_metrics               = result.n_metrics;
 
 if n_metrics == 1
-    result.metric   = {result.metric};
-    result.perf     = {result.perf};
-    result.perf_std = {result.perf_std};
-    result.perf_dimension_names = {result.perf_dimension_names};
+    if ~iscell(result.metric), result.metric = {result.metric}; end
+    if ~iscell(result.perf) || (strcmp(result.metric{1},'none') && ~iscell(result.perf{1})), result.perf = {result.perf}; end
+    if ~iscell(result.perf_std), result.perf_std = {result.perf_std}; end
+    if ~iscell(result.perf_dimension_names), result.perf_dimension_names = {result.perf_dimension_names}; end
 end
 
 
@@ -67,6 +67,7 @@ for mm=1:n_metrics
     metric                  = result.metric{mm};
     perf                    = result.perf{mm};
     perf_std                = result.perf_std{mm};
+    if ~iscell(p.title), p.title = {p.title}; end
     
     switch(p.plot_type)
         
@@ -150,14 +151,14 @@ for mm=1:n_metrics
             else,         x = 1:size(perf, 3);
             end
 
-            testlabel = result.testlabel;
-            if ~iscell(testlabel), testlabel = {testlabel}; end
             cfg = [];
             cfg.label_options   = p.label_options;
             cfg.title_options   = p.title_options;
             cfg.hor             = p.hor;
             cfg.mark_bold       = opt.mask; 
             if strcmp(result.task, 'classification')
+                testlabel = result.testlabel;
+                if ~iscell(testlabel), testlabel = {testlabel}; end
                 for rep = 1:p.n_repetitions
                     for fold = 1:p.n_folds
                         subplot(p.n_repetitions, p.n_folds, (rep-1)*p.n_folds + fold)
@@ -167,26 +168,39 @@ for mm=1:n_metrics
                             % need to repeat x for number of instances in each class
                             xx = mv_repelem(x, sum(ix_class));
                             % get values corresponding to class
-                            vals = cellfun(@(dat) dat(ix_class), squeeze(perf(rep, fold, :)), 'Un', 0);
+                            vals = cellfun(@(dat) dat(ix_class), squeeze(perf(rep, fold,:,:,:)), 'Un', 0);
                             vals = cat(1, vals{:});                
                             plot(xx, vals,'.')
                             hold all
                         end                        
-                        legend(p.legend_labels);
-                        title(p.title{rep,fold})
-                        ylabel(p.ylabel)
+                        legend(p.legend_labels, p.legend_options{:});
+                        title(p.title{rep,fold}, p.title_options{:})
+                        ylabel(p.ylabel, p.label_options{:})
                         grid on
                     end
                 end
-            else
-                error('todo: implement DOTS plot for regression')
+            else % regression
+                for rep = 1:p.n_repetitions
+                    for fold = 1:p.n_folds
+                        subplot(p.n_repetitions, p.n_folds, (rep-1)*p.n_folds + fold)
+                        cla
+                        vals = squeeze(perf(rep, fold,:,:,:));
+                        xx = mv_repelem(x, numel(vals{1}));
+                        vals = cat(1, vals{:});                
+                        plot(xx, vals,'.')
+                        title(p.title{rep,fold}, p.title_options{:})
+                        ylabel(p.ylabel, p.label_options{:})
+                        grid on            
+                    end
+                end
             end
 
         case 'image'
             % ----------  IMAGE ---------- 
             % apply mask
             if ~isempty(opt.mask)
-                perf(~opt.mask) = nan;
+                perf = bsxfun(@times, perf, opt.mask);
+                perf(perf==0) = nan;
             end
 
             % settings for 2d plot
@@ -201,15 +215,21 @@ for mm=1:n_metrics
             cfg.global_clim = p.global_clim;
             cfg.xlabel      = p.xlabel;
             cfg.ylabel      = p.ylabel;
-            cfg.title       = p.title;
             cfg.colorbar_title  = metric;
             cfg.colorbar_location = p.colorbar_location;
             cfg.label_options   = p.label_options;
             cfg.title_options   = p.title_options;
-            if p.size_metric_dimension == 1
-                h.ax(mm) = mv_plot_2D(cfg, perf);
-            else
-                h.ax(mm) = mv_plot_2D(cfg, squeeze(permute(perf, [p.plot_dimensions, setdiff(1:3, p.plot_dimensions)])));
+            
+            for ix=1:size(perf,3)  % in case there's multiple results to be plotted
+                subplot(1, size(perf,3), ix)
+                cfg.title           = p.title(ix);
+                cfg.title_options   = p.title_options;
+                
+                if p.size_metric_dimension == 1
+                    h.ax(mm) = mv_plot_2D(cfg, perf(:,:,ix));
+                else
+                    h.ax(mm) = mv_plot_2D(cfg, squeeze(permute(perf(:,:,ix), [p.plot_dimensions, setdiff(1:3, p.plot_dimensions)])));
+                end
             end
     end
     grid on
