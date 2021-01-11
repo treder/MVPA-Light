@@ -96,6 +96,47 @@ acc2 = mv_classify(cfg, X, clabel);
 
 print_unittest_result('compare to mv_searchlight', acc1, acc2, tol);
 
+%% Check output size for searchlight with neighbour matrix that is non-square [1 search dim]
+X = randn(30, 20, 29);
+clabel = double(randn(size(X,1),1) > 0) + 1;
+
+% create random matrix with neighbours
+nb1 = eye(size(X,2));
+nb1 = nb1(1:end-6, :); % remove a few rows to make it non-square
+
+cfg = [];
+cfg.sample_dimension    = 1;
+cfg.feature_dimension   = 3;
+cfg.repeat              = 1;
+cfg.feedback            = 0;
+cfg.neighbours          = nb1;
+perf = mv_classify(cfg, X, clabel);
+
+print_unittest_result('[1 search dim] size(perf) for non-square neighbours', size(nb1,1), size(perf,1), tol);
+
+%% Check output size for searchlight with neighbour matrix that is non-square [2 search dim]
+X = randn(30, 20, 15, 29);
+clabel = double(randn(size(X,1),1) > 0) + 1;
+
+% create random matrix with neighbours
+nb1 = eye(size(X,2));
+nb2 = eye(size(X,4));
+
+% remove a few rows
+nb1 = nb1(1:end-9, :);
+nb2 = nb2(1:end-3, :);
+
+cfg = [];
+cfg.sample_dimension    = 1;
+cfg.feature_dimension   = 3;
+cfg.repeat              = 1;
+cfg.feedback            = 0;
+cfg.neighbours          = {nb1 nb2};
+perf = mv_classify(cfg, X, clabel);
+
+print_unittest_result('[2 search dim] size(perf) for non-square neighbours', [size(nb1,1) size(nb2,1)], size(perf), tol);
+
+
 %% Create a dataset where classes can be perfectly discriminated for only some time points [two-class]
 nsamples = 100;
 ntime = 300;
@@ -137,7 +178,7 @@ cfg.generalization_dimension   = 3;
 [acc, result] = mv_classify(cfg, X, clabel);
 
 % imagesc(acc), title(mf,'interpreter','none')
-figure,imagesc(acc)
+% figure,imagesc(acc)
 
 % performance should be around 100% for the discriminable time points, and
 % around 50% for the non-discriminable ones
@@ -291,36 +332,94 @@ for sd=1:nd   % sample dimension
 end
 
 
-%% embed dimensions
-% embedding dimensions should give the same result as not embedding them,
-% but it should be faster -> so far only possible with naive_bayes
-
-nsamples = 50;
-ntime = 100;
-nfeatures = 10;
+%% append dimensions - check dimensions 
+nsamples = 40;
+ntime = 20;
+nfeatures = 5;
 nclasses = 2;
 prop = [];
 scale = 0.0001;
 
 % Generate data
-X2 = zeros(nsamples, nfeatures, ntime, ntime+10);
-[~,clabel2] = simulate_gaussian_data(nsamples, nfeatures, nclasses, prop, scale, 0);
-
-for tt=1:ntime
-    X2(:,:,tt,tt) = simulate_gaussian_data(nsamples, nfeatures, nclasses, prop, scale, 0);
-end
+X = zeros(nsamples, nfeatures, ntime, ntime+10);
+[X ,clabel] = simulate_gaussian_data(nsamples, nfeatures, nclasses, prop, scale, 0);
+X(:,:,ntime,ntime+10) = X;
 
 % mv_classify_across_time
 rng(21)   % reset rng to get the same random folds
 cfg = [];
-cfg.feedback = 0;
-cfg.embed = true;
-acc1 = mv_classify(cfg, X2, clabel2);
+cfg.classifier              = 'naive_bayes';
+cfg.sample_dimension        = 1;
+cfg.feature_dimension       = 2;
+cfg.feedback                = 0;
+cfg.repeat                  = 1;
+cfg.k                       = 2;
 
-% mv_classify
+cfg.append                  = 1;
+perf = mv_classify(cfg, X, clabel);
+
+print_unittest_result('[cfg.append=1] size of perf', [size(X,3) size(X,4)], size(perf), tol);
+
+%% append dimensions - check dimensions for cv = 'none'
+rng(21)
+cfg = [];
+cfg.classifier              = 'naive_bayes';
+cfg.sample_dimension        = 1;
+cfg.feature_dimension       = 2;
+cfg.feedback                = 0;
+cfg.cv                      = 'none';
+
+cfg.append                  = 1;
+perf = mv_classify(cfg, X, clabel);
+
+print_unittest_result('[cfg.append=1, cv=''none''] size of perf', [size(X,3) size(X,4)], size(perf), tol);
+
+%% append vs no append should give same result
+% appending dimensions should give the same result as not appending them,
+% but it should be faster -> so far only possible with naive_bayes
+nsamples = 20;
+ntime = 20;
+nfeatures = 5;
+amplitudes = [5, 10];
+
+X1 = simulate_erp_peak(nsamples, ntime, 10, 1, amplitudes(1), randn(nfeatures, 1)); % class 1
+X2 = simulate_erp_peak(nsamples*2, ntime, 10, 1, amplitudes(2), randn(nfeatures, 1)); % class 2
+X= [X1; X2];
+clabel = [ones(nsamples, 1); ones(nsamples*2, 1)*2];
+
+% mv_classify_across_time
+cfg = [];
+cfg.classifier              = 'naive_bayes';
+cfg.sample_dimension        = 1;
+cfg.feature_dimension       = 2;
+cfg.feedback                = 0;
+cfg.repeat                  = 1;
+cfg.k                       = 2;
+
 rng(21)   % reset rng to get the same random folds
-cfg.sample_dimension = 1;
-cfg.feature_dimension = 2;
-acc2 = mv_classify(cfg, X2, clabel2);
+cfg.append                  = 1;
+perf1 = mv_classify(cfg, X, clabel);
 
-print_unittest_result('compare to mv_classify_across_time', 0, norm(acc1-acc2), tol);
+rng(21)   % reset rng to get the same random folds
+cfg.append                  = 0;
+perf2 = mv_classify(cfg, X, clabel);
+
+print_unittest_result('append vs no append should give same result', perf1, perf2, tol);
+
+%% append vs no append should give same result, cv = 'none'
+% mv_classify_across_time
+rng(21)   % reset rng to get the same random folds
+cfg = [];
+cfg.classifier              = 'naive_bayes';
+cfg.sample_dimension        = 1;
+cfg.feature_dimension       = 2;
+cfg.feedback                = 0;
+cfg.cv                      = 'none';
+
+cfg.append                  = 1;
+perf1 = mv_classify(cfg, X, clabel);
+
+cfg.append                  = 0;
+perf2 = mv_classify(cfg, X, clabel);
+
+print_unittest_result('[cv =''none''] append vs no append should give same result', perf1, perf2, tol);
