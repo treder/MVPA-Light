@@ -41,9 +41,6 @@ cfg.feedback = 0;
 
 [acc, result] = mv_classify_timextime(cfg, X, clabel);
 
-% imagesc(acc), title(mf,'interpreter','none')
-mv_plot_result(result);
-
 % performance should be around 100% for the discriminable time points, and
 % around 50% for the non-discriminable ones
 acc_discriminable = mean(mean( acc(can_discriminate, can_discriminate)));
