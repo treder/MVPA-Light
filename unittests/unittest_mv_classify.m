@@ -9,7 +9,6 @@ mf = mfilename;
 % mv_crossvalidate, mv_searchlight) and compare their output to mv_classify
 % output
 
-%% compare to mv_crossvalidate
 nsamples = 100;
 nfeatures = 10;
 nclasses = 2;
@@ -18,19 +17,21 @@ scale = 1;
 do_plot = 0;
 [X, clabel] = simulate_gaussian_data(nsamples, nfeatures, nclasses, prop, scale, do_plot);
 
-% mv_crossvalidate
-rng(42)
-cfg = [];
-cfg.feedback    = 0;
-acc1 = mv_crossvalidate(cfg, X, clabel);
+%% compare to mv_crossvalidate
 
-% mv_crossvalidate
-rng(42)
-cfg.sample_dimension = 1;
-cfg.feature_dimension = 2;
-acc2 = mv_classify(cfg, X, clabel);
-
-print_unittest_result('compare to mv_crossvalidate', acc1, acc2, tol);
+% % mv_crossvalidate
+% rng(42)
+% cfg = [];
+% cfg.feedback    = 0;
+% acc1 = mv_crossvalidate(cfg, X, clabel);
+% 
+% % mv_crossvalidate
+% rng(42)
+% cfg.sample_dimension = 1;
+% cfg.feature_dimension = 2;
+% acc2 = mv_classify(cfg, X, clabel);
+% 
+% print_unittest_result('compare to mv_crossvalidate', acc1, acc2, tol);
 
 %% compare to mv_classify_across_time
 nsamples = 50;
@@ -81,20 +82,20 @@ acc2 = mv_classify(cfg, X2, clabel2);
 print_unittest_result('compare to mv_classify_timextime', acc1, acc2, tol);
 
 %% compare to mv_searchlight
-
-% mv_classify_timextime
-rng(22)
-cfg = [];
-cfg.feedback = 0;
-acc1 = mv_searchlight(cfg, X, clabel);
-
-% mv_classify
-rng(22)
-cfg.sample_dimension = 1;
-cfg.feature_dimension = [];
-acc2 = mv_classify(cfg, X, clabel);
-
-print_unittest_result('compare to mv_searchlight', acc1, acc2, tol);
+% 
+% % mv_classify_timextime
+% rng(22)
+% cfg = [];
+% cfg.feedback = 0;
+% acc1 = mv_searchlight(cfg, X, clabel);
+% 
+% % mv_classify
+% rng(22)
+% cfg.sample_dimension = 1;
+% cfg.feature_dimension = [];
+% acc2 = mv_classify(cfg, X, clabel);
+% 
+% print_unittest_result('compare to mv_searchlight', acc1, acc2, tol);
 
 %% Check output size for searchlight with neighbour matrix that is non-square [1 search dim]
 X = randn(30, 20, 29);
@@ -267,7 +268,7 @@ for cv = {'kfold' ,'leaveout', 'holdout', 'none'}
     mv_classify(cfg, X2, clabel);
 end
 
-%% Check whether output dimensions are correct
+%% Check whether output dimensions are correct for 4D data
 
 % 4 input dimensions with 2 search dims
 sz = [19, 2, 3, 40];
@@ -284,7 +285,7 @@ cfg.feedback             = 0;
 perf = mv_classify(cfg, X2, clabel);
 szp = size(perf);
 
-print_unittest_result('is size(perf) correct for 4 input dimensions?', sz([2,4]), szp, tol);
+print_unittest_result('size(perf) correct for 4D data', sz([2,4]), szp, tol);
 
 % same but without cross-validation
 cfg.cv                   = 'none';
@@ -293,6 +294,48 @@ perf = mv_classify(cfg, X2, clabel);
 szp = size(perf);
 
 print_unittest_result('[without crossval] is size(perf) correct for 4 input dimensions?', sz([2,4]), szp, tol);
+
+%% Check whether output dimensions are correct cfg.flatten_features = 1 for 4D data
+
+% 4 input dimensions with 2 search dims
+sz = [9, 12, 2, 13];
+X2 = randn(sz);
+clabel = ones(sz(1), 1); 
+clabel(ceil(end/2):end) = 2;
+
+cfg = [];
+cfg.sample_dimension    = 1;
+cfg.feature_dimension   = [2 3];
+cfg.cv                  = 'kfold';
+cfg.k                   = 2;
+cfg.feedback            = 0;
+cfg.flatten_features    = 1;
+
+perf = mv_classify(cfg, X2, clabel);
+szp = size(perf);
+
+print_unittest_result('size(perf) 4D data, 2 feature dim and cfg.flatten_features=1', [sz(4) 1], szp, tol);
+
+%% Check whether output dimensions are correct cfg.flatten_features = 1 for 5D data
+
+% 4 input dimensions with 2 search dims
+sz = [9, 12, 2, 3, 4];
+X2 = randn(sz);
+clabel = ones(sz(2), 1); 
+clabel(ceil(end/2):end) = 2;
+
+cfg = [];
+cfg.sample_dimension    = 2;
+cfg.feature_dimension   = [1 5];
+cfg.cv                  = 'kfold';
+cfg.k                   = 2;
+cfg.feedback            = 0;
+cfg.flatten_features    = 1;
+
+perf = mv_classify(cfg, X2, clabel);
+szp = size(perf);
+
+print_unittest_result('size(perf) 5D data, 2 feature dim and cfg.flatten_features=1', sz(3:4), szp, tol);
 
 %% 5 input dimensions with 2 search dims + 1 generalization dim - are output dimensions as expected?
 sz = [11, 8, 9, 7, 6];

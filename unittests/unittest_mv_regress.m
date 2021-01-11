@@ -152,6 +152,46 @@ szp = size(perf);
 
 print_unittest_result('[without crossval] is size(perf) correct for 4 input dimensions?', sz([2,4]), szp, tol);
 
+%% Check whether output dimensions are correct cfg.flatten_features = 1 for 4D data
+
+% 4 input dimensions with 2 search dims
+sz = [9, 12, 2, 13];
+X = randn(sz);
+Y = randn(sz(1),1);
+
+cfg = [];
+cfg.sample_dimension    = 1;
+cfg.feature_dimension   = [2 3];
+cfg.cv                  = 'kfold';
+cfg.k                   = 2;
+cfg.feedback            = 0;
+cfg.flatten_features    = 1;
+
+perf = mv_regress(cfg, X, Y);
+szp = size(perf);
+
+print_unittest_result('size(perf) 4D data, 2 feature dim and cfg.flatten_features=1', [sz(4) 1], szp, tol);
+
+%% Check whether output dimensions are correct cfg.flatten_features = 1 for 5D data
+
+% 4 input dimensions with 2 search dims
+sz = [9, 12, 2, 3, 4];
+X = randn(sz);
+Y = randn(sz(2),1);
+
+cfg = [];
+cfg.sample_dimension    = 2;
+cfg.feature_dimension   = [1 5];
+cfg.cv                  = 'kfold';
+cfg.k                   = 2;
+cfg.feedback            = 0;
+cfg.flatten_features    = 1;
+
+perf = mv_regress(cfg, X, Y);
+szp = size(perf);
+
+print_unittest_result('size(perf) 5D data, 2 feature dim and cfg.flatten_features=1', sz(3:4), szp, tol);
+
 %% 5 input dimensions with 2 search dims + 1 generalization dim - are output dimensions as expected?
 sz = [11, 8, 9, 7, 6];
 X = randn(sz);
