@@ -47,6 +47,42 @@ end
 
 print_unittest_result('multiple pparam shift dim by 1 (dim_order=[5 1 2 3 4])', p1+1, p2, tol);
 
+%% multiple pparam shift dim by 2
+% put them all into preprocess parameters
+pparam = {oversample_param undersample_param zscore_param demean_param average_param pca_param};
+tmp = mv_rearrange_preprocess_dimensions(pparam, [4 5 1 2 3]);
+
+p1 = [];
+p2 = [];
+for pp = 1:numel(pparam)
+   fn = fieldnames(pparam{pp});
+   dim_ix = find(contains(fn,'dimension'));
+   for ix = 1:numel(dim_ix)
+       p1 = [p1 pparam{pp}.(fn{dim_ix(ix)})];
+       p2 = [p2 tmp{pp}.(fn{dim_ix(ix)})];
+   end
+end
+
+print_unittest_result('multiple pparam shift dim by 2', p1+2, p2, tol);
+
+%% multiple pparam shift dim by 2 and max_dim = 3
+max_dim = 3;
+pparam = {oversample_param undersample_param zscore_param demean_param average_param pca_param};
+tmp = mv_rearrange_preprocess_dimensions(pparam, [4 5 1 2 3], max_dim);
+
+p1 = [];
+p2 = [];
+for pp = 1:numel(pparam)
+   fn = fieldnames(pparam{pp});
+   dim_ix = find(contains(fn,'dimension'));
+   for ix = 1:numel(dim_ix)
+       p1 = [p1 pparam{pp}.(fn{dim_ix(ix)})];
+       p2 = [p2 tmp{pp}.(fn{dim_ix(ix)})];
+   end
+end
+
+print_unittest_result('multiple pparam shift dim by 1 (dim_order=[4 5 1 2 3])', min(p1+2, max_dim), p2, tol);
+
 
 
 
