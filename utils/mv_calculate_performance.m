@@ -55,12 +55,12 @@ function [perf, perf_std] = mv_calculate_performance(metric, output_type, model_
 %
 %Note: model_output is typically a cell array. The following functions provide
 %classifier output as multi-dimensional cell arrays:
-% - mv_crossvalidate: 2D [repeats x K] cell array
 % - mv_classify_across_time: 3D [repeats x K x time points] cell array
 % - mv_classify_timextime: 3D [repeat x K x time points] cell array
 % - mv_classify: [repeat x K x ... x ... ] of any dimension >= 2
+% - mv_regress:  [repeat x K x ... x ... ] of any dimension >= 2
 %
-% In all three cases, however, the corresponding y array is just
+% In all cases, however, the corresponding y array is just
 % [repeats x K] since class labels are repeated for all time points. If 
 % model_output has more dimensions than y, the y array is assumed 
 % to be identical across the extra dimensions.
