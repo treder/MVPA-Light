@@ -12,16 +12,19 @@ function [cfg, X, clabel] = mv_preprocess(cfg, X, clabel)
 % clabel         - [samples x 1] vector of class labels 
 %
 % cfg     - struct with preprocessing parameters:
-% .preprocess         - cell array containing the preprocessing pipeline. The
+% .preprocess_fun     - cell array containing function handles to the
+%                       preprocessing functions. cfg.preprocess_fun is
+%                       generated from cfg.preprocessin mv_classify and
+%                       other high-level functions
 %                       pipeline is applied in chronological order
 % .preprocess_param   - cell array of preprocessing parameter structs for each
 %                       function. Length of preprocess_param must match length
 %                       of preprocess
 
-for pp=1:numel(cfg.preprocess)   % -- loop over preprocessing pipeline
+for pp=1:numel(cfg.preprocess_fun)   % -- loop over preprocessing pipeline
     
     % call preprocessing function
-    [cfg.preprocess_param{pp}, X, clabel] = cfg.preprocess{pp}(cfg.preprocess_param{pp}, X, clabel);
+    [cfg.preprocess_param{pp}, X, clabel] = cfg.preprocess_fun{pp}(cfg.preprocess_param{pp}, X, clabel);
     
     % swap between train/test set
     cfg.preprocess_param{pp}.is_train_set = 1 - cfg.preprocess_param{pp}.is_train_set;
