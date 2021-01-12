@@ -61,7 +61,6 @@ end
 for mm=1:n_metrics
     
     if opt.new_figure, figure, else, clf; end
-    set(gcf,'defaultLegendAutoUpdate','off');
 
     p = result.plot{mm};
     metric                  = result.metric{mm};
@@ -100,7 +99,7 @@ for mm=1:n_metrics
             if p.combined   % multiple results combined
                 if ~isvector(perf)
                     % grouped bar graph
-                    legend(p.legend_labels);
+                    create_legend(p.legend_labels, p.legend_options);
                     % find centers of grouped bars
                     offset = [h.bar.XOffset];
                     xd = h.bar(1).XData;
@@ -137,7 +136,7 @@ for mm=1:n_metrics
                 h.plot(mm) = mv_plot_1D(cfg, x, perf(:,:,ii), perf_std(:,:,ii));
                 h.xlabel(mm) = xlabel(p.xlabel, p.label_options{:});
                 h.ylabel(mm) = ylabel(p.ylabel, p.label_options{:});
-                if p.add_legend, legend(p.legend_labels, p.legend_options{:}), end
+                if p.add_legend, create_legend(p.legend_labels, p.legend_options), end
                 if iscell(p.title)
                     title(p.title{ii}, p.title_options{:});
                 else
@@ -173,7 +172,7 @@ for mm=1:n_metrics
                             plot(xx, vals,'.')
                             hold all
                         end                        
-                        legend(p.legend_labels, p.legend_options{:});
+                        create_legend(p.legend_labels, p.legend_options);
                         title(p.title{rep,fold}, p.title_options{:})
                         ylabel(p.ylabel, p.label_options{:})
                         grid on
@@ -235,5 +234,12 @@ for mm=1:n_metrics
     grid on
 end
 
+% --- helper functions ---
+    function leg = create_legend(lab, opt)
+        leg = legend(lab, opt{:});
+        if isprop(leg,'AutoUpdate')
+            set(leg, 'AutoUpdate', 0)
+        end
+    end
 
-
+end
