@@ -255,7 +255,7 @@ else
     dim_loop = num2cell(dim_loop);
 end
 
-nfeat = size(X);
+nfeat = [size(X) ones(1, numel(cfg.dimension_names) - ndims(X))];
 nfeat = nfeat(feature_dim);
 if isempty(nfeat), nfeat = 1; end
 

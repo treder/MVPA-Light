@@ -297,7 +297,7 @@ else
     dim_loop = num2cell(dim_loop);
 end
 
-nfeat = size(X);
+nfeat = [size(X) ones(1, numel(cfg.dimension_names) - ndims(X))];
 nfeat = nfeat(feature_dim);
 if isempty(nfeat), nfeat = 1; end
 
@@ -493,7 +493,11 @@ for mm=1:n_metrics
         [perf{mm}, perf_std{mm}] = mv_calculate_performance(cfg.metric{mm}, cfg.output_type, cf_output, testlabel, avdim);
         % performance dimension names
         if isvector(perf{mm})
-            perf_dimension_names{mm} = cfg.dimension_names(search_dim);
+            if numel(perf{mm}) == 1
+                perf_dimension_names{mm} = 'metric';
+            else
+                perf_dimension_names{mm} = cfg.dimension_names(search_dim);
+            end
         else
             if ~isempty(gen_dim)
                 ix_gen_in_search_dim = find(search_dim == gen_dim);
