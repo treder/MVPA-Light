@@ -38,7 +38,9 @@ function h = mv_plot_1D(varargin)
 %                     (default {'alpha'})
 % mark_bold         - when a binary mask is provided (eg with statistical
 %                     significance) the corresponding lines will be
-%                     plotted bold
+%                     plotted bold. If there is multiple lines, a [N x M]
+%                     Boolean matrix can be provided with separate masks
+%                     for each line.
 %
 % Returns:
 % h        - struct with handles to the graphical elements 
@@ -106,7 +108,13 @@ end
 
 %% mark parts of the data using a bold line
 if ~isempty(cfg.mark_bold)
-    dat(~cfg.mark_bold, :) = nan;
+    if nY > 1 && size(cfg.mark_bold,2)>1
+        % mask is a matrix
+        dat(~cfg.mark_bold) = nan;
+    else
+        % mask is a vector
+        dat(~cfg.mark_bold, :) = nan;
+    end
     tmp_h = boundedline(xval, dat, tmp, cfg.bounded{:});
     set(tmp_h,'LineWidth', get(tmp_h(1),'LineWidth')+3);
 end
