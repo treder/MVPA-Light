@@ -124,7 +124,7 @@ for mm = 1:n_metrics
                 if strcmp(result.task,'classification') && size_metric_dimension>1
                     p.title     = class_labels;
                 else
-                    p.title     = result.function;
+                    p.title     = metric;
                 end
                 p.colorbar_location = 'EastOutside';
                 p.global_clim       = 1;

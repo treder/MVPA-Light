@@ -2,7 +2,7 @@ function result = mv_combine_results(results, combine)
 % Combines multiple result structs for plotting. This is useful for
 % plotting eg multiple subjects or classifiers.
 %
-% The can only be combined if all results were obtained on data of the same 
+% Results can only be combined if all results were obtained on data of the same 
 % size using the same metrics.
 %
 %Usage:
@@ -130,7 +130,11 @@ for mm=1:n_metrics
         c = cat(ix+1, c{:}); % append along new dimension
         result.perf{mm} = mean(c, ix+1);
         result.perf_std{mm} = std(c, [], ix+1);
-        result.plot{mm}.title = 'average';
+        if ischar(results{1}.plot{mm}.title)
+            result.plot{mm}.title = [results{1}.plot{mm}.title ' (average)'];
+        else
+            result.plot{mm}.title = strcat(results{1}.plot{mm}.title, ' (average)');
+        end
     else
         error('Unknown approach: %s', combine)
     end
