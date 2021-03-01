@@ -207,7 +207,7 @@ for mm=1:n_metrics
             if (nargin > 1) && ~ischar(varargin{1}), cfg.x = varargin{1};
             else, cfg.x = 1:size(perf,2);
             end
-            if (nargin > 2) && ~ischar(varargin{2}), cfg.y = varargin{2};
+            if (nargin > 2) && ~ischar(varargin{1}) && ~ischar(varargin{2}), cfg.y = varargin{2};
             else, cfg.y = 1:size(perf,1);
             end
             cfg.climzero    = p.climzero;
