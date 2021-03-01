@@ -404,13 +404,14 @@ else
                 fprintf('Performing level 2 permutation test with %s correction and %s statistic.\n', cor, upper(cfg.statistic));
             end
             
+            % Calculate statistic for real data
+            if is_within
+                perf = within_subject_statistic(cfg.statistic, perf_all_subjects);
+            else
+                perf = between_subjects_statistic(cfg.statistic, perf_all_subjects, cfg.group);
+            end
+            
             if is_clustertest
-                % Calculate statistic for the real data
-                if is_within
-                    perf = within_subject_statistic(cfg.statistic, perf_all_subjects);
-                else
-                    perf = between_subjects_statistic(cfg.statistic, perf_all_subjects, cfg.group);
-                end
                 % Initialize cluster test: find initial clusters and calculate
                 % cluster sizes. Keep it stored in vector
                 conn = conndef(ndims(result{1}.perf), cfg.conndef); % init connectivity type
@@ -482,7 +483,7 @@ else
             
             % bonferroni correction of alpha value
             if strcmp(cfg.correctm, 'bonferroni') 
-                alpha = cfg.alpha / numel(result.perf);
+                alpha = cfg.alpha / numel(perf);
             else
                 alpha = cfg.alpha;
             end
