@@ -1,10 +1,10 @@
 % UNDERSTANDING PREPROCESSING
-%
+% 
 % In this example we look into preprocessing pipelines. Preprocessing
 % includes demeaning, z-scoring, PCA, sample averaging, feature
 % extraction methods such as PCA, and any other
 % approaches that operate on the data prior to training.
-%
+% 
 % An important distinction is between what will be referred to as 
 % 'global' vs 'nested' preprocessing: In 'global' preprocessing, an
 % operation is applied to the whole dataset (including both training and

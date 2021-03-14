@@ -19,6 +19,7 @@
 % (7) Group statistics: within-subject cluster permutation test for AUC
 % (8) Group statistics: within-subject cluster permutation test for DVAL
 % (9) Group statistics: create a patient group dataset
+% (10) Group statistics: between-subjects cluster permutation test for AUC
 %
 % Note: If you are new to working with MVPA-Light, make sure that you
 % complete the introductory tutorials first:
