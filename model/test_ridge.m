@@ -13,4 +13,4 @@ function y_pred = test_ridge(model, X)
 %Output:
 % y_pred          - predicted responses
 
-y_pred = X * model.w + model.b;
+y_pred = bsxfun(@plus, X * model.w, model.b);

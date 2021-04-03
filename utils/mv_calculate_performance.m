@@ -325,19 +325,19 @@ switch(metric)
     case {'mse', 'mean_squared_error'}
         %%% ---------- mean squared error ---------
         for xx=1:nextra
-            perf(dim_skip_token{:},xx) = cellfun( @(ypred,ytrue) mean( (ypred - ytrue).^2, 1 ), model_output(dim_skip_token{:},xx), y, 'Un', 0);
+            perf(dim_skip_token{:},xx) = cellfun( @(ypred,ytrue) mean( bsxfun(@minus, ypred, ytrue).^2, 1 ), model_output(dim_skip_token{:},xx), y, 'Un', 0);
         end
 
     case {'mae', 'mean_absolute_error'}
         %%% ---------- mean absolute error ---------
         for xx=1:nextra
-            perf(dim_skip_token{:},xx) = cellfun( @(ypred,ytrue) mean( abs(ypred - ytrue), 1), model_output(dim_skip_token{:},xx), y, 'Un', 0);
+            perf(dim_skip_token{:},xx) = cellfun( @(ypred,ytrue) mean( abs(bsxfun(@minus, ypred, ytrue)), 1), model_output(dim_skip_token{:},xx), y, 'Un', 0);
         end
 
     case {'r_squared'}
         %%% ---------- R-squared: fraction variance explained ---------
         for xx=1:nextra
-            perf(dim_skip_token{:},xx) = cellfun( @(ypred,ytrue) 1 - var(ypred - ytrue)./var(ytrue) , model_output(dim_skip_token{:},xx), y, 'Un', 0);
+            perf(dim_skip_token{:},xx) = cellfun( @(ypred,ytrue) 1 - bsxfun(@rdivide, var(bsxfun(@minus, ypred, ytrue)), var(ytrue)) , model_output(dim_skip_token{:},xx), y, 'Un', 0);
         end
         
     otherwise, error('Unknown metric: %s', metric)

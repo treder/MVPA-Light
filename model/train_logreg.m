@@ -329,7 +329,7 @@ end
 
 %% Train classifier on the full training data
 YX = Y*X0;
-sumyxN = sum(param.weights .* YX)'/N;
+sumyxN = sum(bsxfun(@times, param.weights, YX),1)'/N;
 X = X0;
 
 w = TrustRegionDoglegGN(logfun, w0, param.tolerance, param.max_iter);

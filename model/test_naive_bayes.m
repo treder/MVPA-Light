@@ -105,7 +105,7 @@ if nargout>2
     % apply softmax to obtain the posterior probabilities
     prob = exp(dval);
     Px = sum(prob, 2);
-    prob = prob ./ Px;
+    prob = bsxfun(@rdivide, prob, Px);
 end
 
 if cf.nclasses == 2

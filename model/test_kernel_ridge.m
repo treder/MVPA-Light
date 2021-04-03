@@ -16,7 +16,7 @@ function y_pred = test_kernel_ridge(model, X)
 if strcmp(model.kernel,'precomputed')
     y_pred = X * model.alpha_y;
 elseif strcmp(model.kernel, 'linear')
-    y_pred = X * model.w + model.b;
+    y_pred = bsxfun(@plus, X * model.w, model.b);
 else
     y_pred = model.kernelfun(model, X, model.X_train) * model.alpha;
 end
