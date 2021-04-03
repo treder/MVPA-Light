@@ -34,7 +34,7 @@ for pp=1:numel(pparam)   % -- loop over preprocessing pipeline
     
    % Look for dimension paramaters
    fn = fieldnames(pparam{pp});
-   dim_ix = find(contains(fn,'dimension'));
+   dim_ix = find(arrayfun(@(x) ~isempty(x{1}), strfind(fn,'dimension')) );
    
    for ix = 1:numel(dim_ix)
        % Change dimension according to new dim_order
