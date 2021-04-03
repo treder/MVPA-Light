@@ -44,11 +44,20 @@ sz = size(X);
 
 % remove 0 values
 X(X==0) = nan;
+sz = size(X);
 
 % sort columns according to absolute value
-[~,ix] = sort(abs(X), 1);
-ix = bsxfun(@plus, ix, 0:size(X,1):size(X,1)*(size(X,2)-1));
-X = X(ix); 
+try
+    X = sort(X, 1, 'ComparisonMethod', 'abs');
+catch
+    % older versions of matlab do not support 'ComparisonMethod', need to
+    % do it by hand
+    [~,sort_ix] = sort(abs(X), 1);
+    for ii=1:prod(sz(2:end))
+        tmp = X(:,ii);
+        X(:,ii) = tmp(sort_ix(:,ii));
+    end
+end
 
 ranks = repmat((1:sz(1))', [1, sz(2:end)]);
 
