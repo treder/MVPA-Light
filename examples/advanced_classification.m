@@ -69,8 +69,8 @@ end
 pre = find(freq.time < 0);
 BL = mean(mean(freq.trial(:,:,:,pre), 4),1);
 
-% calculate relative baseline (the resultant signal can be interpreted as
-% percent signal change
+% calculate relative baseline (the resultant signal can be interpreted in
+% terms of percent signal change)
 sz = size(freq.trial);
 BLmat = repmat(BL, [sz(1) 1 1 sz(4)]);
 freq.trial = (freq.trial - BLmat) ./ BLmat;
@@ -93,13 +93,13 @@ cfg.sample_dimension    = 1;
 cfg.feature_dimension   = 2;
 
 % optional: provide the names of the dimensions for nice output
-cfg.dimension_names = {'samples','channels','frequencies', 'time points'};
+cfg.dimension_names = {'samples','channels','frequencies','time points'};
 
 % we can now perform the classification
 [~, result] = mv_classify(cfg, freq.trial, clabel);
 
 % call mv_plot_result: results is the first argument, followed by the
-% arguments definining the x-axis (time) and y-axis (frequency)
+% arguments defining the x-axis (time) and y-axis (frequency)
 mv_plot_result(result, freq.time, freq.freq)
 
 %%%%%% EXERCISE 1 %%%%%%
@@ -109,12 +109,12 @@ mv_plot_result(result, freq.time, freq.freq)
 % Now the dimensions are [time points x channels x samples x frequencies].
 % Can you change the parameters sample_dimension, feature_dimension, and
 % the dimension_names such that mv_classify produces the same output as
-% before (i.e. (classification for each time-frequency point)?
+% before (i.e. classification for each time-frequency point)?
 %%%%%%%%%%%%%%%%%%%%%%%%
 
 %% (3) Searchlight across time and frequency
 % In the previous section we calculated classification performance for each
-% time-frequency point. However, each time points and each frequency were
+% time-frequency point. However, each time point and each frequency were
 % considered separately. Here, we define a 'larger' searchlight by also
 % taking into account the immediately neighbouring time points and
 % frequencies. To this end, we need to create neighbourhood matrices for
@@ -123,7 +123,7 @@ mv_plot_result(result, freq.time, freq.freq)
 [nsamples, nchannels, nfrequencies, ntimes] = size(freq.trial);
 
 % 1) create binary neighbourhood matrix for frequencies (includes a given
-% frequency and the two immediately preceding and following frequencies)
+% frequency and the preceding and following frequency)
 O = ones(nfrequencies);
 O = O - triu(O,2) - tril(O,-2);
 freq_neighbours = O;
@@ -136,7 +136,7 @@ freq_neighbours = O;
 freq_neighbours(1:5,1:10)
 
 % 2) create neighbourhood matrix for time points (include a given
-% time point and the two immediately preceding and following time points)
+% time point and the preceding and following time point)
 O = ones(ntimes);
 O = O - triu(O,2) - tril(O,-2);
 time_neighbours = O;
@@ -144,7 +144,7 @@ time_neighbours = O;
 cfg = [];
 cfg.sample_dimension = 1;
 cfg.feature_dimension  = 2;
-cfg.dimension_names = {'samples','channels','frequencies', 'time points'};
+cfg.dimension_names = {'samples','channels','frequencies','time points'};
 
 % Store both neighbourhood matrices together in a cell array
 cfg.neighbours = {freq_neighbours, time_neighbours};
@@ -199,7 +199,7 @@ cfg = [];
 cfg.dimension_names     = {'samples','channels','frequencies', 'time points'};
 cfg.feature_dimension   = [2 3];
 
-% Since cfg.flatten = 1 per default, both feature dimension will be 
+% Since cfg.flatten_features = 1 per default, both feature dimension will be 
 % flattened into a single feature vector of length channels x frequencies.
 % The result is a time x time map of classification accuracies.
 [~, result] = mv_classify(cfg, freq.trial, clabel);
@@ -250,7 +250,7 @@ mv_plot_result(result, freq.freq, freq.freq)
 % Perform an electrode x electrode generalization on the time-frequency
 % data. 
 % For comparison, also perform an electrode x electrode generalization on 
-% the original data (dat struct).
+% the original ERP data (dat struct).
 %%%%%%%%%%%%%%%%%%%%%%%%
 
 %% (7) Precompute kernel matrix
@@ -274,10 +274,9 @@ size(dat.trial)
 size(X_kernel)
 
 % We see that the data is [samples x channels x time points] whereas our
-% kernel matrix is [samples x samples x time points]. In other words, the
-% compute_kernel_matrix function assumes that the 2nd dimension is the
-% features. We can now pass on the kernel matrix to mv_classify. Just make
-% sure to set the hyperparameter kernel='precomputed'
+% kernel matrix is [samples x samples x time points]. We can now pass on 
+% the kernel matrix to mv_classify. Just make sure to set the hyperparameter 
+% kernel='precomputed'.
 cfg = [];
 cfg.classifier              = 'svm';
 cfg.hyperparameter          = [];
@@ -288,7 +287,7 @@ time1 = toc;
 fprintf('Computation time with precomputed kernels: %2.2fs\n', time1)
 
 % Let us compare how the performance changes when we use the same kernel
-% without pre-computation
+% without precomputation
 cfg = [];
 cfg.classifier              = 'svm';
 cfg.hyperparameter          = [];
@@ -322,7 +321,7 @@ fprintf('Computation time without precomputed kernels: %2.2fs\n', time2)
 % Transfer classification is supported by mv_classify,
 % mv_classify_across_time and mv_classify_timextime.
 % For mv_classify_timextime, cross decoding has already been covered in
-% Example 4 in getting_started_with_classification, so we will focus on
+% example 4 in getting_started_with_classification, so we will focus on
 % mv_classify_across_time and mv_classify here.
 
 % Here, we will train on the dataset dat,clabel and test on the following
@@ -346,8 +345,8 @@ cfg.metric  = 'auc';
 mv_plot_result(result, dat.time)
 title('train on dataset 1, test on dataset 2')
 
-% By swapping the input arguments we can train on dataset 1 and test on
-% dataset 2
+% By swapping the input arguments we can train on dataset 2 and test on
+% dataset 1
 [perf, result] = mv_classify_across_time(cfg, dat2.trial, clabel2, dat.trial, clabel);
 mv_plot_result(result, dat.time)
 title('train on dataset 2, test on dataset 1')
@@ -387,21 +386,24 @@ BLmat = repmat(BL, [sz(1) 1 1 sz(4)]);
 freq2.trial = (freq2.trial - BLmat) ./ BLmat;
 
 % Let's do the cross decoding now, using freq for training and freq2 for
-% testing. The classifier is trained for each time-frequency point separately. 
+% testing. The classifier is trained for each time-frequency point separately.
+% To do this, we simply pass freq2 and the corresponding class labels as 
+% additional arguments to mv_classify
 cfg = [];
 cfg.dimension_names = {'samples' 'channels' 'frequencies' 'time points'};
 [~, result] = mv_classify(cfg, freq.trial, clabel, freq2.trial, clabel2);
 mv_plot_result(result, freq.time, freq.freq)
 title('train on freq, test on freq2')
 
-% What happens if one of the dimensions between the two datasets does not
+% What happens if the dimensions between the two datasets do not
 % match? Let's try out by removing some frequencies from freq2, storing the
 % reduced data in freq3
 freq3 = freq2;
 freq3.trial = freq3.trial(:,:,1:29,:);
 freq3.freq  = freq3.freq(1:29);
 
-% this leads to an ERROR so let's wrap it into a try-except statement
+% Now train on freq and test on freq3: this will lead to an ERROR so 
+% let's wrap it into a try-except statement
 try
     [~, result] = mv_classify(cfg, freq.trial, clabel, freq3.trial, clabel2); 
 catch err
@@ -409,14 +411,14 @@ catch err
 end
 % This does not work because MVPA-Light does not know how to match up the
 % frequency points if they don't have the same number of elements. 
-% However, we can fix this by defining the frequency as a generalization
-% dimension: a classifier is trained / tested for every combination of
+% A possible way to avoid this problem is to define frequency as a generalization
+% dimension: a classifier is trained/tested for every combination of
 % train/test frequency, and it does not matter any more whether they match.
 cfg.generalization_dimension = 3;
 [perf, result] = mv_classify(cfg, freq.trial, clabel, freq3.trial, clabel2);
 
 % The dimensions of the result are [time points x train frequencies x test
-% frequences]. The generalization dimension is always moved to the end,
+% frequencies]. The generalization dimension is always moved to the end,
 % this is why time points come first. mv_plot_result does not plot 3D data,
 % so we leave it at just looking at the dimensions here.
 size(perf)
@@ -444,7 +446,7 @@ cfg.classifier          = 'lda';
 cfg.metric              = 'auc';
 cfg.sample_dimension    = 3;
 cfg.feature_dimension   = 2;
-cfg.dimension_names     = { 'time points','channels','samples','frequencies'};
+cfg.dimension_names     = {'time points', 'channels', 'samples', 'frequencies'};
 
 [~, result] = mv_classify(cfg, X, clabel);
 
@@ -467,7 +469,7 @@ cfg.feature_dimension = [];
 % We also need to add a neighbourhood matrix for electrodes. For now, we
 % only want to consider each electrode separately, therefore we add an
 % identity matrix. If you want to group neighbouring electrodes, refer to
-% the searchlight examples in getting_started_with_classification
+% the searchlight examples in getting_started_with_classification.
 % The order of the neighbourhood matrices needs to be the same as the order
 % of the dimensions. Since electrodes come before frequencies and time
 % points, we need to add the identity matrix as first element.
@@ -477,8 +479,6 @@ cfg.neighbours  = [eye(size(freq.trial,2)) cfg.neighbours];
 % faster
 cfg.k           = 2;
 cfg.repeat      = 1;
-
-% Now an analy
 [perf, result] = mv_classify(cfg, freq.trial, clabel);
 
 % 3D images cannot be currently plotted using mv_plot_result, so let's just
@@ -503,7 +503,7 @@ mv_plot_result(result, dat.time)
 % For electrode x electrode generalization, we just need to change
 % feature_dimension and generalization_dimension again
 cfg = [];
-cfg.dimension_names = {'samples', 'electrodes', 'frequencies', 'time points'};
+cfg.dimension_names             = {'samples', 'electrodes', 'frequencies', 'time points'};
 cfg.feature_dimension           = [3, 4];
 cfg.generalization_dimension    = 2;
 
@@ -545,7 +545,7 @@ cfg.sample_dimension        = [1 2]; % dimensions 1 and 2 are [samples x samples
 cfg.feature_dimension       = []; % with precomputed kernels we have no feature dimension, only the kernel matrix
 
 tic;
-% we want to take into account both percomputation and classification for
+% we want to take into account both precomputation and classification for
 % timing
 X_kernel = compute_kernel_matrix(cfg_kernel, freq.trial);
 perf = mv_classify(cfg, X_kernel, clabel);
@@ -553,7 +553,7 @@ time1 = toc;
 
 fprintf('Computation time with precomputed kernels: %2.2fs\n', time1)
 
-% without pre-computation
+% without precomputation
 cfg = [];
 cfg.classifier              = 'svm';
 cfg.hyperparameter          = [];
@@ -587,7 +587,7 @@ norm(perf-perf2)
 %% SOLUTION TO EXERCISE 7
 % We need to define both dimensions 2 (channels) and 3 (frequencies) as
 % feature dimensions. Both dimensions will automatically be flattened into
-% a single dimension since cfg.flatten_dimensions = 1 by default. 
+% a single dimension since cfg.flatten_features = 1 by default. 
 % Dimension 4 (time points) needs to be defined as a generalization
 % dimension.
 cfg = [];
