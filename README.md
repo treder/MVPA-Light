@@ -6,9 +6,9 @@ Matlab toolbox for classification and regression of multi-dimensional data
 
 ### News
 
+* (Apr 2021) cross-decoding using two different datasets implemented in `mv_classify` and `mv_classify_across_time` ([see examples 8 and 9 in `advanced_classification`](examples/advanced_classification.m)) and `mv_regress` ([example 5 in `getting_started_with_regression`](examples/getting_started_with_regression.m))
 * (Jan 2021) new set of tutorial-like examples is available in the [`examples`](examples/) folder. The old examples have been moved into the [`old_examples`](examples/old_examples/) subfolder
 * (June 2020) the [MVPA Light toolbox paper](https://www.frontiersin.org/articles/10.3389/fnins.2020.00289/full) has been published
-* (November 2019) added [`mv_regress`](mv_regress.m) for regression of multi-dimensional data, and [ridge](#ridge) and [kernel ridge](#kernelridge) models. Furthermore, [`mv_statistics`](statistics/mv_statistics.m) now includes permutation and cluster permutation tests
 
 ### Table of contents<a name="contents"></a>
 1. [Installation](#installation)
