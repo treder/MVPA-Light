@@ -23,9 +23,7 @@ function [zval, p, w] = mv_stat_wilcoxon_signrank(X, X2)
 %Reference:
 % https://en.wikipedia.org/wiki/Wilcoxon_signed-rank_test
 %
-% (c) Matthias Treder 2020
-
-
+% (c) Matthias Treder
 
 if nargin==2
     X = X - X2;
@@ -47,8 +45,10 @@ sz = size(X);
 % remove 0 values
 X(X==0) = nan;
 
-% sort according to absolute value
-X = sort(X, 1, 'ComparisonMethod', 'abs');
+% sort columns according to absolute value
+[~,ix] = sort(abs(X), 1);
+ix = bsxfun(@plus, ix, 0:size(X,1):size(X,1)*(size(X,2)-1));
+X = X(ix); 
 
 ranks = repmat((1:sz(1))', [1, sz(2:end)]);
 
