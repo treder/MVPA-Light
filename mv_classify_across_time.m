@@ -1,17 +1,21 @@
-function [perf, result, testlabel] = mv_classify_across_time(cfg, X, clabel)
-% Classification across time. A classifier is trained and validate for
-% different time points in the dataset X. Cross-validation should be used
+function [perf, result, testlabel] = mv_classify_across_time(cfg, X, clabel, varargin)
+% Classification across time. A classifier is trained and tested for
+% different time points in the dataset. Cross-validation can be used
 % to get a realistic estimate of classification performance.
 %
 % Usage:
-% [perf, res] = mv_classify_across_time(cfg,X,clabel)
+% [perf, res] = mv_classify_across_time(cfg, X, clabel, <X2, clabel2>)
 %
 %Parameters:
 % X              - [samples x features x time points] data matrix -OR-
 %                  [samples x samples  x time points] kernel matrices
 % clabel         - [samples x 1] vector of class labels
+% X2, clabel2    - (optional) if a second dataset is provided, transfer
+%                  classification (aka cross decoding) is performed. 
+%                  X/clabel acts as train data and X2/clabel2 acts as test 
+%                  data. The datasets must have the same number of features and time points.
 %
-% cfg          - struct with hyperparameters:
+% cfg          - struct with optional parameters:
 % .classifier   - name of classifier, needs to have according train_ and test_
 %                 functions (default 'lda')
 % .hyperparameter - struct with parameters passed on to the classifier train
@@ -22,7 +26,7 @@ function [perf, result, testlabel] = mv_classify_across_time(cfg, X, clabel)
 %                 depending on cfg.output_type) for each sample is returned. 
 %                 Use cell array to specify multiple metrics (eg
 %                 {'accuracy' 'auc'}
-% .time         - indices of time points (by default all time
+% .time         - indices of time points used e.g. 1:10 (by default all time
 %                 points in X are used)
 % .feedback     - print feedback on the console (default 1)
 %
@@ -57,8 +61,6 @@ function [perf, result, testlabel] = mv_classify_across_time(cfg, X, clabel)
 %                 Can be used as input to mv_statistics and mv_plot_result
 % testlabel     - [r x k] cell array of test labels. Can be useful if
 %                 metric='none'
-%
-% Note: For time x time generalisation, use mv_classify_timextime
 
 % (c) Matthias Treder
 
@@ -74,8 +76,13 @@ mv_set_default(cfg,'feedback',1);
 mv_set_default(cfg,'preprocess',{});
 mv_set_default(cfg,'preprocess_param',{});
 
-[cfg, clabel, n_classes, n_metrics] = mv_check_inputs(cfg, X, clabel);
+[cfg, clabel, n_classes, n_metrics, clabel2] = mv_check_inputs(cfg, X, clabel, varargin{:});
 
+has_second_dataset = (nargin==5);
+if has_second_dataset
+    X2 = double(varargin{1});
+end
+    
 ntime = numel(cfg.time);
 
 % Number of samples in the classes
@@ -91,11 +98,11 @@ train_fun = eval(['@train_' cfg.classifier]);
 test_fun = eval(['@test_' cfg.classifier]);
 
 %% Classify across time
-if cfg.feedback, mv_print_classification_info(cfg,X,clabel); end
+if cfg.feedback, mv_print_classification_info(cfg, X, clabel, varargin{:}); end
 
-if ~strcmp(cfg.cv,'none')
+if ~strcmp(cfg.cv,'none') && ~has_second_dataset
 
-    % Initialise classifier outputs
+    % Initialize classifier outputs
     cf_output = cell(cfg.repeat, cfg.k, ntime);
     testlabel = cell(cfg.repeat, cfg.k);
 
@@ -142,7 +149,38 @@ if ~strcmp(cfg.cv,'none')
     % Average classification performance across repeats and test folds
     avdim = [1,2];
 
+elseif has_second_dataset
+    % -------------------------------------------------------
+    % Transfer classification (aka cross decoding) using two datasets. The 
+    % first dataset acts as train data, the second as test data.
+    X2 = varargin{1};
+    assert( (size(X,2)==size(X2,2)) && (size(X,3)==size(X2,3)), sprintf('both datasets must have the same number of features and time points, but size(X) = [%s] and size(X2) = [%s]', num2str(size(X)), num2str(size(X2))))
+    
+    % Initialize classifier outputs
+    cf_output = cell(1, 1, ntime);
+    
+    % Preprocess train data
+    [tmp_cfg, X, clabel] = mv_preprocess(cfg, X, clabel);
+    
+    % Preprocess test data
+    [~, X2, clabel2] = mv_preprocess(tmp_cfg, X2, clabel2);
+    
+    for tt=1:ntime          % ---- Train and test time ----
+        % Train and test data
+        Xtrain= squeeze(X(:,:,cfg.time(tt)));
+        Xtest= squeeze(X2(:,:,cfg.time(tt)));
+        
+        % Train classifier
+        cf= train_fun(cfg.hyperparameter, Xtrain, clabel);
+        
+        % Obtain classifier output (class labels or dvals)
+        cf_output{1,1,tt} = mv_get_classifier_output(cfg.output_type, cf, test_fun, Xtest);
+    end
+    
+    testlabel = clabel2;
+    avdim = [];
 else
+    % -------------------------------------------------------
     % No cross-validation, just train and test once for each
     % training/testing time. This gives the classification performance for
     % the training set, but it may lead to overfitting and thus to an

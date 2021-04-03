@@ -1,4 +1,4 @@
-function [perf, result, testlabel] = mv_classify_timextime(cfg, X, clabel, X2, clabel2)
+function [perf, result, testlabel] = mv_classify_timextime(cfg, X, clabel, varargin)
 % Time x time generalisation. A classifier is trained on the training data
 % X and validated on either the same dataset X. Cross-validation is
 % recommended to avoid overfitting. If another dataset X2 is provided,
@@ -10,14 +10,15 @@ function [perf, result, testlabel] = mv_classify_timextime(cfg, X, clabel, X2, c
 % of time points as well.
 %
 % Usage:
-% perf = mv_classify_timextime(cfg,X,clabel,<X2, clabel2>)
+% perf = mv_classify_timextime(cfg, X, clabel, <X2, clabel2>)
 %
 %Parameters:
 % X              - [samples x features x time points] data matrix. 
 % clabel         - [samples x 1] vector of class labels
-% X2, clabel2    - (optional) second dataset with associated labels. If
-%                  provided, the classifier is trained on X and tested on
-%                  X2 using
+% X2, clabel2    - (optional) if a second dataset is provided, transfer
+%                  classification (aka cross decoding) is performed. 
+%                  X/clabel acts as train data and X2/clabel2 acts as test 
+%                  data. The datasets must have the same number of features and time points.
 %
 % cfg          - struct with optional parameters:
 % .classifier   - name of classifier, needs to have according train_ and test_
@@ -33,7 +34,7 @@ function [perf, result, testlabel] = mv_classify_timextime(cfg, X, clabel, X2, c
 % .time1        - indices of training time points (by default all time
 %                 points in X are used)
 % .time2        - indices of test time points (by default all time points
-%                 in X are used)
+%                 are used)
 % .feedback     - print feedback on the console (default 1)
 %
 % CROSS-VALIDATION parameters:
@@ -75,9 +76,6 @@ function [perf, result, testlabel] = mv_classify_timextime(cfg, X, clabel, X2, c
 
 X = double(X);
 if ndims(X)~= 3, error('X must be 3-dimensional'), end
-if nargin > 3
-    X2 = double(X2);
-end
 
 mv_set_default(cfg,'classifier','lda');
 mv_set_default(cfg,'hyperparameter',[]);
@@ -90,14 +88,17 @@ mv_set_default(cfg,'dimension_names',{'samples','features','time points'});
 mv_set_default(cfg,'preprocess',{});
 mv_set_default(cfg,'preprocess_param',{});
 
-[cfg, clabel, n_classes, n_metrics] = mv_check_inputs(cfg, X, clabel);
+[cfg, clabel, n_classes, n_metrics, clabel2] = mv_check_inputs(cfg, X, clabel, varargin{:});
 
-hasX2 = (nargin==5);
-if hasX2, mv_set_default(cfg,'time2',1:size(X2,3));
-else,     mv_set_default(cfg,'time2',1:size(X,3));
+has_second_dataset = (nargin==5);
+if has_second_dataset
+    X2 = double(varargin{1});
+    mv_set_default(cfg,'time2',1:size(X2,3));
+else
+    mv_set_default(cfg,'time2',1:size(X,3));
 end
-nTime1 = numel(cfg.time1);
-nTime2 = numel(cfg.time2);
+ntime1 = numel(cfg.time1);
+ntime2 = numel(cfg.time2);
 
 % Number of samples in the classes
 n = arrayfun( @(c) sum(clabel==c) , 1:n_classes);
@@ -110,7 +111,7 @@ end
 %% Reduce data to selected time points
 X = X(:,:,cfg.time1);
 
-if hasX2
+if has_second_dataset
     X2 = X2(:,:,cfg.time2);
 end
 
@@ -119,15 +120,16 @@ train_fun = eval(['@train_' cfg.classifier]);
 test_fun = eval(['@test_' cfg.classifier]);
 
 %% Time x time generalisation
-if ~strcmp(cfg.cv,'none') && ~hasX2
+if cfg.feedback, mv_print_classification_info(cfg, X, clabel, varargin{:}); end
+
+if ~strcmp(cfg.cv,'none') && ~has_second_dataset
     % -------------------------------------------------------
     % One dataset X has been provided as input. X is hence used for both
     % training and testing. To avoid overfitting, cross-validation is
     % performed.
-    if cfg.feedback, mv_print_classification_info(cfg,X,clabel); end
 
-    % Initialise classifier outputs
-    cf_output = cell(cfg.repeat, cfg.k, nTime1);
+    % Initialize classifier outputs
+    cf_output = cell(cfg.repeat, cfg.k, ntime1);
     testlabel = cell(cfg.repeat, cfg.k);
     
     for rr=1:cfg.repeat                 % ---- CV repetitions ----
@@ -164,10 +166,10 @@ if ~strcmp(cfg.cv,'none') && ~hasX2
             % permute and reshape into [ (trials x test times) x features]
             % samples
             Xtest= permute(Xtest, [1 3 2]);
-            Xtest= reshape(Xtest, numel(testlabel{rr,kk})*nTime2, []);
+            Xtest= reshape(Xtest, numel(testlabel{rr,kk})*ntime2, []);
 
             % ---- Training time ----
-            for t1=1:nTime1
+            for t1=1:ntime1
 
                 % Training data for time point t1
                 Xtrain_tt= squeeze(Xtrain(:,:,t1));
@@ -186,31 +188,27 @@ if ~strcmp(cfg.cv,'none') && ~hasX2
     % Average classification performance across repeats and test folds
     avdim= [1,2];
 
-elseif hasX2
+elseif has_second_dataset
     % -------------------------------------------------------
-    % An additional dataset X2 has been provided. The classifier is trained
-    % on X and tested on X2. Cross-validation does not make sense here and
-    % is not performed.
-    cfg.cv = 'none';
-    
-    % Print info on datasets
-    if cfg.feedback, mv_print_classification_info(cfg, X, clabel, X2, clabel2); end
-    
+    % Transfer classification (aka cross decoding) using two datasets. The 
+    % first dataset acts as train data, the second as test data.
+    assert( size(X,2)==size(X2,2), sprintf('both datasets must have the same number of features, but size(X) = [%s] and size(X2) = [%s]', num2str(size(X)), num2str(size(X2))))
+
+    % Initialize classifier outputs
+    cf_output = cell(1, 1, ntime1);
+
     % Preprocess train data
     [tmp_cfg, X, clabel] = mv_preprocess(cfg, X, clabel);
     
     % Preprocess test data
     [~, X2, clabel2] = mv_preprocess(tmp_cfg, X2, clabel2);
 
-    % Initialise classifier outputs
-    cf_output = cell(1, 1, nTime1);
-
-    % permute and reshape into [ (trials x test times) x features]
+    % Permute and reshape into [ (trials x test times) x features]
     Xtest= permute(X2, [1 3 2]);
-    Xtest= reshape(Xtest, size(X2,1)*nTime2, []);
+    Xtest= reshape(Xtest, size(X2,1)*ntime2, []);
 
     % ---- Training time ----
-    for t1=1:nTime1
+    for t1=1:ntime1
 
         % Training data for time point t1
         Xtrain= squeeze(X(:,:,t1));
@@ -228,24 +226,24 @@ elseif hasX2
 
 elseif strcmp(cfg.cv,'none')
     % -------------------------------------------------------
-    % One dataset X has been provided as input. X is hence used for both
-    % training and testing. However, cross-validation is not performed.
-    % Note that this can lead to overfitting.
-    if cfg.feedback, mv_print_classification_info(cfg,X,clabel); end
-
+    % No cross-validation, just train and test once for each
+    % training/testing time. This gives the classification performance for
+    % the training set, but it may lead to overfitting and thus to an
+    % artifically inflated performance.
+    
+    % Initialize classifier outputs
+    cf_output = cell(1, 1, ntime1);
+    
     % Preprocess train/test data
     [~, X, clabel] = mv_preprocess(cfg, X, clabel);
 
-    % Initialise classifier outputs
-    cf_output = cell(1, 1, nTime1);
-
-    % permute and reshape into [ (trials x test times) x features]
+    % Permute and reshape into [ (trials x test times) x features]
     Xtest= permute(X, [1 3 2]);
-    Xtest= reshape(Xtest, size(X,1)*nTime1, []);
+    Xtest= reshape(Xtest, size(X,1)*ntime1, []);
     % permute and reshape into [ (trials x test times) x features]
   
     % ---- Training time ----
-    for t1=1:nTime1
+    for t1=1:ntime1
 
         % Training data for time point t1
         Xtrain= squeeze(X(:,:,t1));
@@ -257,10 +255,9 @@ elseif strcmp(cfg.cv,'none')
         cf_output{1,1,t1} = reshape( mv_get_classifier_output(cfg.output_type, cf, test_fun, Xtest), size(X,1),[]);
 
     end
-
+    
     testlabel = clabel;
     avdim = [];
-
 end
 
 %% Calculate performance metrics
@@ -293,10 +290,10 @@ if nargout>1
    result.task                  = 'classification';
    result.perf                  = perf;
    result.perf_std              = perf_std;
+   result.metric                = cfg.metric;
    result.perf_dimension_names  = perf_dimension_names;
    result.testlabel             = testlabel;
-   result.metric                = cfg.metric;
-   if hasX2
+   if has_second_dataset
        result.n                 = size(X2,1);
    else
        result.n                 = size(X,1);

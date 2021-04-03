@@ -323,6 +323,11 @@ max(max(std(X,[],1)))
 [dat,clabel] = load_example_data('epoched2');
 X = dat.trial;
 
+cfg = [];
+cfg.metric          = 'acc';
+cfg.classifier      = 'svm';
+cfg.repeat          = 1;
+cfg.k               = 10;
 % Simply set preprocess to 'undersample'
 cfg.preprocess      = 'undersample';
 perf3 = mv_classify_across_time(cfg, X, clabel);
@@ -367,6 +372,7 @@ plot(dat.time, perf)
 %% SOLUTION TO EXERCISE 5
 % If operations are carried out in a different order, the results can
 % be different. In this case, the results are quite similar.
+cfg = [];
 cfg.preprocess      = {'average_samples' 'zscore'};
 [~, result] = mv_classify_across_time(cfg, X, clabel);
 
@@ -386,7 +392,6 @@ cfg.preprocess      = {'zscore' 'pca' 'average_samples'};
 
 mv_plot_result(result, dat.time)
 
-
 %% SOLUTION TO EXERCISE 7
 % Using the help we see that the n parameter specifies the number of PCs
 help mv_preprocess_pca
@@ -400,6 +405,10 @@ cfg.preprocess_param{3}     = {'group_size' 4}; % average_samples is the 3rd ope
 perf = mv_classify_across_time(cfg, X, clabel);
 
 %% SOLUTION TO EXERCISE 8
+% Recreate the data first
+X = simulate_erp_peak(n_trials, n_time_points, pos, width, amplitude, weight, [], scale);
+y = amplitude + 0.5 * randn(n_trials, 1);
+
 cfg = [];
 cfg.model               = 'ridge';
 cfg.metric              = {'mae' 'r_squared'};

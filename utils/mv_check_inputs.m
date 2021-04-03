@@ -1,4 +1,4 @@
-function [cfg, clabel, n_classes,n_metrics] = mv_check_inputs(cfg, X, clabel)
+function [cfg, clabel, n_classes,n_metrics, clabel2] = mv_check_inputs(cfg, X, clabel, X2, clabel2)
 % Performs some sanity checks and sets some defaults for input parameters 
 % cfg, X, and y.
 % Also checks whether external toolboxes (LIBSVM and LIBLINEAR) are
@@ -9,27 +9,38 @@ if ~iscell(cfg.metric)
 end
 n_metrics = numel(cfg.metric);
 
+has_second_dataset = (nargin > 3) && ~isempty(X2) && ~isempty(clabel2);
+if ~has_second_dataset, clabel2 = []; end
+
 %% clabel: check class labels
 clabel = clabel(:);
 u = unique(clabel);
 n_classes = length(u);
 
-if ~all(ismember(clabel,1:n_classes))
-    warning('Class labels should consist of integers 1 (class 1), 2 (class 2), 3 (class 3) and so on. Relabelling them accordingly.');
-    newlabel = nan(numel(clabel), 1);
-    for i = 1:n_classes
-        newlabel(clabel==u(i)) = i; % set to 1:nth classes
-    end
-    clabel = newlabel;
-end
-
 if n_classes==1
     error('Only one class specified. Class labels must contain at least 2 classes')
+end
+
+if iscell(clabel) || ~all(ismember(clabel,1:n_classes))
+    warning('clabel should be a vector consisting of integers 1 (class 1), 2 (class 2), 3 (class 3) and so on. Relabelling them accordingly.');
+    newlabel = nan(numel(clabel), 1);
+    for i = 1:n_classes
+        newlabel(ismember(clabel, u(i))) = i; % set to 1:nth classes
+    end
+    clabel = newlabel;
+    if has_second_dataset
+        newlabel = nan(numel(clabel2), 1);
+        for i = 1:n_classes
+            newlabel(ismember(clabel2, u(i))) = i;
+        end
+        clabel2 = newlabel;
+    end
 end
 
 %% clabel and cfg: check whether there's more than 2 classes but yet a binary classifier is used
 binary_classifiers = {'lda' 'logreg' 'svm'};
 if n_classes > 2 && ismember(cfg.classifier, binary_classifiers)
+perf      = mv_regress(cfg, x, y, x, y);
     error('Cannot use %s for a classification task with %d classes: use a multiclass classifier instead (see https://github.com/treder/MVPA-Light/ for a list of classifiers)', upper(cfg.classifier), n_classes)
 end
 
@@ -38,7 +49,6 @@ fn = fieldnames(cfg);
 
 % Are all cfg fields given in lowercase?
 not_lowercase = find(~strcmp(fn,lower(fn)));
-
 if any(not_lowercase)
     error('For consistency, all parameters must be given in lowercase: please replace cfg.%s by cfg.%s', fn{not_lowercase(1)},lower(fn{not_lowercase(1)}) )
 end
@@ -83,8 +93,19 @@ end
 
 %% cfg: check whether number of classes and metric are compatible (eg 'auc' does not work for more than 2 classes)
 only_binary = {'auc' 'dval' 'tval'};
-if  (n_classes > 2) && any(ismember(only_binary, cfg.metric))
-    error('The following metrics work only for 2 classes: %s', strjoin(only_binary))
+n_classes2 = length(unique(clabel2));
+
+if ~has_second_dataset
+    if  (n_classes > 2) && any(ismember(only_binary, cfg.metric))
+        error('The following metrics work only for 2 classes: %s', strjoin(only_binary))
+    end
+else
+    need_more_than_1_class = {'auc' 'confusion' 'f1' 'precision' 'recall' 'tval'};
+    if n_classes2 == 1 && any(ismember(need_more_than_1_class, cfg.metric))
+        %error('Dataset 2 has only 1 class but the following metrics require more than 1 class: %s', strjoin(need_more_than_1_class))
+    elseif  (n_classes2 > 2) && any(ismember(only_binary, cfg.metric))
+        error('Dataset 2 has %d classes but the following metrics work only for 2 classes: %s', n_classes2, strjoin(only_binary))
+    end
 end
 
 %% cfg: check for parameter names that have been changed
@@ -156,6 +177,9 @@ end
 %% X and clabel: check whether the number of instances matches the number of class labels
 if numel(clabel) ~= size(X,1)
     error('Number of class labels (%d) does not match number of instances (%d) in data', numel(clabel), size(X,1))
+end
+if has_second_dataset && (numel(clabel2) ~= size(X2,1))
+    error('Number of class labels (%d) does not match number of instances (%d) in dataset 2', numel(clabel2), size(X2,1))
 end
 
 %% check whether train and test functions are available for the classifier

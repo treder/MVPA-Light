@@ -165,3 +165,37 @@ for cv = {'kfold' ,'leaveout', 'holdout', 'none'}
     cfg.cv = cv{:};
     mv_classify_across_time(cfg, X, clabel);
 end
+
+%% Transfer classification (cross decoding)
+
+% Cross decoding with the same dataset should yield the same result
+% as cv = none
+cfg.cv = 'none';
+cfg.metric = 'dval';
+cfg.feedback = 0;
+perf1 = mv_classify_across_time(cfg, X, clabel);
+perf2 = mv_classify_across_time(cfg, X, clabel, X, clabel);
+print_unittest_result('transfer classification vs cv=none', perf1, perf2, tol);
+
+% there should be no error for different sample numbers
+sz = size(X);
+X2 = randn(sz + [10, 0, 0]);
+clabel2 = clabel; clabel2(end:end+10) = 2;
+perf1 = mv_classify_across_time(cfg, X, clabel, X2, clabel2);
+perf2 = mv_classify_across_time(cfg, X, clabel, X2(1:end-10,:,:), clabel2(1:end-10));
+print_unittest_result('transfer classification for different sample numbers should have same size', size(perf1), size(perf2), tol);
+
+% dval: splitting the second dataset into separate classes should give the same result as testing on both classes at the same time
+clabel2_1 = clabel2(clabel2==1);
+clabel2_2 = clabel2(clabel2==2);
+X2_1 = X2(clabel2==1,:,:);
+X2_2 = X2(clabel2==2,:,:);
+
+
+perf   = mv_classify_across_time(cfg, X, clabel, X2, clabel2);
+perf_1 = mv_classify_across_time(cfg, X, clabel, X2_1, clabel2_1);
+perf_2 = mv_classify_across_time(cfg, X, clabel, X2_2, clabel2_2);
+
+print_unittest_result('transfer classification: testing both classes vs only class 1', perf(:,1), perf_1(:,1), tol);
+print_unittest_result('transfer classification: testing both classes vs only class 2', perf(:,2), perf_2(:,2), tol);
+

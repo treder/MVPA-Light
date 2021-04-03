@@ -15,7 +15,7 @@ function mv_print_classification_info(cfg, X, clabel, X2, clabel2)
 % X2        - [... x ... x ... x] second dataset (optional)
 % clabel2   - [samples x 1] class labels for second dataset (optional)
 
-if nargin <= 3
+if nargin <= 3 || (isempty(X2) && isempty(clabel2))
     % Print type of classification
     if ~strcmp(cfg.cv,'none')
         if strcmp(cfg.cv,'kfold'), k=sprintf(' (k=%d)', cfg.k); else k=''; end
@@ -44,34 +44,35 @@ if nargin <= 3
     end
     
 else
-    %% Transfer classification using two datasets
-    fprintf('Training on dataset 1, testing on dataset 2 using a %s classifier.\n',upper(cfg.classifier));
+    %% Transfer classification (cross decoding) using two datasets
+    fprintf('Performing cross-classification (train on dataset 1, test on dataset 2) using a %s classifier.\n',upper(cfg.classifier));
 
-    % Dataset 1
-    nclasses1 = max(clabel);
-    if ndims(X)==2
-        fprintf('Dataset 1 has %d samples, %d features and %d classes.\n', [size(X), nclasses1])
-    elseif ndims(X)==3
-        fprintf('Dataset 1 has %d samples, %d features, %d time points, and %d classes.\n', [size(X), nclasses1])
+    % Train data: Print data information
+    nclasses = max(clabel);
+    if nargin>1 
+        dimensions = arrayfun(@(x,y) sprintf('%d %s, ', x, y{:}), [size(X) ones(1, length(cfg.dimension_names)-ndims(X))], cfg.dimension_names(:)', 'Un', 0);
+        fprintf('Train data has %sand %d classes.\n', [dimensions{:}], nclasses)
     end
-
+    
+    % Train data: Print class label information
     u = unique(clabel);
-    fprintf('Class frequencies: ');
+    fprintf('Train data class frequencies: ');
     for ii=1:numel(u)
         fprintf('%2.2f%% [class %d]', 100*sum(clabel==u(ii))/numel(clabel), u(ii));
         if ii<numel(u), fprintf(', '), end
     end
     fprintf('.\n')
     
-    % Dataset 2
-    nclasses2 = max(clabel2);
-    if nargin>1
-        dimensions = arrayfun(@(x,y) sprintf('%d %s, ', x, y{:}), [size(X2) ones(1, length(cfg.dimension_names)-ndims(X2))], cfg.dimension_names(:)', 'Un', 0);
-        fprintf('Dataset 2 has %sand %d classes.\n', [dimensions{:}], nclasses2)
+    % Test data: Print data information
+    nclasses = max(clabel2);
+    if nargin>1 
+        dimensions = arrayfun(@(x,y) sprintf('%d %s, ', x, y{:}), [size(X2) ones(1, length(cfg.dimension_names)-ndims(X))], cfg.dimension_names(:)', 'Un', 0);
+        fprintf('Test data has %sand %d classes.\n', [dimensions{:}], nclasses)
     end
-
+    
+    % Test data: Print class label information
     u = unique(clabel2);
-    fprintf('Class frequencies (dataset 2): ');
+    fprintf('Test data class frequencies: ');
     for ii=1:numel(u)
         fprintf('%2.2f%% [class %d]', 100*sum(clabel2==u(ii))/numel(clabel2), u(ii));
         if ii<numel(u), fprintf(', '), end

@@ -269,3 +269,46 @@ perf = mv_regress(cfg, X, Y);
 
 print_unittest_result('[2 search dim] size(perf) for non-square neighbours', [size(nb1,1) size(nb2,1)], size(perf), tol);
 
+
+%% Transfer regression (cross regression)
+nsamples2 = 60;
+[x2, y2] = simulate_regression_data('linear', nsamples2, nfeatures, 0);
+
+% Cross regression with the same dataset should yield the same result
+% as cv = none
+cfg = [];
+cfg.cv = 'none';
+cfg.feedback = 0;
+perf1 = mv_regress(cfg, x, y);
+perf2 = mv_regress(cfg, x, y, x, y);
+
+print_unittest_result('transfer regression with same data vs cv=none', perf1, perf2, tol);
+
+% add time dimension
+x(:,:,80) = x;
+x2(:,:,80) = x2;
+
+cfg.generalization_dimension = 3;
+perf1 = mv_regress(cfg, x, y);
+perf2 = mv_regress(cfg, x, y, x, y);
+print_unittest_result('transfer regression with same data vs cv=none (with generalization)', perf1, perf2, tol);
+
+% sample dimension = 2 should not affect cross classification
+x_perm = permute(x, [2 1 3]); % samples is now second dimension
+
+perf      = mv_regress(cfg, x, y, x, y);
+cfg.feature_dimension = 1;
+cfg.sample_dimension = 2;
+cfg.feedback = 0;
+perf_perm = mv_regress(cfg, x_perm, y, x_perm, y);
+print_unittest_result('transfer regression with sample dimension = 1 vs 2', perf, perf_perm, tol);
+
+% cross decoding with generalization
+x2(:,:,101) = squeeze(x2(:,:,1));
+
+cfg = [];
+cfg.generalization_dimension = 3;
+cfg.feedback = 0;
+perf   = mv_regress(cfg, x, y, x2, y2);
+
+print_unittest_result('transfer regression with generalization', [size(x,3) size(x2,3)], size(perf), tol);

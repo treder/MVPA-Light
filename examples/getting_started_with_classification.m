@@ -201,7 +201,7 @@ fprintf('Classification accuracy: %0.2f\n', perf)
 % (logreg).
 
 cfg = [];
-cfg.classifier  = 'logreg';
+cfg.classifier  = 'lda';
 perf = mv_classify(cfg, X, clabel);
 fprintf('Classification accuracy using Logistic Regression: %0.2f\n', perf)
 
@@ -353,7 +353,8 @@ auc2 = mv_classify(cfg, dat.trial, clabel);
 % (cv='none'). What do you notice?
 %%%%%%%%%%%%%%%%%%%%%%%%
 
-% Generalization with two datasets: So far we trained and tested on the
+% Generalization with two datasets (aka cross decoding): 
+% So far we trained and tested on the
 % same dataset. However, nothing stops us from training on one dataset and
 % testing on the other dataset. This can be useful e.g. in experiments with
 % different experimental conditions (eg memory encoding and memory

@@ -7,6 +7,7 @@
 % (2) Regression with cross-validation and explanation of the cfg struct
 % (3) Plotting results
 % (4) Compare Ridge, Kernel Ridge, and Support Vector Regression
+% (5) Transfer learning (cross regression)
 %
 % It is recommended that you work through this tutorial step by step. To
 % this end, copy the lines of code that you are currently reading and paste
@@ -267,6 +268,60 @@ title('Predictions')
 % y = 2*mod(x, 3) + 0.4 * x; % SAWTOOTH FUNCTION
 %%%%%%%%%%%%%%%%%%%%%%%%
 
+%% (5) Transfer regression (cross regression)
+% In transfer regression (or cross regression), one dataset is used for 
+% training, another one for testing. Technically, this is the same as in 
+% cross-validation, where one fold is defined for training and a separate 
+% fold for testing. However, in transfer regression we assume that the two 
+% datasets come from potentially different distributions (e.g. two different
+% participants, two different phases in an experiment etc). 
+% Transfer regression is implemented in mv_regress.
+% Let's first recreate the dataset from example 1.
+X = simulate_erp_peak(n_trials, n_time_points, pos, width, amplitude, weight, [], scale);
+y = amplitude + 0.5 * randn(n_trials, 1);
+
+% Now create a second ERP dataset. It has the same parameters as
+% the first one, but 10 more trials.
+n_trials2 = n_trials + 10;
+amplitude2 = 3*randn(n_trials2,1) + 3;
+X2 = simulate_erp_peak(n_trials2, n_time_points, pos, width, amplitude2, weight, [], scale);
+y2 = amplitude2 + 0.5 * randn(n_trials2, 1);
+
+% Now let's perform the cross regression. We only need to add X2 and y2 as
+% extra inputs to mv_regress.
+cfg = [];
+cfg.model           = 'ridge';
+cfg.dimension_names = {'samples' 'channels' 'time points'};
+[perf, result] = mv_regress(cfg, X, y, X2, y2);
+
+% The model has been trained for each time point in dataset 1 and tested at
+% the same time point in dataset 2 
+mv_plot_result(result)
+
+% Now let's create a dataset with fewer time points
+n_time_points2 = 25;
+X2 = simulate_erp_peak(n_trials2, n_time_points2, pos, width, amplitude2, weight, [], scale);
+% this leads to an ERROR so let's wrap it into a try-except statement
+try
+    [perf, result] = mv_regress(cfg, X, y, X2, y2);
+catch err
+    fprintf('[ERROR] Call to mv_regress failed:\n%s\n', err.message)
+end
+
+% However, we can fix this by defining time as a generalization
+% dimension: a model is trained / tested for every combination of
+% train/test time, and it does not matter any more whether they match in length.
+cfg.generalization_dimension = 3;
+[perf, result] = mv_regress(cfg,  X, y, X2, y2);
+
+% The dimensions of the result are [time points x train frequencies x test
+% frequences]. The generalization dimension is always moved to the end,
+% this is why time points come first. mv_plot_result does not plot 3D data,
+% so we leave it at just looking at the dimensions here.
+size(perf)
+
+
+%% The End
 % Congrats, you made it to the end! You can embark on your own MVPA 
 % adventures now or check out one of the other tutorials.
 

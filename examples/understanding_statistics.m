@@ -531,6 +531,13 @@ mv_plot_result(controls_and_patients_average, time, 'mask', stat_between.mask)
 
 %% SOLUTIONS TO THE EXERCISES
 %% SOLUTION TO EXERCISE 1
+% Let's reproduce the result first
+cfg =  [];
+cfg.repeat          = 2;
+cfg.metric          = 'accuracy'; % binomial test needs the accuracy metric
+[~, result] = mv_classify_across_time(cfg, dat.trial, clabel);
+
+
 % Chance level and alpha can be controlled using the respective fields of
 % the cfg struct
 cfg = [];

@@ -264,7 +264,7 @@ cfg.cv          = 'kfold';
 cfg.k           = 3;
 cfg.repeat      = 2;
     
-[perf, result] = mv_classify_across_time(cfg, X, clabel);
+[perf, result] = mv_classify_across_time(cfg, dat.trial, clabel);
 
 perf
 % Now we see that size(perf{3}) = [2, 3, 131]. So the first dimension
@@ -303,6 +303,20 @@ mv_plot_result(result_prob, dat.time)
 % points that discriminability is high.
 
 %% SOLUTION TO EXERCISE 3
+% Let's first reproduce the result in example 3
+% Train a Kernel Ridge regression model and calculate MAE
+cfg = [];
+cfg.model                   = 'ridge';
+cfg.hyperparameter          = [];
+cfg.hyperparameter.lambda   = 0.1;
+cfg.metric                  = 'mae';
+cfg.cv                      = 'predefined';    
+fold = ones(numel(y), 1); 
+fold(2:2:end) = 2; 
+cfg.fold                    = fold;
+cfg.metric                  = {'mae' 'mse' 'none'};
+[perf, result] = mv_regress(cfg, X, y);
+
 % MAE and MSE are calculated for each of the folds separately, then
 % averaged across the folds. Let's do this by hand by first calculating the
 % residuals:
@@ -321,8 +335,7 @@ N2 = numel(residuals2);
 mae = (mae1 * N1 + mae2 * N2) / (N1+N2); % weighted average 
 
 % Comparing mae and perf{1} we see that they are indeed identical
-mae
-perf{1}
+[mae perf{1}]
 
 % For MSE, the procedure is essentially the same, we only square the
 % residuals before averaging:
@@ -331,5 +344,4 @@ mse2 = mean(residuals2 .^ 2);   % MSE in fold 2
 mse = (mse1 * N1 + mse2 * N2) / (N1+N2); % weighted average 
 
 % Comparing MSE to perf{2} again we see they are identical
-mse
-perf{2}
+[mse perf{2}]

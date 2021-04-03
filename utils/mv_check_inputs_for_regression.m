@@ -1,4 +1,4 @@
-function [cfg, Y, nmetrics] = mv_check_inputs_for_regression(cfg, X, Y)
+function [cfg, Y, nmetrics, Y2] = mv_check_inputs_for_regression(cfg, X, Y, X2, Y2)
 % For regression: Performs some sanity checks and sets some defaults for 
 % input parameters cfg, X, and y.
 % Also checks whether external toolboxes (LIBSVM and LIBLINEAR) are
@@ -9,10 +9,11 @@ if ~iscell(cfg.metric)
 end
 nmetrics = numel(cfg.metric);
 
+has_second_dataset = (nargin > 3) && ~isempty(X2) && ~isempty(Y2);
+if ~has_second_dataset, Y2 = []; end
+
 %% Y: check whether it is a column vector
-if isvector(Y) && numel(Y)>1 && size(Y,2) > 1
-    error('Response vector Y should be given as a column vector, not a row vector')
-end
+assert(~(isvector(Y) && numel(Y)>1 && size(Y,2) > 1),'Response vector Y should be given as a column vector, not a row vector')
 
 %% Y: if Y is multivariate, check whether this is supported by the model
 
@@ -21,18 +22,14 @@ if ~isvector(Y)
 end
 
 %% X and Y: check whether the number of instances is matched
-if isvector(Y), len = length(Y);
-else, len = size(Y,1); end
-if len ~= size(X, cfg.sample_dimension)
-    error('Number of responses (%d) does not match number of instances (%d) in data', len, size(X,cfg.sample_dimension))
-end
+assert(size(Y,1) == size(X,1),'Number of responses (%d) does not match number of instances (%d) in data', size(Y,1), size(X,cfg.sample_dimension))
+if has_second_dataset, assert(size(Y2,1) == size(X2,1),'Number of responses (%d) in second dataset does not match number of instances (%d)', size(Y2,1), size(X2,cfg.sample_dimension)), end
 
 %% cfg: check whether all parameters are written in lowercase
 fn = fieldnames(cfg);
 
 % Are all cfg fields given in lowercase?
 not_lowercase = find(~strcmp(fn,lower(fn)));
-
 if any(not_lowercase)
     error('For consistency, all parameters must be given in lowercase: please replace cfg.%s by cfg.%s', fn{not_lowercase(1)},lower(fn{not_lowercase(1)}) )
 end

@@ -1,9 +1,9 @@
-function [perf, result] = mv_regress(cfg, X, Y)
+function [perf, result] = mv_regress(cfg, X, Y, varargin)
 % Regression of multi-dimensional data. The interface is very similar to 
 % that of mv_classify.
 %
 % Usage:
-% [perf, res] = mv_regress(cfg, X, y)
+% [perf, res] = mv_regress(cfg, X, Y, <X2, Y2>)
 %
 %Parameters:
 % X              - [... x ... x ... x ] data matrix or kernel matrix of
@@ -12,6 +12,12 @@ function [perf, result] = mv_regress(cfg, X, Y)
 %                                regression) -or- 
 %                  [samples x m] matrix of responses (for multivariate 
 %                                regression with m response variables)
+% X2, Y2         - (optional) if a second dataset is provided, transfer
+%                  regression is performed. 
+%                  X/Y acts as train data and X2/Y2 acts as test 
+%                  data. The datasets must have the same size, they can
+%                  only differ in the number of samples and in the
+%                  generalization dimension.
 %
 % cfg          - struct with optional parameters:
 % .model          - name of regression model, needs to have according train_ and test_
@@ -114,6 +120,11 @@ mv_set_default(cfg,'feedback',1);
 mv_set_default(cfg,'sample_dimension',1);
 mv_set_default(cfg,'feature_dimension',2);
 mv_set_default(cfg,'generalization_dimension',[]);
+if isempty(cfg.generalization_dimension) || cfg.generalization_dimension ~= 2
+    mv_set_default(cfg,'feature_dimension', 2);
+else
+    mv_set_default(cfg,'feature_dimension', []);
+end
 mv_set_default(cfg,'flatten_features',1);
 mv_set_default(cfg,'dimension_names',repmat({''}, [1, ndims(X)]));
 
@@ -125,9 +136,13 @@ cfg.neighbours = cfg.neighbours(:);  % make sure it's a column vector
 mv_set_default(cfg,'preprocess',{});
 mv_set_default(cfg,'preprocess_param',{});
 
-% mv_check_inputs assumes samples are in dimension 1 so need to permute
-[cfg, Y, n_metrics] = mv_check_inputs_for_regression(cfg, X, Y);
-% [cfg, Y, nmetrics] = mv_check_inputs_for_regression(cfg, permute(X,[cfg.sample_dimension, setdiff(1:ndims(X), cfg.sample_dimension)]), Y);
+has_second_dataset = (nargin==5);
+if has_second_dataset
+    X2 = double(varargin{1});
+    [cfg, Y, n_metrics, Y2] = mv_check_inputs_for_regression(cfg, permute(X,[cfg.sample_dimension, setdiff(1:ndims(X), cfg.sample_dimension)]), Y, permute(X2,[cfg.sample_dimension, setdiff(1:ndims(X), cfg.sample_dimension)]), varargin{2});
+else
+    [cfg, Y, n_metrics] = mv_check_inputs_for_regression(cfg, permute(X,[cfg.sample_dimension, setdiff(1:ndims(X), cfg.sample_dimension)]), Y);
+end
 
 % sort dimension vectors
 sample_dim = sort(cfg.sample_dimension);
@@ -141,27 +156,29 @@ search_dim = setdiff(1:ndims(X), [sample_dim, feature_dim]);
 mv_set_default(cfg,'is_kernel_matrix', isfield(cfg.hyperparameter,'kernel') && strcmp(cfg.hyperparameter.kernel,'precomputed'));
 
 % generalization does not work together with precomputed kernel matrices
-if cfg.is_kernel_matrix && ~isempty(gen_dim)
-    error('generalization does not work together with precomputed kernel matrices')
+if ~isempty(gen_dim)
+    assert(~cfg.is_kernel_matrix, 'generalization does not work together with precomputed kernel matrices')
+    assert(any(ismember(gen_dim, search_dim)),'generalization dimension must be one of the search dimensions (different from sample and feature dimensions)')
 end
 
-if cfg.feedback, mv_print_regression_info(cfg, X, Y); end
+if has_second_dataset
+    sz1 = size(X);
+    sz2 = size(X2);
+    sz1([sample_dim gen_dim])=[]; sz2([sample_dim gen_dim]) = [];
+    assert(all(sz1==sz2), sprintf('both datasets may only differ in their sample and generalization dimensions, but size(X) = [%s] and size(X2) = [%s]', num2str(size(X)), num2str(size(X2))))
+end
+
+if cfg.feedback, mv_print_regression_info(cfg, X, Y, varargin{:}); end
 
 % univariate or multivariate?
 is_multivariate = size(Y,2) > 1;
 
 %% check dimension parameters
-% check sample dimensions
-if numel(sample_dim) > 2
-    error('There can be at most 2 sample dimensions but %d have been specified', numel(sample_dim))
-elseif (numel(sample_dim) == 2) && (~cfg.is_kernel_matrix)
-    error('there is 2 sample dimensions given but the kernel is not specified to be precomputed (set cfg.hyperparameter.kernel=''precomputed'')')
-elseif numel(sample_dim) == 2  &&  numel(feature_dim)>1
-    error('if there is 2 samples dimensions you must set cfg.feature_dimensions=[]')
-elseif numel(gen_dim) > 1
-    % check generalization dimensions
-    error('There can be at most one generalization dimension')
-end
+assert(numel(sample_dim)<=2, sprintf('There can be at most 2 sample dimensions but %d have been specified', numel(sample_dim)))
+assert((numel(sample_dim)~=2) || cfg.is_kernel_matrix, 'there is 2 sample dimensions given but the kernel is not specified to be precomputed (set cfg.hyperparameter.kernel=''precomputed'')')
+assert((numel(sample_dim)~=2) || (numel(feature_dim)==0), 'if there is 2 samples dimensions you must set cfg.feature_dimensions=[]')
+assert(numel(gen_dim) <= 1, 'There can be at most one generalization dimension')
+
 
 % check whether dimensions are different and add up to ndims(X)
 sam_feat_gen_dims = sort([sample_dim, feature_dim, gen_dim]);
@@ -171,14 +188,9 @@ end
 
 %% check neighbours parameters
 has_neighbours = ~isempty(cfg.neighbours);
+assert(~(has_neighbours && (numel(cfg.neighbours) ~= numel(search_dim))), 'If any neighbourhood matrix is given, you must specify a matrix for every search dimension')
+assert(~(has_neighbours && numel(gen_dim)>0), 'Searchlight and generalization are currently not supported simultaneously')
 
-if has_neighbours && (numel(cfg.neighbours) ~= numel(search_dim))
-    error('If any neighbourhood matrix is given, you must specify a matrix for every search dimension')
-end
-
-if has_neighbours && numel(gen_dim)>0
-    error('Searchlight and generalization are currently not supported simultaneously')
-end
 %% order the dimensions by samples -> search dimensions -> features
 
 % the generalization dimension should be the  last of the search dimensions,
@@ -187,13 +199,12 @@ if ~isempty(gen_dim) && (search_dim(end) ~= gen_dim)
     ix = find(ismember(search_dim, gen_dim));
     % push gen dim to the end
     search_dim = [search_dim(1:ix-1), search_dim(ix+1:end), search_dim(ix)];
-    % use circshift to push dimension to the end
-%     search_dim = circshift(search_dim(, numel(search_dim)-ix);
 end
 
 % permute X and dimension names
 new_dim_order = [sample_dim, search_dim, feature_dim];
 X = permute(X, new_dim_order);
+if has_second_dataset, X2 = permute(X2, new_dim_order); end
 cfg.dimension_names = cfg.dimension_names(new_dim_order);
 
 % adapt the dimensions to reflect the permuted X
@@ -207,6 +218,10 @@ if numel(feature_dim) > 1 && cfg.flatten_features
     sz_search = size(X);
     all_feat = prod(sz_search(feature_dim));
     X = reshape(X, [sz_search(sample_dim), sz_search(search_dim), all_feat]);
+    if has_second_dataset
+        sz_search2 = size(X2);
+        X2 = reshape(X2, [sz_search2(sample_dim), sz_search2(search_dim), all_feat]);
+    end
     % also flatten dimension names
     cfg.dimension_names{feature_dim(1)} = strjoin(cfg.dimension_names(feature_dim),'/');
     cfg.dimension_names(feature_dim(2:end)) = [];
@@ -260,11 +275,11 @@ nfeat = nfeat(feature_dim);
 if isempty(nfeat), nfeat = 1; end
 
 %% Perform regression
-if ~strcmp(cfg.cv,'none') 
+if ~strcmp(cfg.cv,'none') && ~has_second_dataset
     % -------------------------------------------------------
     % Perform cross-validation
 
-    % Initialise regression model outputs
+    % Initialize regression model outputs
     model_output = cell([cfg.repeat, cfg.k, sz_search]);
     y_test = cell([cfg.repeat, cfg.k]);
     
@@ -301,10 +316,9 @@ if ~strcmp(cfg.cv,'none')
                 % generalization dimension at once
                 
                 % gen_dim is the last search dimension. For reshaping we
-                % need to move it to the first search dim position and
-                % shift the other dimensions up one position, we can use 
-                % circshift for this
-                X_test = permute(X_test, [sample_dim, circshift(search_dim,1), feature_dim]);
+                % need to move it to the first search position and
+                % shift the other dimensions up one position
+                X_test = permute(X_test, [sample_dim, search_dim(end), search_dim(1:end-1), feature_dim]);
                 
                 % reshape samples x gen dim into one dimension
                 new_sz_search = size(X_test);
@@ -322,8 +336,8 @@ if ~strcmp(cfg.cv,'none')
                     % --- searchlight --- define neighbours for current iteration
                     ix_nb = cellfun( @(N,f) find(N(f,:)), cfg.neighbours, ix, 'Un',0);
                     % train data
-                    X_ix = X_train(sample_skip{:}, ix_nb{:}, feature_skip{:});
-                    X_ix = reshape(X_ix, [sz_Xtrain(sample_dim), prod(cellfun(@numel, ix_nb)) * nfeat]);
+                    X_train_ix = X_train(sample_skip{:}, ix_nb{:}, feature_skip{:});
+                    X_train_ix = reshape(X_train_ix, [sz_Xtrain(sample_dim), prod(cellfun(@numel, ix_nb)) * nfeat]);
                     % test data
                     X_test_ix = squeeze(X_test(sample_skip{:}, ix_nb{:}, feature_skip{:}));
                     X_test_ix = reshape(X_test_ix, [sz_Xtest(sample_dim), prod(cellfun(@numel, ix_nb)) * nfeat]);
@@ -331,12 +345,12 @@ if ~strcmp(cfg.cv,'none')
                     if isempty(gen_dim),    ix_test = ix;
                     else,                   ix_test = ix(1:end-1);
                     end
-                    X_ix = squeeze(X_train(sample_skip{:}, ix{:}, feature_skip{:}));
+                    X_train_ix = squeeze(X_train(sample_skip{:}, ix{:}, feature_skip{:}));
                     X_test_ix = squeeze(X_test(sample_skip{:}, ix_test{:}, feature_skip{:}));
                 end
                 
                 % Train regression model
-                model= train_fun(cfg.hyperparameter, X_ix, y_train);
+                model= train_fun(cfg.hyperparameter, X_train_ix, y_train);
 
                 % Obtain regression output
                 if isempty(gen_dim)
@@ -358,7 +372,72 @@ if ~strcmp(cfg.cv,'none')
 
     % Average classification performance across repeats and test folds
     avdim= [1,2];
+    
+elseif has_second_dataset
+    % -------------------------------------------------------
+    % Transfer classification (aka cross decoding) using two datasets. The
+    % first dataset acts as train data, the second as test data.
+    
+    % Initialize classifier outputs
+    model_output = cell([1, 1, sz_search]);
+    
+    % Preprocess train data
+    [tmp_cfg, X, Y] = mv_preprocess(cfg, X, Y);
+    
+    % Preprocess test data
+    [~, X2, Y2] = mv_preprocess(tmp_cfg, X2, Y2);
+    
+    X_train = X;
+    X_test = X2;
+    
+    if ~isempty(gen_dim)
+        X_test = permute(X_test, [sample_dim, search_dim(end), search_dim(1:end-1), feature_dim]);
+        % reshape samples x gen dim into one dimension
+        new_sz_search = size(X_test);
+        X_test = reshape(X_test, [new_sz_search(1)*new_sz_search(2), new_sz_search(3:end)]);
+    end
+    
+    % Remember sizes
+    sz_Xtrain = size(X_train);
+    sz_Xtest = size(X_test);
+    
+    for ix = dim_loop                       % ---- search dimensions ----
+        
+        % Training data for current search position
+        if has_neighbours && ~cfg.append
+            ix_nb = cellfun( @(N,f) find(N(f,:)), cfg.neighbours, ix, 'Un',0);
+            X_train_ix = X_train(sample_skip{:}, ix_nb{:}, feature_skip{:});
+            X_train_ix = reshape(X_train_ix, [sz_Xtrain(sample_dim), prod(cellfun(@numel, ix_nb)) * nfeat]);
+            X_test_ix = squeeze(X_test(sample_skip{:}, ix_nb{:}, feature_skip{:}));
+            X_test_ix = reshape(X_test_ix, [sz_Xtest(sample_dim), prod(cellfun(@numel, ix_nb)) * nfeat]);
+        else
+            if isempty(gen_dim),    ix_test = ix;
+            else,                   ix_test = ix(1:end-1);
+            end
+            X_train_ix = squeeze(X_train(sample_skip{:}, ix{:}, feature_skip{:}));
+            X_test_ix = squeeze(X_test(sample_skip{:}, ix_test{:}, feature_skip{:}));
+        end
+        
+        % Train classifier
+        model= train_fun(cfg.hyperparameter, X_train_ix, Y);
 
+        % Obtain regression output
+        if isempty(gen_dim)
+            model_output{1,1,ix{:}} = test_fun(model, X_test_ix);
+        elseif ~is_multivariate
+            % we have to reshape regression model output back for
+            % univariate output
+            model_output{1,1,ix{:}} = reshape( test_fun(model, X_test_ix), numel(Y2),[]);
+        else
+            % we have to reshape regression model output back for
+            % multivariate output
+            model_output{1,1,ix{:}} = reshape( test_fun(model, X_test_ix), size(Y2,1),size(Y2,2),[]);
+        end
+    end
+    
+    y_test = Y2;
+    avdim = [];
+    
 elseif strcmp(cfg.cv,'none')
     % -------------------------------------------------------
     % No cross-validation
@@ -375,7 +454,7 @@ elseif strcmp(cfg.cv,'none')
     model_output = cell([1, 1, sz_search]);
     
     if ~isempty(gen_dim)
-        X_test= permute(X, [sample_dim, circshift(search_dim,1), feature_dim]);
+        X_test= permute(X, [sample_dim, search_dim(end), search_dim(1:end-1), feature_dim]);
         
         % reshape samples x gen dim into one dimension
         sz_search = size(X_test);
@@ -395,8 +474,8 @@ elseif strcmp(cfg.cv,'none')
             % --- searchlight --- define neighbours for current iteration
             ix_nb = cellfun( @(N,f) find(N(f,:)), cfg.neighbours, ix, 'Un',0);
             % train data
-            X_ix = X(sample_skip{:}, ix_nb{:}, feature_skip{:});
-            X_ix= reshape(X_ix, [sz_Xtrain(sample_dim), prod(cellfun(@numel, ix_nb)) * nfeat]);
+            X_train_ix = X(sample_skip{:}, ix_nb{:}, feature_skip{:});
+            X_train_ix= reshape(X_train_ix, [sz_Xtrain(sample_dim), prod(cellfun(@numel, ix_nb)) * nfeat]);
             % test data
             X_test_ix = squeeze(X_test(sample_skip{:}, ix_nb{:}, feature_skip{:}));
             X_test_ix = reshape(X_test_ix, [sz_Xtest(sample_dim), prod(cellfun(@numel, ix_nb)) * nfeat]);
@@ -404,12 +483,12 @@ elseif strcmp(cfg.cv,'none')
             if isempty(gen_dim),    ix_test = ix;
             else,                   ix_test = ix(1:end-1);
             end
-            X_ix= squeeze(X(sample_skip{:}, ix{:}, feature_skip{:}));
+            X_train_ix= squeeze(X(sample_skip{:}, ix{:}, feature_skip{:}));
             X_test_ix = squeeze(X_test(sample_skip{:}, ix_test{:}, feature_skip{:}));
         end
         
         % Train regression model
-        model= train_fun(cfg.hyperparameter, X_ix, Y);
+        model= train_fun(cfg.hyperparameter, X_train_ix, Y);
                 
         % Obtain regression output (labels, dvals or probabilities)
         if isempty(gen_dim)

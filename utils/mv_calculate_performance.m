@@ -211,8 +211,19 @@ switch(metric)
             perf(dim_skip_token{:},2) = cellfun( @(cfo,lab) nanmean(cfo(lab==2,:,:,:,:,:,:,:,:,:),1), model_output, y, 'Un',0);
         else
             for xx=1:nextra % Looping across the extra dimensions if model_output is multi-dimensional
-                perf(dim_skip_token{:},xx) = cellfun( @(cfo,lab) nanmean(cfo(lab==1,:,:,:,:,:,:,:,:,:),1), model_output(dim_skip_token{:},xx), y, 'Un',0);
-                perf(dim_skip_token{:},xx+nextra) = cellfun( @(cfo,lab) nanmean(cfo(lab==2,:,:,:,:,:,:,:,:,:),1), model_output(dim_skip_token{:},xx), y, 'Un',0);
+                tmp1 = cellfun( @(cfo,lab) nanmean(cfo(lab==1,:,:,:,:,:,:,:,:,:),1), model_output(dim_skip_token{:},xx), y, 'Un',0);
+                tmp2 = cellfun( @(cfo,lab) nanmean(cfo(lab==2,:,:,:,:,:,:,:,:,:),1), model_output(dim_skip_token{:},xx), y, 'Un',0);
+                % if one of the class labels is not found, a scalar nan is
+                % returned but eg in time data a vector of nans is necessary
+                for ix = 1:numel(tmp1)
+                    if isscalar(tmp1{ix}) && isnan(tmp1{ix})
+                        tmp1{ix} = nan(size(tmp2{ix}));
+                    elseif isscalar(tmp2{ix}) && isnan(tmp2{ix})
+                        tmp2{ix} = nan(size(tmp1{ix}));
+                    end
+                end
+                perf(dim_skip_token{:},xx) = tmp1;
+                perf(dim_skip_token{:},xx+nextra) = tmp2;
             end
         end
         
@@ -410,6 +421,13 @@ if isvector(perf), perf = perf(:); end
 if isvector(perf_std), perf_std = perf_std(:); end
 
     %% ---- Helper functions ----
+    function lab = repeat_lab(lab, cfo)
+        % Some Matlab versions do not support automatic broadcasting. In
+        % these cases confusion_fun fails when cfo is multi-dimensional. To
+        % avoid this we match the size of lab with the size of cfo.
+        lab = repmat(lab, size(cfo(1,:,:,:,:,:)));
+    end
+
     function conf = calculate_confusion_matrix(normalize)
         % calculates the confusion matrix. if normalize = 1, the absolute
         % counts are normalized to fractions by dividing each row by the
@@ -452,7 +470,7 @@ if isvector(perf_std), perf_std = perf_std(:); end
         %   of classes 
         % - reshape(...) turns the vector returned by arrayfun into a 
         %   [nclasses x nclasses] cell matrix
-        confusion_fun = @(lab,cfo) reshape( arrayfun( @(ii,jj) sum(lab==ii & cfo==jj),comb(1,:),comb(2,:),'Un',0), nclasses, nclasses, []);
+        confusion_fun = @(lab,cfo) reshape( arrayfun( @(ii,jj) sum(repeat_lab(lab,cfo)==ii & cfo==jj, 1),comb(1,:),comb(2,:),'Un',0), nclasses, nclasses, []);
         
         % Looping across the extra dimensions if model_output is multi-dimensional
         for xx=1:nextra

@@ -466,3 +466,74 @@ cfg.append                  = 0;
 perf2 = mv_classify(cfg, X, clabel);
 
 print_unittest_result('[cv =''none''] append vs no append should give same result', perf1, perf2, tol);
+
+%% Transfer classification (cross decoding)
+tmp1 = simulate_erp_peak(nsamples, ntime, 10, 1, amplitudes(1), randn(nfeatures, 1)); % class 1
+tmp2 = simulate_erp_peak(nsamples*2, ntime, 10, 1, amplitudes(2), randn(nfeatures, 1)); % class 2
+X= [tmp1; tmp2];
+clabel = [ones(nsamples, 1); ones(nsamples*2, 1)*2];
+
+% Cross decoding with the same dataset should yield the same result
+% as cv = none
+cfg = [];
+cfg.cv = 'none';
+cfg.feedback = 0;
+perf1 = mv_classify(cfg, X, clabel);
+perf2 = mv_classify(cfg, X, clabel, X, clabel);
+
+print_unittest_result('transfer classification with same data vs cv=none', perf1, perf2, tol);
+
+cfg.generalization_dimension = 3;
+perf1 = mv_classify(cfg, X, clabel);
+perf2 = mv_classify(cfg, X, clabel, X, clabel);
+print_unittest_result('transfer classification with same data vs cv=none (with generalization)', perf1, perf2, tol);
+
+% sample dimension = 2 should not affect cross classification
+X_perm = permute(X, [2 1 3]); % samples is now second dimension
+X1 = X(1:2:end, :, :);
+X2 = X(2:2:end, :, :);
+X_perm1 = X_perm(:, 1:2:end, :);
+X_perm2 = X_perm(:, 2:2:end, :);
+
+perf      = mv_classify(cfg, X1, clabel(1:2:end), X2, clabel(2:2:end));
+cfg.feature_dimension = 1;
+cfg.sample_dimension = 2;
+perf_perm = mv_classify(cfg, X_perm1, clabel(1:2:end), X_perm2, clabel(2:2:end));
+print_unittest_result('transfer classification with sample dimension = 1 vs 2', perf, perf_perm, tol);
+
+% dval: splitting the second dataset into separate classes should give the same result as testing on both classes at the same time
+tmp1 = simulate_erp_peak(nsamples-10, ntime, 10, 1, amplitudes(1), randn(nfeatures, 1)); % class 1
+tmp2 = simulate_erp_peak(nsamples*2-10, ntime, 10, 1, amplitudes(2), randn(nfeatures, 1)); % class 2
+X2= [tmp1; tmp2];
+clabel2 = [ones(nsamples-10, 1); ones(nsamples*2-10, 1)*2];
+
+X1 = X(:,:,1:2);
+X2 = X2(:,:,1:3);
+clabel2_1 = clabel2(clabel2==1);
+clabel2_2 = clabel2(clabel2==2);
+X2_1 = X2(clabel2==1,:,:);
+X2_2 = X2(clabel2==2,:,:);
+
+cfg = [];
+cfg.metric = 'dval';
+cfg.generalization_dimension = 3;
+cfg.feedback = 0;
+perf   = mv_classify(cfg, X1, clabel, X2, clabel2);
+perf_1 = mv_classify(cfg, X1, clabel, X2_1, clabel2_1);
+perf_2 = mv_classify(cfg, X1, clabel, X2_2, clabel2_2);
+print_unittest_result('transfer classification: testing both classes vs only class 1', perf(:,1), perf_1(:,1), tol);
+print_unittest_result('transfer classification: testing both classes vs only class 2', perf(:,2), perf_2(:,2), tol);
+
+% cross decoding with generalization
+ntime2 = ntime + 10;
+tmp1 = simulate_erp_peak(nsamples-10, ntime2, 10, 1, amplitudes(1), randn(nfeatures, 1)); % class 1
+tmp2 = simulate_erp_peak(nsamples*2-10, ntime2, 10, 1, amplitudes(2), randn(nfeatures, 1)); % class 2
+X2= [tmp1; tmp2];
+clabel2 = [ones(nsamples-10, 1); ones(nsamples*2-10, 1)*2];
+
+cfg = [];
+cfg.generalization_dimension = 3;
+cfg.feedback = 0;
+perf   = mv_classify(cfg, X, clabel, X2, clabel2);
+
+print_unittest_result('transfer classification with generalization', [size(X,3) size(X2,3)], size(perf), tol);

@@ -13,6 +13,8 @@
 % (6) Time generalization, frequency generalization and electrode
 %     generalization
 % (7) Precompute kernel matrix
+% (8) Transfer classification (cross decoding) for ERP data
+% (9) Transfer classification (cross decoding) for time-frequency data
 %
 % Note: If you are new to working with MVPA-Light, make sure that you
 % complete the introductory tutorials first:
@@ -310,6 +312,123 @@ fprintf('Computation time without precomputed kernels: %2.2fs\n', time2)
 % Compare computation time with / without kernel.
 %%%%%%%%%%%%%%%%%%%%%%%%
 
+%% (8) Transfer classification (cross decoding) for ERP data
+% In transfer classification, one dataset is used for training, another one
+% for testing. Technically, this is the same as in cross-validation, where
+% one fold is defined for training and a separate fold for testing.
+% However, in transfer classification we assume that the two datasets come
+% from potentially different distributions (e.g. two different
+% participants, two different phases in an experiment etc). 
+% Transfer classification is supported by mv_classify,
+% mv_classify_across_time and mv_classify_timextime.
+% For mv_classify_timextime, cross decoding has already been covered in
+% Example 4 in getting_started_with_classification, so we will focus on
+% mv_classify_across_time and mv_classify here.
+
+% Here, we will train on the dataset dat,clabel and test on the following
+% second dataset:
+[dat2, clabel2] = load_example_data('epoched3');
+
+% We can see that both datasets have the same number of features and time
+% points. This is essential for mv_classify_across_time, the datasets may
+% only differ in the number of trials.
+size(dat.trial)
+size(dat2.trial)
+
+% To perform cross decoding, we simply pass the second dataset as extra
+% parameters to the function. A classifier is trained at a given
+% time point in dataset 1 and tested at exactly the same time point in
+% dataset 2.
+cfg = [];
+cfg.metric  = 'auc';
+[~, result] = mv_classify_across_time(cfg, dat.trial, clabel, dat2.trial, clabel2);
+
+mv_plot_result(result, dat.time)
+title('train on dataset 1, test on dataset 2')
+
+% By swapping the input arguments we can train on dataset 1 and test on
+% dataset 2
+[perf, result] = mv_classify_across_time(cfg, dat2.trial, clabel2, dat.trial, clabel);
+mv_plot_result(result, dat.time)
+title('train on dataset 2, test on dataset 1')
+
+%%%%%% EXERCISE 6 %%%%%%
+% Achieve the same result using mv_classify instead of
+% mv_classify_across_time. Double check that the results are identical.
+%%%%%%%%%%%%%%%%%%%%%%%%
+
+%% (9) Transfer classification (cross decoding) for time-frequency data
+% Here we apply transfer classification with two time-frequency datasets
+% using mv_classify. Let's first perform time-frequency analysis for our
+% second dataset using the same code as in example 1.
+sz = size(dat2.trial);
+win= chebwin(20);
+Fs = 1/mean(diff(dat2.time));
+noverlap = 18;
+nfft = 64;
+[S,F,T] = spectrogram(squeeze(dat2.trial(1,1,:)), win, noverlap, nfft, Fs);
+T = T + dat2.time(1);
+
+freq2 = dat2; 
+freq2.trial = zeros([sz(1:2), numel(F), numel(T)]);
+freq2.dimord = 'rpt_chan_freq_time';
+freq2.time = T;
+freq2.freq = F;
+for nn=1:sz(1)
+    for cc=1:sz(2)
+        S = abs(spectrogram(squeeze(dat2.trial(nn,cc,:)), win, noverlap, nfft, Fs));
+        freq2.trial(nn,cc,:,:) = S;
+    end
+end
+pre = find(freq2.time < 0);
+BL = mean(mean(freq2.trial(:,:,:,pre), 4),1);
+sz = size(freq2.trial);
+BLmat = repmat(BL, [sz(1) 1 1 sz(4)]);
+freq2.trial = (freq2.trial - BLmat) ./ BLmat;
+
+% Let's do the cross decoding now, using freq for training and freq2 for
+% testing. The classifier is trained for each time-frequency point separately. 
+cfg = [];
+cfg.dimension_names = {'samples' 'channels' 'frequencies' 'time points'};
+[~, result] = mv_classify(cfg, freq.trial, clabel, freq2.trial, clabel2);
+mv_plot_result(result, freq.time, freq.freq)
+title('train on freq, test on freq2')
+
+% What happens if one of the dimensions between the two datasets does not
+% match? Let's try out by removing some frequencies from freq2, storing the
+% reduced data in freq3
+freq3 = freq2;
+freq3.trial = freq3.trial(:,:,1:29,:);
+freq3.freq  = freq3.freq(1:29);
+
+% this leads to an ERROR so let's wrap it into a try-except statement
+try
+    [~, result] = mv_classify(cfg, freq.trial, clabel, freq3.trial, clabel2); 
+catch err
+    fprintf('[ERROR] Call to mv_classify failed:\n%s\n', err.message)
+end
+% This does not work because MVPA-Light does not know how to match up the
+% frequency points if they don't have the same number of elements. 
+% However, we can fix this by defining the frequency as a generalization
+% dimension: a classifier is trained / tested for every combination of
+% train/test frequency, and it does not matter any more whether they match.
+cfg.generalization_dimension = 3;
+[perf, result] = mv_classify(cfg, freq.trial, clabel, freq3.trial, clabel2);
+
+% The dimensions of the result are [time points x train frequencies x test
+% frequences]. The generalization dimension is always moved to the end,
+% this is why time points come first. mv_plot_result does not plot 3D data,
+% so we leave it at just looking at the dimensions here.
+size(perf)
+
+%%%%%% EXERCISE 7 %%%%%%
+% Now perform a time x time generalization using freq as train data and 
+% freq2 as test data. Jointly use channels and frequencies as features.
+% Hint: You need to set the feature dimension and generalization
+% dimension. 
+%%%%%%%%%%%%%%%%%%%%%%%%
+
+%% The End
 % Congrats, you finished the tutorial! You are now a MVPA-Light wizard!
 
 %% SOLUTIONS TO THE EXERCISES
@@ -319,9 +438,13 @@ X = permute(freq.trial, [4 2 1 3]);
 
 % Since the data is now [time points x channels x samples x frequencies]
 % the samples are dimension 3 whereas the features are still in dimension 2
-cfg.sample_dimension = 3;
-cfg.feature_dimension  = 2;
-cfg.dimension_names = { 'time points','channels','samples','frequencies'};
+
+cfg = [];
+cfg.classifier          = 'lda';
+cfg.metric              = 'auc';
+cfg.sample_dimension    = 3;
+cfg.feature_dimension   = 2;
+cfg.dimension_names     = { 'time points','channels','samples','frequencies'};
 
 [~, result] = mv_classify(cfg, X, clabel);
 
@@ -330,6 +453,13 @@ cfg.dimension_names = { 'time points','channels','samples','frequencies'};
 mv_plot_result(result)
 
 %% SOLUTION TO EXERCISE 2
+% Let's first recreate the cfg struct in example 3
+cfg = [];
+cfg.sample_dimension = 1;
+cfg.feature_dimension  = 2;
+cfg.dimension_names = {'samples','channels','frequencies', 'time points'};
+cfg.neighbours = {freq_neighbours, time_neighbours};
+
 % So far elecrodes have been used as features. To move the searchlight
 % across the electrodes, too, we need to set the feature dimension to []
 cfg.feature_dimension = [];
@@ -438,3 +568,35 @@ time2 = toc;
 fprintf('Computation time without precomputed kernels: %2.2fs\n', time2)
 
 % Again, precomputing kernels makes the computations faster
+
+
+%% SOLUTION TO EXERCISE 6
+% First reproduce the result using mv_classify_across_time
+cfg = [];
+cfg.metric  = 'auc';
+perf = mv_classify_across_time(cfg, dat2.trial, clabel2, dat.trial, clabel);
+
+% We can achieve the same with mv_classify 
+perf2 = mv_classify(cfg, dat2.trial, clabel2, dat.trial, clabel);
+mv_plot_result(result, dat.time);
+title('train on dataset 2, test on dataset 1 using mv_classify')
+
+% difference between both results is zero
+norm(perf-perf2)
+
+%% SOLUTION TO EXERCISE 7
+% We need to define both dimensions 2 (channels) and 3 (frequencies) as
+% feature dimensions. Both dimensions will automatically be flattened into
+% a single dimension since cfg.flatten_dimensions = 1 by default. 
+% Dimension 4 (time points) needs to be defined as a generalization
+% dimension.
+cfg = [];
+cfg.feature_dimension           = [2 3];
+cfg.generalization_dimension    = 4;
+cfg.dimension_names             = {'samples' 'channels' 'frequencies' 'time points'};
+
+[perf, result] = mv_classify(cfg, freq.trial, clabel, freq2.trial, clabel2);
+
+% The result is a time x time plot, but the result is not great (maximum
+% performance <70%).
+mv_plot_result(result, freq.time, freq2.time)
