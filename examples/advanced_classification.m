@@ -577,7 +577,7 @@ cfg.metric  = 'auc';
 perf = mv_classify_across_time(cfg, dat2.trial, clabel2, dat.trial, clabel);
 
 % We can achieve the same with mv_classify 
-perf2 = mv_classify(cfg, dat2.trial, clabel2, dat.trial, clabel);
+[perf2, result] = mv_classify(cfg, dat2.trial, clabel2, dat.trial, clabel);
 mv_plot_result(result, dat.time);
 title('train on dataset 2, test on dataset 1 using mv_classify')
 
