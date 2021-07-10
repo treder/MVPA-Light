@@ -644,6 +644,19 @@ stat_cluster = mv_statistics(cfg, result_ridge, X, y);
 mv_plot_result(result_ridge, time, 'mask', stat_cluster.mask)
 
 %% SOLUTION TO EXERCISE 7
+% Let's start by recreating the cfg struct
+cfg_stat = [];
+cfg_stat.metric          = 'auc';
+cfg_stat.test            = 'permutation';
+cfg_stat.correctm        = 'cluster';  % correction method is cluster
+cfg_stat.n_permutations  = 1000;
+cfg_stat.clusterstatistic = 'maxsum';
+cfg_stat.alpha           = 0.05; % use standard significance threshold of 5%
+cfg_stat.design          = 'within';
+cfg_stat.statistic       = 'wilcoxon';
+cfg_stat.null            = 0.5;
+cfg_stat.clustercritval  = 1.96;
+
 % We only need to change wilcoxon to ttest and then call the function
 % again.
 cfg_stat.statistic       = 'ttest';

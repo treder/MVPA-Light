@@ -151,7 +151,7 @@ width = 10;
 amplitude = 3*randn(n_trials,1) + 3;
 weight = abs(randn(64, 1));
 scale = 1; 
-X = simulate_erp_peak(n_trials, n_time_points, pos, width, amplitude, weight, [], scale);
+X_erp = simulate_erp_peak(n_trials, n_time_points, pos, width, amplitude, weight, [], scale);
 y = amplitude + 0.5 * randn(n_trials, 1);
 
 % Regression train/test functions work very similarly to their
@@ -167,11 +167,11 @@ param = mv_get_hyperparameter('ridge')
 help train_ridge
 
 % Let's train the model
-model = train_ridge(param, X, y);
+model = train_ridge(param, X_erp, y);
 % This did not work, why? Our data is [samples x features x time points], 
 % but every train function always expect a 2D array [samples x features]. 
 % We can create this by selecting a specific time point eg sample 100 from X.
-X100 = squeeze(X(:,:,100));
+X100 = squeeze(X_erp(:,:,100));
 
 % Let's try again
 model = train_ridge(param, X100, y)
