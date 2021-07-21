@@ -201,7 +201,7 @@ fprintf('Classification accuracy: %0.2f\n', perf)
 % (logreg).
 
 cfg = [];
-cfg.classifier  = 'lda';
+cfg.classifier  = 'logreg';
 perf = mv_classify(cfg, X, clabel);
 fprintf('Classification accuracy using Logistic Regression: %0.2f\n', perf)
 
@@ -613,9 +613,9 @@ mv_plot_result(result, dat.time)
 %% (7) Hyperparameters
 % Hyperparameters control the behaviour of the classifiers. They can be
 % used to e.g. select the kernel for SVM and set the regularization
-% strength in LDA. MVPA Light is designed such that the standard settings
+% strength in LDA. MVPA-Light is designed such that the standard settings
 % work for many classification problems, but for more fine grained control
-% of the classifier you may want ot control them yourself. 
+% of the classifier you may want to control them yourself. 
 % Hyperparameters are classifier specific, so you may want to inspect a
 % classifier's train function for a description of the hyperparameters.
 % Let's start with SVM.
@@ -674,7 +674,7 @@ perf = mv_classify(cfg, X, clabel);
 perf
 
 %% SOLUTION TO EXERCISE 3
-% Looking at the Readme file, we can see the precision and recall are
+% Looking at the Readme file, we see that precision and recall are
 % simply denoted as 'precision' and 'recall'
 cfg = [];
 cfg.metric = {'precision', 'recall'};
