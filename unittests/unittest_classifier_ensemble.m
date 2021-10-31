@@ -19,14 +19,14 @@ cfg.hyperparameter.nsamples  = 0.9999;
 cfg.hyperparameter.nlearners = 1;
 cfg.hyperparameter.strategy  = 'vote';
 
-acc_ensemble = mv_crossvalidate(cfg, X, clabel);
+acc_ensemble = mv_classify(cfg, X, clabel);
 
 cfg = [];
 cfg.hyperparameter  = [];
 cfg.feedback        = 0;
 cfg.classifier      = 'lda';
 
-acc_lda = mv_crossvalidate(cfg, X, clabel);
+acc_lda = mv_classify(cfg, X, clabel);
 
 print_unittest_result('[two-class] 1-learner ensemble identical to lda directly', acc_ensemble, acc_lda, 0.02);
 
@@ -52,14 +52,14 @@ cfg.hyperparameter.nlearners = 1;
 cfg.hyperparameter.strategy  = 'vote';
 cfg.hyperparameter.bootstrap = 0;
 
-acc_ensemble = mv_crossvalidate(cfg, X, clabel);
+acc_ensemble = mv_classify(cfg, X, clabel);
 
 cfg = [];
 cfg.hyperparameter = [];
 cfg.feedback        = 0;
 cfg.classifier      = 'multiclass_lda';
 
-acc_lda = mv_crossvalidate(cfg, X, clabel);
+acc_lda = mv_classify(cfg, X, clabel);
 
 print_unittest_result('[multiclass] 1-learner ensemble identical to multiclass_lda directly', acc_ensemble, acc_lda, 0.02);
 
@@ -78,11 +78,11 @@ cfg.hyperparameter.nlearners = 1;
 
 rng(42)
 cfg.hyperparameter.strategy  = 'vote';
-acc_vote = mv_crossvalidate(cfg, X, clabel);
+acc_vote = mv_classify(cfg, X, clabel);
 
 rng(42)
 cfg.hyperparameter.strategy  = 'dval';
-acc_dval = mv_crossvalidate(cfg, X, clabel);
+acc_dval = mv_classify(cfg, X, clabel);
 
 print_unittest_result('[two-class] 1 learner: same result for ''vote'' and ''dval''', acc_vote, acc_dval, tol);
 

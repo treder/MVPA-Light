@@ -5,8 +5,7 @@ tol = 10e-10;
 mf = mfilename;
 
 % In the first part we will replicate behaviour of the other high-level
-% functions (mv_classify_across_time, mv_classify_timextime,
-% mv_crossvalidate, mv_searchlight) and compare their output to mv_classify
+% functions (mv_classify_across_time, mv_classify_timextime) to mv_classify
 % output
 
 nsamples = 100;
@@ -16,22 +15,6 @@ prop = [];
 scale = 1;
 do_plot = 0;
 [X, clabel] = simulate_gaussian_data(nsamples, nfeatures, nclasses, prop, scale, do_plot);
-
-%% compare to mv_crossvalidate
-
-% % mv_crossvalidate
-% rng(42)
-% cfg = [];
-% cfg.feedback    = 0;
-% acc1 = mv_crossvalidate(cfg, X, clabel);
-% 
-% % mv_crossvalidate
-% rng(42)
-% cfg.sample_dimension = 1;
-% cfg.feature_dimension = 2;
-% acc2 = mv_classify(cfg, X, clabel);
-% 
-% print_unittest_result('compare to mv_crossvalidate', acc1, acc2, tol);
 
 %% compare to mv_classify_across_time
 nsamples = 50;
@@ -80,22 +63,6 @@ cfg.generalization_dimension = 3;
 acc2 = mv_classify(cfg, X2, clabel2);
 
 print_unittest_result('compare to mv_classify_timextime', acc1, acc2, tol);
-
-%% compare to mv_searchlight
-% 
-% % mv_classify_timextime
-% rng(22)
-% cfg = [];
-% cfg.feedback = 0;
-% acc1 = mv_searchlight(cfg, X, clabel);
-% 
-% % mv_classify
-% rng(22)
-% cfg.sample_dimension = 1;
-% cfg.feature_dimension = [];
-% acc2 = mv_classify(cfg, X, clabel);
-% 
-% print_unittest_result('compare to mv_searchlight', acc1, acc2, tol);
 
 %% Check output size for searchlight with neighbour matrix that is non-square [1 search dim]
 X = randn(30, 20, 29);

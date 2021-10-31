@@ -24,12 +24,12 @@ cfg.hyperparameter.kernel    = 'linear';
 cfg.hyperparameter.c         = 10e0;
 cfg.feedback        = 0;
 
-acc_linear = mv_crossvalidate(cfg,X,clabel);
+acc_linear = mv_classify(cfg,X,clabel);
 
 %%% RBF kernel: cross-validation
 cfg.hyperparameter.kernel    = 'rbf';
 cfg.hyperparameter.gamma     = 10e1;
-acc_rbf = mv_crossvalidate(cfg,X,clabel);
+acc_rbf = mv_classify(cfg,X,clabel);
 
 % Since CV is a bit chance-dependent: tolerance of 2%
 tol = 0.05;

@@ -79,7 +79,7 @@ cfg.classifier      = 'liblinear';
 cfg.hyperparameter  = [];
 cfg.feedback        = 0;
 
-acc_linear = mv_crossvalidate(cfg, X_spiral, clabel_spiral);
+acc_linear = mv_classify(cfg, X_spiral, clabel_spiral);
 
 tol = 0.04;
 

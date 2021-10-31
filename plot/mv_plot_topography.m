@@ -43,11 +43,12 @@ function h = mv_plot_topography(cfg, topo, pos)
 %                     Default 100 gives a 100 x 100 pixel grid
 % .nrow, .ncol      - if multiple topographies are given, nrow and ncol
 %                     specify the number of rows and columns in the subplot
+% .label            - [Cx1] cell array of channel labels that are added to
+%                     the plot
+% .label_opt        - cell array with options for the text label (default {'color 'w'})
 %
 % Returns:
 % h        - struct with handles to the graphical elements 
-
-% (c) Matthias Treder 2017
 
 if isvector(topo)
     topo = topo(:); % make sure topo is a column vector
@@ -66,6 +67,8 @@ mv_set_default(cfg,'mark_chans',[]);
 mv_set_default(cfg,'res', 100);
 mv_set_default(cfg,'ncol',ceil(sqrt(M)));
 mv_set_default(cfg,'nrow',ceil(M/cfg.ncol));
+mv_set_default(cfg,'label',[]);
+mv_set_default(cfg,'label_opt',{'color' ,'w'});
 
 if ~iscell(cfg.outline), cfg.outline = {cfg.outline}; end
 if ~iscell(cfg.title), cfg.title = {cfg.title}; end
@@ -173,6 +176,11 @@ for mm=1:M
     h.title(mm) = title(cfg.title{mod(mm-1,numel(cfg.title))+1},'Interpreter','none');
     
     axis off
+
+    %% Add labels
+    if ~isempty(cfg.label)
+        text(pos(:,1), pos(:,2), cfg.label, cfg.label_opt{:})
+    end
 end
 
 

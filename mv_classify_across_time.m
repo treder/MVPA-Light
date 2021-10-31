@@ -120,7 +120,7 @@ if ~strcmp(cfg.cv,'none') && ~has_second_dataset
             end
 
             % Get train and test data
-            [Xtrain, trainlabel, Xtest, testlabel{rr,kk}] = mv_select_train_and_test_data(X, clabel, CV.training(kk), CV.test(kk), cfg.is_kernel_matrix);
+            [cfg, Xtrain, trainlabel, Xtest, testlabel{rr,kk}] = mv_select_train_and_test_data(cfg, X, clabel, CV.training(kk), CV.test(kk), cfg.is_kernel_matrix);
 
             if ~isempty(cfg.preprocess)
                 % Preprocess train data

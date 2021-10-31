@@ -15,9 +15,12 @@ test_indices = setdiff(1:N, train_indices);
 n_tr = numel(train_indices);
 n_te = numel(test_indices);
 
+cfg= [];
+cfg.preprocess_fun = []; % necessary field for mv_select_train_and_test_data
+
 is_kernel_matrix = 0;
-[Xtrain, trainlabel, Xtest, testlabel] = ...
-    mv_select_train_and_test_data(X, clabel, train_indices, test_indices, is_kernel_matrix);
+[~, Xtrain, trainlabel, Xtest, testlabel] = ...
+    mv_select_train_and_test_data(cfg, X, clabel, train_indices, test_indices, is_kernel_matrix);
 
 %% size of train set should be numel(train_indices)
 print_unittest_result('[size train set X] equal to numel(train_indices)', n_tr, size(Xtrain,1), tol);
@@ -32,12 +35,13 @@ cfg = [];
 cfg.kernel = 'rbf';
 cfg.gamma  = 1;
 cfg.regularize_kernel = 0;
+cfg.preprocess_fun = [];
 
 K = compute_kernel_matrix(cfg, X);
 is_kernel_matrix = 1;
 
-[Ktrain, trainlabel, Ktest, testlabel] = ...
-    mv_select_train_and_test_data(K, clabel, train_indices, test_indices, is_kernel_matrix);
+[~, Ktrain, trainlabel, Ktest, testlabel] = ...
+    mv_select_train_and_test_data(cfg, K, clabel, train_indices, test_indices, is_kernel_matrix);
 
 print_unittest_result('[precomputed kernel] train kernel is [train x train samples]', 1, all(size(Ktrain)==[n_tr,n_tr,ntime]), tol);
 print_unittest_result('[precomputed kernel] test kernel is [test x train samples]', 1, all(size(Ktest)==[n_te, n_tr,ntime]), tol);

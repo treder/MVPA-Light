@@ -1,9 +1,12 @@
-function [Xtrain, Ytrain, Xtest, Ytest] = mv_select_train_and_test_data(X, Y, train_indices, test_indices, is_kernel_matrix)
-%Splits the data into training and test set. 
+function [cfg, Xtrain, Ytrain, Xtest, Ytest] = mv_select_train_and_test_data(cfg, X, Y, train_indices, test_indices, is_kernel_matrix)
+% Splits the data into training and test set. 
+% Also selects data provided as preprocessing parameters if the .data field
+% in cfg.preprocess_param is not empty (e.g. .signal and .noise in 
+% mv_preprocess_ssd).
 %
 %Usage:
 %[Xtrain, Ytrain, Xtest, Ytest] = 
-%    mv_select_train_and_test_data(X, Y, train_indices, test_indices, is_kernel_matrix)
+%    mv_select_train_and_test_data(cfg, X, Y, train_indices, test_indices, is_kernel_matrix)
 %
 %Parameters:
 % X              - [samples x ... x ... ] data matrix -OR-
@@ -50,3 +53,11 @@ end
 % Get train and test class labels
 Ytrain = Y(train_indices,:);
 Ytest  = Y(test_indices,:);
+
+% Also select preprocessing data
+for p=1:numel(cfg.preprocess_fun)
+    for fn = cfg.preprocess_param{p}.select_data
+        cfg.preprocess_param{p}.([fn{1} '_train']) = cfg.preprocess_param{p}.(fn{1})(train_indices,:,:,:);
+        cfg.preprocess_param{p}.([fn{1} '_test']) = cfg.preprocess_param{p}.(fn{1})(test_indices,:,:,:);
+    end
+end

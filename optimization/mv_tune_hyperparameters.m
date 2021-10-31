@@ -46,6 +46,9 @@ eval_values = zeros(size(search_grid, 1), 1);
 
 tmp_param = param;
 
+cfg= [];
+cfg.preprocess_fun = []; % necessary field for mv_select_train_and_test_data
+
 % --search grid
 for ix=1:size(search_grid,1)       
 
@@ -56,7 +59,7 @@ for ix=1:size(search_grid,1)
     
     for f=1:k        % --- CV folds
         % Get train and test data
-        [X_train, y_train, X_test, y_test] = mv_select_train_and_test_data(X, y, CV.training(f), CV.test(f), is_kernel_matrix);
+        [cfg, X_train, y_train, X_test, y_test] = mv_select_train_and_test_data(cfg, X, y, CV.training(f), CV.test(f), is_kernel_matrix);
 
         % Train model
         model = train_fun(tmp_param, X_train, y_train);
