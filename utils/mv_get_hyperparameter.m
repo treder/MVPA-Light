@@ -159,5 +159,14 @@ switch(model)
         mv_set_default(param,'weight',1);
         mv_set_default(param,'cv',[]);
         mv_set_default(param,'quiet',1);
+
+    %%% --- Defaults for multivariate regression models ---
+    case 'cca'  
+        mv_set_default(param,'n', 10);
+        mv_set_default(param,'lambda_x','auto');
+        mv_set_default(param,'lambda_y','auto');
+        mv_set_default(param,'form', 'auto');
+
+
     otherwise, error('Unknown model ''%s''',model)
 end
