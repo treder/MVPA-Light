@@ -92,7 +92,7 @@ end
 cf = [];
 
 if param.svm_type < 3
-    y = double(y(:)==1);         % classification
+    y = double(y - 1);         % classification
 else
     y = double(y(:));            % regression
 end
