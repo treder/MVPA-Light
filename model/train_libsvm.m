@@ -91,12 +91,6 @@ end
 % Call LIBSVM training function
 cf = [];
 
-if param.svm_type < 3
-    y = double(y(:)==1);         % classification
-else
-    y = double(y(:));            % regression
-end
-
 if strcmp(param.kernel,'precomputed')
     % for precomputed kernels we must provide the sample number as an
     % additional column
