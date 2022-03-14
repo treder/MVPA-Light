@@ -23,9 +23,6 @@ else
 end
 
 if cf.svm_type < 3
-    % CLASSIFICATION
-    % clabel starts with 0 need to translate back to 1, 2, 3, ...
-    ypred = ypred + 1;
     
     % Note that dvals might be sign-reversed in some cases,
     % see http://www.csie.ntu.edu.tw/~cjlin/libsvm/faq.html#f430
