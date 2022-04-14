@@ -1,6 +1,8 @@
 # MVPA-Light
 Matlab toolbox for classification and regression of multi-dimensional data
 
+> [Treder, M. S. (2020). MVPA-Light: A Classification and Regression Toolbox for Multi-Dimensional Data. Frontiers in Neuroscience, 14, 289. https://doi.org/10.3389/FNINS.2020.00289](https://www.frontiersin.org/articles/10.3389/fnins.2020.00289/full)
+
 [![HitCount](http://hits.dwyl.com/treder/MVPA-Light.svg)](http://hits.dwyl.com/treder/MVPA-Light)
 
 
@@ -8,7 +10,6 @@ Matlab toolbox for classification and regression of multi-dimensional data
 
 * (Nov 2021) spatial filtering methods [SSD](preprocess/mv_preprocess_ssd.m) and [CSP](preprocess/mv_preprocess_csp.m) added (see [`understanding_spatial_filters`](examples/understanding_spatial_filters.m) for detailed examples)
 * (Apr 2021) cross-decoding using two different datasets implemented in `mv_classify` and `mv_classify_across_time` ([see examples 8 and 9 in `advanced_classification`](examples/advanced_classification.m)) and `mv_regress` ([example 5 in `getting_started_with_regression`](examples/getting_started_with_regression.m))
-* (June 2020) the [MVPA Light toolbox paper](https://www.frontiersin.org/articles/10.3389/fnins.2020.00289/full) has been published
 
 ### Table of contents<a name="contents"></a>
 1. [Installation](#installation)
@@ -33,13 +34,11 @@ startup_MVPA_Light
 
 This assumes that the repository is located in `C:\git\MVPA-Light`, so change the path if necessary. The function `startup_MVPA_Light` adds the relevant folders and it avoids adding the `.git` subfolder. 
 
-If you do not want to use the `startup.m` file, you can directly add the `MVPA-Light` folder and its subfolders to the path using [MATLAB's Path tool](https://uk.mathworks.com/help/matlab/matlab_env/add-remove-or-reorder-folders-on-the-search-path.html).
-
-`MVPA-Light` contains two branches: the `master` branch (recommended) is the stable branch that should always work. `devel` is the development branch that contains new features that are either under construction or not tested. The toolbox has been tested with Matlab `R2012a` and newer. There may be issues with earlier Matlab versions.
+If you do not want to use the `startup.m` file, you can directly add the `MVPA-Light` folder and its subfolders to the path using [MATLAB's Path tool](https://uk.mathworks.com/help/matlab/matlab_env/add-remove-or-reorder-folders-on-the-search-path.html). The toolbox has been tested with Matlab `R2012a` and newer. There may be issues with earlier Matlab versions.
 
 ## Overview <a name="overview"></a>
 
-*Multivariate pattern analysis* (MVPA) is an umbrella term that covers many multivariate methods such classification, regression and related approaches such as Representational Similarity Analysis. `MVPA-Light` provides functions for the classification and regression of neuroimaging data. It is meant to address the basic issues in MVPA (such as classification across time and generalization) in a fast and robust way while retaining a slim and readable codebase. For FieldTrip users, the use of the toolbox will be familiar: The first argument to the main functions is a configuration struct `cfg` that contains all the parameters. The toolbox does *not* require or use FieldTrip, but a FieldTrip integration is available (see [tutorial](http://www.fieldtriptoolbox.org/tutorial/mvpa_light/)).
+*Multivariate pattern analysis* (MVPA) is an umbrella term that covers multivariate methods such classification, regression and related approaches such as Representational Similarity Analysis. `MVPA-Light` provides functions for the classification and regression of neuroimaging data. It is meant to address the basic issues in MVPA (such as classification across time and generalization) in a fast and robust way while retaining a slim and readable codebase. For FieldTrip users, the use of the toolbox will be familiar: The first argument to the main functions is a configuration struct `cfg` that contains all the parameters. The toolbox does *not* require or use FieldTrip, but a FieldTrip integration is available (see [tutorial](http://www.fieldtriptoolbox.org/tutorial/mvpa_light/)).
 
 Classifiers and regression models (jointly referred to as models) can be trained and tested by hand using the `train_*` and `test_*` functions. All classifiers and regression models are available in the [`model`](model) folder.
 
@@ -49,7 +48,7 @@ In order to learn which features in the data discriminate between the experiment
 
 #### Testing
 
-Model performance is evaluated on a dataset called *test data*. To this end, the model is applied to samples from the test data. The predictions of the model (i.e., predicted class labels by a classifier or predicted responses by a regression model) can then be compared to the true class labels / responses in order to quantify predictive performance. All test functions start with `test_` (e.g. [`test_lda`](model/test_lda.m)).
+Model performance is evaluated by applying the model to samples from the *test data*. The predictions of the model (i.e., predicted class labels by a classifier or predicted responses by a regression model) can then be compared to the true class labels / responses in order to quantify predictive performance. All test functions start with `test_` (e.g. [`test_lda`](model/test_lda.m)).
 
 #### Cross-validation <a name="cv"></a>
 
@@ -60,11 +59,11 @@ To obtain a realistic estimate of model performance and control for overfitting,
 * `cfg.repeat`: number of times the cross-validation is repeated with new randomly assigned folds (default 5)
 * `cfg.p`: if cfg.cv is 'holdout', p is the fraction of test samples (default 0.1)
 * `cfg.stratify`: if 1, the class proportions are approximately preserved in each test fold (default 1)
-* `cfg.fold`: if `cfg.cv = 'predefined'` then `cfg.fold` is a fold is a vector of length containing of that specifies for each sample the fold that it belongs to
+* `cfg.fold`: if `cfg.cv = 'predefined'` then `cfg.fold` is a vector of length *n_samples* that specifies for each sample the fold that it belongs to
 
 #### Hyperparameter <a name="hyperparameter"></a>
 
-[Hyperparameters](https://en.wikipedia.org/wiki/Hyperparameter_(machine_learning)) are parameters for the models that have to be specified by the user. Examples are the choice of the kernel in SVM and the amount of regularization. These parameters are passed on to the train functions of the models. They can be controlled by setting the `cfg.hyperparameter` field before calling any of the high-level functions. To this end, initialize the field using `cfg.hyperparameter = []`. Then, add the desired parameters, e.g. `cfg.hyperparameter.lambda = 0.5` for setting the regularization parameter or `cfg.hyperparameter.kernel = 'polynomial'` for defining a polynomial kernel for SVM. The hyperparameters for each model are specified in the documentation for each train_ function in the folder [`model`](model/). 
+[Hyperparameters](https://en.wikipedia.org/wiki/Hyperparameter_(machine_learning)) are model parameters that have to be specified by the user. Examples are the kernel in SVM and the amount of regularization. These parameters are passed on to the train functions of the models. They can be controlled by setting the `cfg.hyperparameter` field before calling any of the high-level functions. To this end, initialize the field using `cfg.hyperparameter = []`. Then, add the desired parameters, e.g. `cfg.hyperparameter.lambda = 0.5` for setting the regularization parameter or `cfg.hyperparameter.kernel = 'polynomial'` for defining a polynomial kernel for SVM. The hyperparameters for each model are specified in the documentation for each train_ function in the folder [`model`](model/). 
 
 #### Preprocessing<a name="preprocessing"></a>
 
@@ -81,7 +80,7 @@ Classification and regression performance is typically measured using metrics su
 
 A *classifier* is one of the main workhorses of MVPA. The input brain data, e.g. channels or voxels, is referred to as *features*, whereas the output data is a *class label*. [Classification](https://en.wikipedia.org/wiki/Statistical_classification) is the process of taking a feature vector as input and assigning it to a class. In `MVPA-Light`, class labels must be coded as `1` (for class 1), `2` (for class 2), `3` (for class 3), and so on.
 
-*Example*: Assume that in a ERP-based memory paradigm, the goal is to predict whether an item is remembered or forgotten based on 128-channels EEG data. The target is single-trial ERPs at t=700 ms. Then, the feature vector for each trial consists of a 128-elements vector representing the activity at 700 ms for each electrode. Class labels are "remembered" (coded as 1) and "forgotten" (coded as 2). The exact order of coding the conditions does not affect the classification performance.
+*Example*: Assume that in an ERP-based memory paradigm, the goal is to predict whether an item is remembered or forgotten based on 128-channels EEG data. The target is single-trial ERPs at t=700 ms. Then, the feature vector for each trial consists of a 128-elements vector representing the activity at 700 ms for each electrode. Class labels are "remembered" (coded as 1) and "forgotten" (coded as 2). The exact order of coding the conditions does not affect the classification performance.
 
 #### Classifiers for two classes <a name="classifiers"></a>
 
@@ -106,7 +105,7 @@ A *classifier* is one of the main workhorses of MVPA. The input brain data, e.g.
 * [`naive_bayes`](model/train_naive_bayes.m)<a name="naivebayes"></a> : Gaussian Naive Bayes classifier. Its naive assumption is that, given the class label, the features are independent of each other. This allows the posterior probability to be expressed in terms of univariate densities. At testing time, the maximum a posteriori (MAP) rule is applied to assign a sample to the class with the maximum posterior probability. See [`train_naive_bayes`](model/train_naive_bayes.m) for a full description of the parameters.
 
 #### Classification across time
-Many neuroimaging datasets have a 3-D structure (trials x channels x time). The start of the trial (t=0) typically corresponds to stimulus or response onset. Classification across time can help identify at which time point in a trial discriminative information shows up. To this end, classification is performed across trials, for each time point separately. This is implemented in the function [`mv_classify_across_time`](mv_classify_across_time.m). It returns classification performance calculated for each time point in a trial. [`mv_plot_result`](plot/mv_plot_result.m) can be used to plot the result.
+Many neuroimaging datasets have a 3D structure (trials x channels x time). The start of the trial (t=0) typically corresponds to stimulus or response onset. Classification across time can help identify at which time point in a trial discriminative information shows up. To this end, classification is performed across trials, for each time point separately. This is implemented in the function [`mv_classify_across_time`](mv_classify_across_time.m). It returns classification performance calculated for each time point in a trial. [`mv_plot_result`](plot/mv_plot_result.m) can be used to plot the result.
 
 #### Time x time generalization
 
