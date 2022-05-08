@@ -120,3 +120,23 @@ print_unittest_result('classif spiral data',1/nclasses, acc_linear, tol);
 %     print_unittest_result(sprintf('[N>>P] %s primal train time < dual train time', model{:}), true, time_primal > time_dual, tol);
 % end
 
+%% test multi-class 
+nsamples = 120;
+nfeatures = 10;
+nclasses = 5;
+prop = [];
+scale = 0.0001;
+do_plot = 0;
+
+[X,clabel] = simulate_gaussian_data(nsamples, nfeatures, nclasses, prop, scale, do_plot);
+
+% Get classifier params
+param = mv_get_hyperparameter('liblinear');
+cf = train_liblinear(param, X, clabel);
+
+pred = test_liblinear(cf, X);
+
+print_unittest_result('[multiclass] 5 different classes returned',5, numel(unique(clabel)), tol);
+print_unittest_result('[multiclass] labels 1-5 returned', true, min(pred)==1 & max(pred)==5, tol);
+
+
