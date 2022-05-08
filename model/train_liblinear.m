@@ -94,5 +94,10 @@ if ~isempty(param.cost)
     liblinear_options= [liblinear_options ' -c ' num2str(param.cost(1))];
 end
 
+% class labels formatted as 0, 1, 2, ...
+clabel = double(clabel-1);
+
 % Call LIBLINEAR training function
-cf.model = train(double(clabel(:)==1), sparse(X), liblinear_options);
+% cf.model = train(double(clabel(:)==1), sparse(X), liblinear_options);
+cf.model = train(clabel, sparse(X), liblinear_options);
+
