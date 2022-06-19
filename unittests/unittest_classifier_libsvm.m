@@ -41,7 +41,7 @@ prop = [];
 scale = 0.0001;
 do_plot = 0;
 
-[X_gauss,clabel_gauss] = simulate_gaussian_data(nsamples, nfeatures, nclasses, prop, scale, do_plot);
+[X,clabel] = simulate_gaussian_data(nsamples, nfeatures, nclasses, prop, scale, do_plot);
 
 % Get classifier params
 param = mv_get_hyperparameter('libsvm');
@@ -91,8 +91,10 @@ print_unittest_result('classif spiral data (RBF kernel)',1, acc_rbf, tol);
 
 
 %% call train/test function with a precomputed kernel
+tmp_cfg = [];
+tmp_cfg.preprocess_fun = [];
 K = rbf_kernel(struct('gamma',500), X_spiral);
-[Xtrain, trainlabel, Xtest, testlabel] = mv_select_train_and_test_data(K, clabel, 1:2:numel(clabel), 2:2:numel(clabel), 1);
+[tmp_cfg, Xtrain, trainlabel, Xtest, testlabel] = mv_select_train_and_test_data(tmp_cfg, K, clabel, 1:2:numel(clabel), 2:2:numel(clabel), 1);
 
 param = mv_get_hyperparameter('libsvm');
 param.kernel = 'precomputed';
@@ -167,4 +169,24 @@ cf_nokernel = train_libsvm(param, X_spiral, clabel_spiral);
 
 % Are all returned values between 0 and 1?
 print_unittest_result('[linear] providing kernel matrix vs calculating it from scratch should be equal',0, norm(cf_kernel.model.sv_coef - cf_nokernel.model.sv_coef), tol);
+
+%% test multi-class 
+nsamples = 120;
+nfeatures = 10;
+nclasses = 5;
+prop = [];
+scale = 0.0001;
+do_plot = 0;
+
+[X,clabel] = simulate_gaussian_data(nsamples, nfeatures, nclasses, prop, scale, do_plot);
+
+% Get classifier params
+param = mv_get_hyperparameter('libsvm');
+param.gamma = 0.1;
+cf = train_libsvm(param, X, clabel);
+
+pred = test_libsvm(cf, X);
+
+print_unittest_result('[multiclass] 5 different classes returned',5, numel(unique(clabel)), tol);
+print_unittest_result('[multiclass] labels 1-5 returned', true, min(pred)==1 & max(pred)==5, tol);
 
