@@ -162,10 +162,12 @@ switch(model)
 
     %%% --- Defaults for multivariate regression models ---
     case 'cca'  
-        mv_set_default(param,'n', 10);
+        mv_set_default(param,'n', 'auto');
         mv_set_default(param,'lambda_x','auto');
         mv_set_default(param,'lambda_y','auto');
         mv_set_default(param,'form', 'auto');
+        mv_set_default(param,'correlation', true);
+        mv_set_default(param,'pattern', false);
 
 
     otherwise, error('Unknown model ''%s''',model)

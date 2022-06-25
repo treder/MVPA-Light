@@ -1,18 +1,14 @@
-function [X, clabel, cfg] = simulate_coupled_oscillations(cfg)
+function [X, cfg] = simulate_coupled_oscillations(cfg)
 % Simulates two datasets with coupled oscillations. This is useful for
-% multivariate regression scenarios such as CCA. 
-
-% Simulates EEG-like oscillatory data consisting of a superposition of
-% narrowband sources (typically serving as signal sources) and broadband
-% sources with a 1/f spectrum (typically serving as noise sources).
-% All sources are initially created as broadband Gaussian noise and then
-% filtered to be either narrowband or 1/f.
+% multivariate regression scenarios such as CCA. This function builds on 
+% simulate_oscillatory_data wherein only one set is simulated.
 %
-% Usage:  X, clabel, narrow, broad, narrow_weights, broad_weights = simulate_oscillatory_data(cfg)
+% Usage:  [X, cfg]  = simulate_coupled_oscillations(cfg)
 %
 % cfg          - struct with parameters:
 % .n_sample         [int]   total number of samples (e.g. trials) (default 100)
-% .n_channel        [int]   total number of channels
+% .n_channel        [int/vector] total number of channels. Can be a
+%                           vector with two values for X and Y separately
 % .n_time point     [int]   number of time points per sample
 % .n_narrow         [int]   number of narrowband sources (default 3)
 % .n_broad          [int]   number of broadband 1/f sources (default 30)
@@ -21,14 +17,24 @@ function [X, clabel, cfg] = simulate_coupled_oscillations(cfg)
 %                           or a [n_narrow, 2] matrix with cutoff
 %                           frequencies for each source separately
 % .fs               [float] sampling frequency (default 256)
-% .narrow_class     [matrix] if signals for multiple classes are to be
-%                           simulated, the [n_narrow, n_class] indicator 
-%                           matrix specifies which sources appear in which
-%                           class. E.g. [1 0; 1 1] means that source 1
-%                           appears in class 1 but not class 2 whereas source 2
-%                           appears in both class 1 and class 2. 
-% .amplitude        [vector] specifies the amplitude each narrowband
-%                           signal is multiplied with
+% .coupling        [matrix] [n_narrow, 2] binary matrix specifying whether
+%                           a narrowband source appears in X only, Y only,
+%                           or is coupled in X and Y. Coupling means that
+%                           the sources are identical (100% correlated).
+%                           For instance coupling = 
+%                               [1 0; 
+%                                1 1; 
+%                                0 1]
+%                           specifies 3 sources: the first one [1 0]
+%                           appears only in X, and second one [1 1] appears
+%                           in both X and Y (is coupled) and the third one
+%                           [0 1] appears only in Y.
+% .lag             [vector] for coupled sources, the time lag of the Y
+%                           source (in samples) wrt the X source
+% .amplitude        [vector/matrix] specifies the amplitude each narrowband
+%                           signal is multiplied with. A [n_narrow,2]
+%                           matrix can be provided instead of the vector to
+%                           specify different amplitudes for X and Y
 % .narrow_weight    [matrix] [n_channel, n_narrow] matrix of weights that
 %                           show how a source projects into sensor space.
 %                           If not provided, random weights are created and
@@ -42,6 +48,8 @@ function [X, clabel, cfg] = simulate_coupled_oscillations(cfg)
 % X         - [n_sample x n_channel x n_time_point] array of simulated
 %             EEG data with all noise and signal sources mixed together.
 %             Roughly speaking, we have X = narrow + broad + sensor_noise.
+% Y         - second set of data with some sources being coupled with the
+%             source in Y
 % clabel    - vector of class labels
 % cfg       - cfg struct with all parameters and narrow and broadband sources 
 
