@@ -502,9 +502,8 @@ mv_plot_result(result)
 % represents the 2D coordinates of the electrodes.
 cfg_plot = [];
 cfg_plot.outline = chans.outline;
-cfg_plot.mark_chans = alpha1;
 figure
-mv_plot_topography(cfg_plot, alpha1, chans.pos);
+mv_plot_topography(cfg_plot, perf, chans.pos);
 colormap jet
 % This plot contains the same information as the line plot produced by
 % mv_plot_result, but its spatial layout makes it easier to interpret the
