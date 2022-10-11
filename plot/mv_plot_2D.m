@@ -18,6 +18,8 @@ function h = mv_plot_2D(varargin)
 %                key-value pairs.
 % 
 % The additional parameters are given here:
+% mask              - binary mask (eg statistical significance). Masks out
+%                     data in images.
 % xlabel,ylabel     - label for x and y axes (default 'Training time' and
 %                     'Testing time')
 % title             - axis title (default '')
@@ -88,6 +90,7 @@ mv_set_default(cfg,'x',1:nY);
 mv_set_default(cfg,'y',1:nX);
 mv_set_default(cfg,'xlim',[min(cfg.x), max(cfg.x)]);
 mv_set_default(cfg,'ylim',[min(cfg.y), max(cfg.y)]);
+mv_set_default(cfg,'mask',[]);
 mv_set_default(cfg,'xlabel','Testing time');
 mv_set_default(cfg,'ylabel','Training time');
 mv_set_default(cfg,'title','');
@@ -99,7 +102,7 @@ mv_set_default(cfg,'zero',{'--k'});
 mv_set_default(cfg,'ncol',ceil(sqrt(P)));
 mv_set_default(cfg,'nrow',ceil(P/cfg.ncol));
 mv_set_default(cfg,'colorbar',1);
-mv_set_default(cfg,'colorbar_location','South');
+mv_set_default(cfg,'colorbar_location','EastOutside');
 mv_set_default(cfg,'colorbar_title','');
 mv_set_default(cfg,'ydir','normal');
 mv_set_default(cfg,'yscale','linear');
@@ -119,6 +122,12 @@ if ~iscell(cfg.ylabel)
 end
 if ~iscell(cfg.title)
     cfg.title = repmat({cfg.title},[1 P]);
+end
+
+% apply mask
+if ~isempty(cfg.mask)
+    dat = bsxfun(@times, dat, cfg.mask);
+    dat(dat==0) = nan;
 end
 
 h = struct();
