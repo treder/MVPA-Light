@@ -164,6 +164,7 @@ function stat = mv_statistics(cfg, result, X, y)
 %              Important fields:
 %                stat.p       - p-values
 %                stat.mask    - logical significance mask (giving 1 when p < alpha)
+%                stat.statistic - for Level 2 tests returns the raw statistic
 %
 % Reference:
 % Maris, E., & Oostenveld, R. (2007). Nonparametric statistical testing of
@@ -506,6 +507,7 @@ else
             stat.alpha          = alpha;
             stat.correctm       = cfg.correctm;
             stat.n_permutations = cfg.n_permutations;
+            stat.statistic      = perf;
             if cfg.keep_null_distribution, stat.null_distribution = null_distribution; end
     end 
 end
