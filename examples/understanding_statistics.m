@@ -724,3 +724,11 @@ stat_between = mv_statistics(cfg_stat, all_results);
 % Plot the result again, this time highlighting the parts belonging to the
 % significant cluster. All other parts of the image are masked out.
 mv_plot_result(controls_and_patients_average, time, 'mask', stat_between.mask)
+
+% We can also plot the raw Wilcoxon statistic masked by the selected
+% clusters (showing only the significant parts). To this end, we use
+% mv_plot_2D. For nicer layout we provide the time vectors for x and y axes
+% as well as titles.
+figure
+mv_plot_2D(stat_between.statistic, 'mask', stat_between.mask, 'x',time, 'y',time,...
+    'colorbar_title', cfg_stat.statistic, 'title','Masked statistic (control vs patient)')
