@@ -121,7 +121,8 @@ switch(metric)
             % create a function that compares the predicted labels to the
             % true labels and takes the mean of the comparison. This gives
             % us the classification performance for each test fold.
-            fun = @(cfo,lab) mean(bsxfun(@eq,cfo,lab(:)), 1);
+            % fun = @(cfo,lab) sum(bsxfun(@eq,cfo,lab(:)), 1)
+            fun = @(cfo,lab) sum(bsxfun(@eq,cfo,lab(:)), 1)./sum(~bsxfun(@eq,cfo,0), 1); % this version is NaN-aware, assuming a label to be 0 when obtained from a sample with NaNs
         elseif strcmp(output_type,'dval')
             % We want class 1 labels to be positive, and class 2 labels to
             % be negative, because then their sign corresponds to the sign
