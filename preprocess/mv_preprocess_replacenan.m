@@ -28,22 +28,25 @@ if pparam.is_train_set
     
     nclasses = max(clabel);
     
-    % Sample count for each class
-    N = arrayfun( @(c) sum(clabel==c) , 1:nclasses);
-
+    
     sz = [size(X) 1];
     
-    % reshape into a samples by features matrix for the given class
-    if ~pparam.sample_dimension==1
-        permutevec = [pparam.sample_dimension setdiff(1:numel(sz), pparam.sample_dimension)];
-        X = permute(X, permutevec);
-    end
-    sz = [size(X) 1];
+    % reshape into a samples by features matrix for the given class -> this
+    % is not needed because the caller function already has permuted the
+    % data such to have the sample_dimension to be 1. Additionally, the
+    % pparma.sample_dimension will have been adjusted to reflect the
+    % permutation of the data matrices, which essentially renders the parameter
+    % inconsistent with the data representation at this stage.
+    % For now I assume the samples always to be along the first dimension.
+    %if pparam.sample_dimension~=1
+    %    permutevec = [pparam.sample_dimension setdiff(1:numel(sz), pparam.sample_dimension)];
+    %    X = permute(X, permutevec);
+    %end
+    %sz = [size(X) 1];
 
     for cc=1:nclasses
         
         ix_this_class = find(clabel == cc);
-        
         
         Xtmp = X(ix_this_class, :);
         
@@ -64,6 +67,7 @@ if pparam.is_train_set
         
     end
     
+    % this is not needed since the permutation has been commented out above
     if exist('permutevec', 'var')
         X = ipermute(reshape(X, sz), permutevec);
     end
