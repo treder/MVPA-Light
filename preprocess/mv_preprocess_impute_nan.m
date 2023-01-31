@@ -1,16 +1,23 @@
-function [pparam, X, clabel] = mv_preprocess_replacenan(pparam, X, clabel)
-% Replaces sample-specific nans in the data.
+function [pparam, X, clabel] = mv_preprocess_impute_nan(pparam, X, clabel)
+% Imputes nans in the data, so that downstream train functions return numeric results.
 %
 %Usage:
-% [pparam, X, clabel] = mv_preprocess_oversample(pparam, X, clabel)
+% [pparam, X, clabel] = mv_preprocess_impute_nan(pparam, X, clabel)
 %
 %Parameters:
 % X              - [samples x ... x ...] data matrix
 % clabel         - [samples x 1] vector of class labels
 %
 % pparam         - [struct] with preprocessing parameters
-% .sample_dimension - which dimension(s) of the data matrix represent the samples
-%                     (default 1), currently only singleton sample_dimensions are supported
+% .imputation_dimension -  dimension(s) along with imputation is performed. E.g. imagine [samples x 
+%                  electrodes x time] data. If imputation_dimension = 3 imputation is performed
+%                  across time, that is, other time points (within a given trial and electrode)
+%                  would be used to replace the nans.
+% .method        - can be 'forward': earlier elements in the array are used e.g. [4, 6, NaN, NaN 2, 1]
+%                  becomes [4, 6, 6, 6, 2, 1]),
+%                  'backward': [4, 6, NaN, NaN, 2, 1] becomes [4, 6, 2, 2, 2, 1],
+%                  'nearest':  [4, 6, NaN, NaN, 2, 1] becomes [4, 6, 6, 2, 2, 1],
+%                  'random':  replace missing values by randomly drawing from non-NaN data
 %
 % Note: If you use replacenan with cross-validation, the replacement
 % needs to be done *within* each training fold. The reason is that if the
