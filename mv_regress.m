@@ -545,6 +545,7 @@ if nargout>1
    result.perf                  = perf;
    result.perf_std              = perf_std;
    result.perf_dimension_names  = perf_dimension_names;
+   result.testdesign            = y_test;
    result.n                     = size(X, 1);
    result.n_metrics             = n_metrics;
    result.metric                = cfg.metric;
