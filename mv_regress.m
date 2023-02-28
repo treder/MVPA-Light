@@ -141,7 +141,7 @@ if has_second_dataset
     X2 = double(varargin{1});
     [cfg, Y, n_metrics, Y2] = mv_check_inputs_for_regression(cfg, permute(X,[cfg.sample_dimension, setdiff(1:ndims(X), cfg.sample_dimension)]), Y, permute(X2,[cfg.sample_dimension, setdiff(1:ndims(X), cfg.sample_dimension)]), varargin{2});
 else
-    [cfg, Y, n_metrics] = mv_check_inputs_for_regression(cfg, permute(X,[cfg.sample_dimension, setdiff(1:ndims(X), cfg.sample_dimension)]), Y);
+    [cfg, Y, n_metrics] = mv_check_inputs_for_regression(cfg, permute(X,[cfg.sample_dimension, setdiff(1:ndims(X), cfg.sample_dimension)]), Y(:));
 end
 
 % sort dimension vectors
@@ -545,6 +545,7 @@ if nargout>1
    result.perf                  = perf;
    result.perf_std              = perf_std;
    result.perf_dimension_names  = perf_dimension_names;
+   result.testdesign            = y_test;
    result.n                     = size(X, 1);
    result.n_metrics             = n_metrics;
    result.metric                = cfg.metric;
