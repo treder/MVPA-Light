@@ -504,3 +504,30 @@ cfg.feedback = 0;
 perf   = mv_classify(cfg, X, clabel, X2, clabel2);
 
 print_unittest_result('transfer classification with generalization', [size(X,3) size(X2,3)], size(perf), tol);
+
+%% misc: if a field result.misc should be present with 
+nsamples = 20;
+nfeatures = 12;
+ntime = 100;
+X = randn(nsamples, nfeatures);
+clabel = ones(nsamples,1);
+clabel(1:2:end) = 2;
+
+cfg = [];
+cfg.repeat = 2;
+cfg.k = 5;
+cfg.feedback = 0;
+[~, result] = mv_classify(cfg, X, clabel);
+
+print_unittest_result('[misc=0] no misc.result present', true, ~isfield(result,'misc'), tol);
+
+cfg.misc = 1;
+[~, result] = mv_classify(cfg, X, clabel);
+print_unittest_result('[misc=1] misc.result present', true, isfield(result,'misc'), tol);
+print_unittest_result('[misc=1] misc.result with subfields of right size', true, ...
+    isfield(result,'misc') && all(size(result.misc.trainlabel) == [cfg.repeat, cfg.k]) && all(size(result.misc.testlabel) == [cfg.repeat, cfg.k]) && all(size(result.misc.model) == [cfg.repeat, cfg.k]) , tol);
+
+% add time dimension: now result.misc.model should have an extra dimension
+X = randn(nsamples, nfeatures, ntime);
+[~, result] = mv_classify(cfg, X, clabel);
+print_unittest_result('[misc=1] misc.result.model for 3D data', [cfg.repeat, cfg.k, ntime], size(result.misc.model), tol);
