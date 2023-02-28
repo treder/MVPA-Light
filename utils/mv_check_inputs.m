@@ -40,7 +40,6 @@ end
 %% clabel and cfg: check whether there's more than 2 classes but yet a binary classifier is used
 binary_classifiers = {'lda' 'logreg' 'svm'};
 if n_classes > 2 && ismember(cfg.classifier, binary_classifiers)
-perf      = mv_regress(cfg, x, y, x, y);
     error('Cannot use %s for a classification task with %d classes: use a multiclass classifier instead (see https://github.com/treder/MVPA-Light/ for a list of classifiers)', upper(cfg.classifier), n_classes)
 end
 
