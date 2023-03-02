@@ -505,7 +505,7 @@ perf   = mv_classify(cfg, X, clabel, X2, clabel2);
 
 print_unittest_result('transfer classification with generalization', [size(X,3) size(X2,3)], size(perf), tol);
 
-%% misc: if a field result.misc should be present with 
+%% save: test for fields 'trainlabel' and 'model_param'
 nsamples = 20;
 nfeatures = 12;
 ntime = 100;
@@ -517,17 +517,28 @@ cfg = [];
 cfg.repeat = 2;
 cfg.k = 5;
 cfg.feedback = 0;
+cfg.save = {};
 [~, result] = mv_classify(cfg, X, clabel);
 
-print_unittest_result('[misc=0] no misc.result present', true, ~isfield(result,'misc'), tol);
+print_unittest_result('[save={}] no trainlabel or model_param in result', true, (~isfield(result,'trainlabel'))&&(~isfield(result,'model_param')), tol);
 
-cfg.misc = 1;
+cfg.save = {'trainlabel'};
 [~, result] = mv_classify(cfg, X, clabel);
-print_unittest_result('[misc=1] misc.result present', true, isfield(result,'misc'), tol);
-print_unittest_result('[misc=1] misc.result with subfields of right size', true, ...
-    isfield(result,'misc') && all(size(result.misc.trainlabel) == [cfg.repeat, cfg.k]) && all(size(result.misc.testlabel) == [cfg.repeat, cfg.k]) && all(size(result.misc.model) == [cfg.repeat, cfg.k]) , tol);
+print_unittest_result('[save=trainlabel] trainlabel present', true, isfield(result,'trainlabel'), tol);
+print_unittest_result('[save=trainlabel] model_param not present', false, isfield(result,'model_param'), tol);
 
-% add time dimension: now result.misc.model should have an extra dimension
+cfg.save = {'trainlabel' 'model_param'};
+[~, result] = mv_classify(cfg, X, clabel);
+print_unittest_result('[save=trainlabel,model_param] trainlabel and model_param', true, isfield(result,'trainlabel')&&isfield(result,'model_param'), tol);
+
+% add time dimension: now result.misc.model_param should have an extra dimension
 X = randn(nsamples, nfeatures, ntime);
+cfg.save = 'model_param';
 [~, result] = mv_classify(cfg, X, clabel);
-print_unittest_result('[misc=1] misc.result.model for 3D data', [cfg.repeat, cfg.k, ntime], size(result.misc.model), tol);
+print_unittest_result('[save=model_param] misc.result.model_param for 3D data', [cfg.repeat, cfg.k, ntime], size(result.model_param), tol);
+
+% no cross val
+cfg.save = {'model_param' 'trainlabel'};
+cfg.cv = 'none';
+[~, result] = mv_classify(cfg, X, clabel);
+print_unittest_result('[save=model_param, trainlabel, no crossval] misc.result.model_param', [1, 1, ntime], size(result.model_param), tol);

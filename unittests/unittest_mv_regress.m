@@ -312,3 +312,43 @@ cfg.feedback = 0;
 perf   = mv_regress(cfg, x, y, x2, y2);
 
 print_unittest_result('transfer regression with generalization', [size(x,3) size(x2,3)], size(perf), tol);
+
+
+
+%% save: test for fields 'y_train' and 'model_param'
+nsamples = 20;
+nfeatures = 12;
+ntime = 100;
+X = zeros(nsamples, nfeatures, ntime);
+[x, y] = simulate_regression_data('linear', nsamples, nfeatures, 0);
+
+cfg = [];
+cfg.repeat = 2;
+cfg.k = 5;
+cfg.feedback = 0;
+cfg.save = {};
+[~, result] = mv_regress(cfg, X, clabel);
+
+print_unittest_result('[save={}] no y_train or model_param in result', true, (~isfield(result,'y_train'))&&(~isfield(result,'model_param')), tol);
+
+cfg.save = {'y_train'};
+[~, result] = mv_regress(cfg, X, clabel);
+print_unittest_result('[save=y_train] y_train present', true, isfield(result,'y_train'), tol);
+print_unittest_result('[save=y_train] model_param not present', false, isfield(result,'model_param'), tol);
+
+cfg.save = {'y_train' 'model_param'};
+[~, result] = mv_regress(cfg, X, clabel);
+print_unittest_result('[save=y_train,model_param] y_train and model_param', true, isfield(result,'y_train')&&isfield(result,'model_param'), tol);
+
+% add time dimension: now result.misc.model_param should have an extra dimension
+X = randn(nsamples, nfeatures, ntime);
+cfg.save = 'model_param';
+[~, result] = mv_regress(cfg, X, clabel);
+print_unittest_result('[save=model_param] misc.result.model_param for 3D data', [cfg.repeat, cfg.k, ntime], size(result.model_param), tol);
+
+% no cross val
+cfg.save = {'model_param' 'y_train'};
+cfg.cv = 'none';
+[~, result] = mv_regress(cfg, X, clabel);
+print_unittest_result('[save=model_param, y_train, no crossval] misc.result.model_param', [1, 1, ntime], size(result.model_param), tol);
+
