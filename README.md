@@ -8,7 +8,7 @@ Matlab toolbox for classification and regression of multi-dimensional data
 
 ### News
 
-* (Mar 2023) `cfg.save` allows saving of models and train labels for each fold and training iteration (see eg [`mv_classify` docu](https://github.com/treder/MVPA-Light/blob/master/mv_regress.m#L33-L36))
+* (Mar 2023) `cfg.save` allows saving of models and train labels for each fold and training iteration (see eg [`mv_classify` docu](https://github.com/treder/MVPA-Light/blob/master/mv_classify.m#L40-L43))
 * (Nov 2021) spatial filtering methods [SSD](preprocess/mv_preprocess_ssd.m) and [CSP](preprocess/mv_preprocess_csp.m) added (see [`understanding_spatial_filters`](examples/understanding_spatial_filters.m) for detailed examples)
 
 ### Table of contents<a name="contents"></a>
