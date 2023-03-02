@@ -29,6 +29,10 @@ function [perf, result, testlabel] = mv_classify_across_time(cfg, X, clabel, var
 % .time         - indices of time points used e.g. 1:10 (by default all time
 %                 points in X are used)
 % .feedback     - print feedback on the console (default 1)
+% .save         - use to save labels or model parameters for each train iteration.
+%                 The cell array can contain  'trainlabel', 'model_param' 
+%                 (ie classifier parameters) (default {}). 
+%                 The results struct then contains the eponymous fields.
 %
 % CROSS-VALIDATION parameters:
 % .cv           - perform cross-validation, can be set to 'kfold',
@@ -72,6 +76,7 @@ mv_set_default(cfg,'hyperparameter',[]);
 mv_set_default(cfg,'metric','accuracy');
 mv_set_default(cfg,'time',1:size(X,3));
 mv_set_default(cfg,'feedback',1);
+mv_set_default(cfg,'save',{});
 
 mv_set_default(cfg,'preprocess',{});
 mv_set_default(cfg,'preprocess_param',{});
@@ -97,6 +102,11 @@ else,                     mv_set_default(cfg,'dimension_names',{'samples','featu
 train_fun = eval(['@train_' cfg.classifier]);
 test_fun = eval(['@test_' cfg.classifier]);
 
+%% prepare save
+if ~iscell(cfg.save), cfg.save = {cfg.save}; end
+save_model = any(strcmp(cfg.save, 'model_param'));
+save_trainlabel = any(strcmp(cfg.save, 'trainlabel'));
+
 %% Classify across time
 if cfg.feedback, mv_print_classification_info(cfg, X, clabel, varargin{:}); end
 
@@ -105,6 +115,8 @@ if ~strcmp(cfg.cv,'none') && ~has_second_dataset
     % Initialize classifier outputs
     cf_output = cell(cfg.repeat, cfg.k, ntime);
     testlabel = cell(cfg.repeat, cfg.k);
+    if save_trainlabel, all_trainlabel = cell([cfg.repeat, cfg.k]); end
+    if save_model, all_model = cell(size(cf_output)); end
 
     for rr=1:cfg.repeat                 % ---- CV repetitions ----
         if cfg.feedback, fprintf('Repetition #%d. Fold ',rr), end
@@ -129,7 +141,8 @@ if ~strcmp(cfg.cv,'none') && ~has_second_dataset
                 % Preprocess test data
                 [~, Xtest, testlabel{rr,kk}] = mv_preprocess(tmp_cfg, Xtest, testlabel{rr,kk});
             end
-            
+            if save_trainlabel, all_trainlabel{rr,kk} = trainlabel; end
+
             for tt=1:ntime           % ---- Train and test time ----
                 % Train and test data for time point tt
                 Xtrain_tt= squeeze(Xtrain(:,:,cfg.time(tt)));
@@ -140,7 +153,7 @@ if ~strcmp(cfg.cv,'none') && ~has_second_dataset
 
                 % Obtain classifier output (class labels, dvals or probabilities)
                 cf_output{rr,kk,tt} = mv_get_classifier_output(cfg.output_type, cf, test_fun, Xtest_tt);
-                
+                if save_model, all_model{rr,kk,tt} = cf; end
             end
         end
         if cfg.feedback, fprintf('\n'), end
@@ -158,7 +171,8 @@ elseif has_second_dataset
     
     % Initialize classifier outputs
     cf_output = cell(1, 1, ntime);
-    
+    if save_model, all_model = cell(size(cf_output)); end
+
     % Preprocess train data
     [tmp_cfg, X, clabel] = mv_preprocess(cfg, X, clabel);
     
@@ -175,8 +189,10 @@ elseif has_second_dataset
         
         % Obtain classifier output (class labels or dvals)
         cf_output{1,1,tt} = mv_get_classifier_output(cfg.output_type, cf, test_fun, Xtest);
+        if save_model, all_model{tt} = cf; end
     end
     
+    all_trainlabel = clabel;
     testlabel = clabel2;
     avdim = [];
 else
@@ -188,6 +204,7 @@ else
 
     % Initialize classifier outputs
     cf_output = cell(1, 1, ntime);
+    if save_model, all_model = cell(size(cf_output)); end
 
     % Preprocess train/test data
     [~, X, clabel] = mv_preprocess(cfg, X, clabel);
@@ -201,8 +218,10 @@ else
         
         % Obtain classifier output (class labels or dvals)
         cf_output{1,1,tt} = mv_get_classifier_output(cfg.output_type, cf, test_fun, Xtraintest);
+        if save_model, all_model{tt} = cf; end
     end
 
+    all_trainlabel = clabel;
     testlabel = clabel;
     avdim = [];
 end
@@ -250,4 +269,6 @@ if nargout>1
    result.n_classes             = n_classes;
    result.classifier            = cfg.classifier;
    result.cfg                   = cfg;
+   if save_trainlabel, result.trainlabel = all_trainlabel; end
+   if save_model, result.model_param = all_model; end
 end

@@ -30,6 +30,10 @@ function [perf, result] = mv_regress(cfg, X, Y, varargin)
 %                   sample is returned. Use cell array to specify multiple 
 %                   metrics (eg {'mae' 'mse'}).
 % .feedback       - print feedback on the console (default 1)
+% .save           - use to save train responses or model parameters for each train iteration.
+%                   The cell array can contain  'y_train', 'model_param' 
+%                   (ie classifier parameters) (default {}). 
+%                   The results struct then contains the eponymous fields.
 %
 % For mv_regress to make sense of the data, the user must specify the
 % meaning of each dimension. sample_dimension and feature_dimension
@@ -116,6 +120,7 @@ mv_set_default(cfg,'hyperparameter',[]);
 mv_set_default(cfg,'metric','mean_absolute_error');
 mv_set_default(cfg,'add_intercept',1);
 mv_set_default(cfg,'feedback',1);
+mv_set_default(cfg,'save',{});
 
 mv_set_default(cfg,'sample_dimension',1);
 mv_set_default(cfg,'feature_dimension',2);
@@ -274,6 +279,11 @@ nfeat = [size(X) ones(1, numel(cfg.dimension_names) - ndims(X))];
 nfeat = nfeat(feature_dim);
 if isempty(nfeat), nfeat = 1; end
 
+%% prepare save
+if ~iscell(cfg.save), cfg.save = {cfg.save}; end
+save_model = any(strcmp(cfg.save, 'model_param'));
+save_y_train = any(strcmp(cfg.save, 'y_train'));
+
 %% Perform regression
 if ~strcmp(cfg.cv,'none') && ~has_second_dataset
     % -------------------------------------------------------
@@ -282,6 +292,8 @@ if ~strcmp(cfg.cv,'none') && ~has_second_dataset
     % Initialize regression model outputs
     model_output = cell([cfg.repeat, cfg.k, sz_search]);
     y_test = cell([cfg.repeat, cfg.k]);
+    if save_y_train, all_y_train = cell([cfg.repeat, cfg.k]); end
+    if save_model, all_model = cell(size(model_output)); end
     
     for rr=1:cfg.repeat                 % ---- CV repetitions ----
         if cfg.feedback, fprintf('Repetition #%d. Fold ',rr), end
@@ -324,7 +336,8 @@ if ~strcmp(cfg.cv,'none') && ~has_second_dataset
                 new_sz_search = size(X_test);
                 X_test = reshape(X_test, [new_sz_search(1)*new_sz_search(2), new_sz_search(3:end)]);
             end
-            
+            if save_y_train, all_y_train{rr,kk} = y_train; end
+
             % Remember sizes
             sz_Xtrain = size(X_train);
             sz_Xtest = size(X_test);
@@ -364,6 +377,8 @@ if ~strcmp(cfg.cv,'none') && ~has_second_dataset
                     % multivariate output
                     model_output{rr,kk,ix{:}} = reshape( test_fun(model, X_test_ix), size(y_test{rr,kk},1),size(y_test{rr,kk},2),[]);
                 end
+                if save_model, all_model{rr,kk,ix{:}} = model; end
+
             end
 
         end
@@ -380,7 +395,8 @@ elseif has_second_dataset
     
     % Initialize classifier outputs
     model_output = cell([1, 1, sz_search]);
-    
+    if save_model, all_model = cell(size(model_output)); end
+
     % Preprocess train data
     [tmp_cfg, X, Y] = mv_preprocess(cfg, X, Y);
     
@@ -433,8 +449,10 @@ elseif has_second_dataset
             % multivariate output
             model_output{1,1,ix{:}} = reshape( test_fun(model, X_test_ix), size(Y2,1),size(Y2,2),[]);
         end
+        if save_model, all_model{ix{:}} = model; end
     end
     
+    all_y_train = Y;
     y_test = Y2;
     avdim = [];
     
@@ -452,7 +470,8 @@ elseif strcmp(cfg.cv,'none')
     
     % Initialise regression model outputs
     model_output = cell([1, 1, sz_search]);
-    
+    if save_model, all_model = cell(size(model_output)); end
+
     if ~isempty(gen_dim)
         X_test= permute(X, [sample_dim, search_dim(end), search_dim(1:end-1), feature_dim]);
         
@@ -502,9 +521,11 @@ elseif strcmp(cfg.cv,'none')
             % multivariate output
             model_output{1,1,ix{:}} = reshape( test_fun(model, X_test_ix), size(Y,1),size(Y,2),[]);
         end
-        
+        if save_model, all_model{ix{:}} = model; end
+
     end
 
+    all_y_train = Y;
     y_test = Y;
     avdim = [];
 end
@@ -545,9 +566,12 @@ if nargout>1
    result.perf                  = perf;
    result.perf_std              = perf_std;
    result.perf_dimension_names  = perf_dimension_names;
+   result.y_test                = y_test;
    result.n                     = size(X, 1);
    result.n_metrics             = n_metrics;
    result.metric                = cfg.metric;
    result.model                 = cfg.model;
    result.cfg                   = cfg;
+   if save_y_train, result.y_train = all_y_train; end
+   if save_model, result.model_param = all_model; end
 end

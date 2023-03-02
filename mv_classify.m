@@ -37,6 +37,10 @@ function [perf, result, testlabel] = mv_classify(cfg, X, clabel, varargin)
 %                   Use cell array to specify multiple metrics (eg
 %                    {'accuracy' 'auc'}
 % .feedback       - print feedback on the console (default 1)
+% .save           - use to save labels or model parameters for each train iteration.
+%                   The cell array can contain  'trainlabel', 'model_param' 
+%                   (ie classifier parameters) (default {}). 
+%                   The results struct then contains the eponymous fields.
 %
 % For mv_classify to make sense of the data, the user must specify the
 % meaning of each dimension. sample_dimension and feature_dimension
@@ -141,6 +145,7 @@ mv_set_default(cfg,'classifier','lda');
 mv_set_default(cfg,'hyperparameter',[]);
 mv_set_default(cfg,'metric','accuracy');
 mv_set_default(cfg,'feedback',1);
+mv_set_default(cfg,'save',{});
 
 mv_set_default(cfg,'sample_dimension', 1);
 mv_set_default(cfg,'generalization_dimension',[]);
@@ -306,6 +311,11 @@ nfeat = [size(X) ones(1, numel(cfg.dimension_names) - ndims(X))];
 nfeat = nfeat(feature_dim);
 if isempty(nfeat), nfeat = 1; end
 
+%% prepare save
+if ~iscell(cfg.save), cfg.save = {cfg.save}; end
+save_model = any(strcmp(cfg.save, 'model_param'));
+save_trainlabel = any(strcmp(cfg.save, 'trainlabel'));
+
 %% Perform classification
 if ~strcmp(cfg.cv,'none') && ~has_second_dataset
     % -------------------------------------------------------
@@ -318,7 +328,9 @@ if ~strcmp(cfg.cv,'none') && ~has_second_dataset
         cf_output = cell([cfg.repeat, cfg.k, sz_search]);
     end
     testlabel = cell([cfg.repeat, cfg.k]);
-    
+    if save_trainlabel, all_trainlabel = cell([cfg.repeat, cfg.k]); end
+    if save_model, all_model = cell(size(cf_output)); end
+
     for rr=1:cfg.repeat                 % ---- CV repetitions ----
         if cfg.feedback, fprintf('Repetition #%d. Fold ',rr), end
         
@@ -364,7 +376,8 @@ if ~strcmp(cfg.cv,'none') && ~has_second_dataset
                 new_sz_search = size(Xtest);
                 Xtest = reshape(Xtest, [new_sz_search(1)*new_sz_search(2), new_sz_search(3:end)]);
             end
-            
+            if save_trainlabel, all_trainlabel{rr,kk} = trainlabel; end
+
             % Remember sizes
             sz_Xtrain = size(Xtrain);
             sz_Xtest = size(Xtest);
@@ -403,6 +416,7 @@ if ~strcmp(cfg.cv,'none') && ~has_second_dataset
                     % generalization: we have to reshape classifier output back
                     cf_output{rr,kk,ix{:}} = reshape( mv_get_classifier_output(cfg.output_type, cf, test_fun, Xtest_ix), numel(testlabel{rr,kk}),[]);
                 end
+                if save_model, all_model{rr,kk,ix{:}} = cf; end
             end
 
         end
@@ -423,7 +437,8 @@ elseif has_second_dataset
     else
         cf_output = cell([1, 1, sz_search]);
     end
-    
+    if save_model, all_model = cell(size(cf_output)); end
+
     % Preprocess train data
     [tmp_cfg, X, clabel] = mv_preprocess(cfg, X, clabel);
     
@@ -476,9 +491,11 @@ elseif has_second_dataset
         else
             cf_output{1,1,ix{:}} = reshape( mv_get_classifier_output(cfg.output_type, cf, test_fun, Xtest_ix), numel(testlabel),[]);
         end
+        if save_model, all_model{ix{:}} = cf; end
     end
     
     avdim = [];
+    all_trainlabel = trainlabel;
     
 elseif strcmp(cfg.cv,'none')
     % -------------------------------------------------------
@@ -498,7 +515,8 @@ elseif strcmp(cfg.cv,'none')
     else
         cf_output = cell([1, 1, sz_search]);
     end
-    
+    if save_model, all_model = cell(size(cf_output)); end
+
     if ~isempty(gen_dim)
         Xtest= permute(X, [sample_dim, search_dim(end), search_dim(1:end-1), feature_dim]);
         
@@ -547,11 +565,12 @@ elseif strcmp(cfg.cv,'none')
             % we have to reshape classifier output back
             cf_output{1,1,ix{:}} = reshape( mv_get_classifier_output(cfg.output_type, cf, test_fun, Xtest_ix), numel(clabel),[]);
         end
+        if save_model, all_model{ix{:}} = cf; end
     end
 
+    all_trainlabel = clabel;
     testlabel = clabel;
     avdim = [];
-
 end
 
 %% Calculate performance metrics
@@ -608,4 +627,6 @@ if nargout>1
    result.n_classes             = n_classes;
    result.classifier            = cfg.classifier;
    result.cfg                   = cfg;
+   if save_trainlabel, result.trainlabel = all_trainlabel; end
+   if save_model, result.model_param = all_model; end
 end
