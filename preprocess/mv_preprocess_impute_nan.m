@@ -38,20 +38,79 @@ if isempty(nan_ix)
     return;
 end
 
-pparam.impute_dimension = [pparam.impute_dimension(:)]'; % make sure it's a row vector
+pparam.impute_dimension = pparam.impute_dimension(:)'; % make sure it's a row vector
 sz = size(X);
 
 % convert linear indices to row/col/... 
 sub = cell(ndims(X),1);
 [sub{:}] = ind2sub(sz, nan_ix);
 
-if strcmp(pparam.method, 'forward')
-    for ix = 1:numel(sub{1})
-        for dim = pparam.impute_dimension
+if strcmp(pparam.method, 'forward') || strcmp(pparam.method, 'backward')
+    for dim = pparam.impute_dimension
+        if ~any(isnan(X(:)))
+            break
         end
+        % permute such that the current impute dimension is in the columns
+        % and hence accessible via linear indexing
+        X = permute(X, [dim, setdiff(1:ndims(X), dim)]);
+        nan_ix = find(isnan(X));
+
+        if strcmp(pparam.method, 'forward')
+            % --- FORWARD IMPUTE ---
+            % remove index corresponding to start of each col since 
+            % forward fill doesn't work here
+            nan_ix = nan_ix(mod(nan_ix, sz(dim)) ~= 1);
+    
+            % fill nan with previous element
+            X(nan_ix) = X(nan_ix-1);
+    
+            % if there are nans left then multiple nans follow each other 
+            % and we need to loop through them 
+            nan_ix = nan_ix(isnan(X(nan_ix)));
+            if ~isempty(nan_ix)
+                d = diff(nan_ix);
+                % all contiguous blocks of Nans have d==1 so the breaks 
+                % tell us where the contiguous blocks end
+                end_indices = find(d>1);
+                end_indices = [end_indices(:)' numel(nan_ix)];
+                start_ix = 1;
+                for end_ix = end_indices
+                    X(nan_ix(start_ix:end_ix)) = X(nan_ix(start_ix)-1);
+                    start_ix = end_ix+1;
+                end
+            end
+        elseif strcmp(pparam.method, 'backward')
+            % --- BACKWARD IMPUTE ---
+            % remove index corresponding to end of each col since 
+            % forward fill doesn't work here
+            nan_ix = nan_ix(mod(nan_ix, sz(dim)) ~= 0);
+    
+            % fill nan with following element
+            X(nan_ix) = X(nan_ix+1);
+    
+            % if there are nans left then multiple nans follow each other 
+            % and we need to loop through them 
+            nan_ix = nan_ix(isnan(X(nan_ix)));
+            if ~isempty(nan_ix)
+                d = diff(nan_ix);
+                % all contiguous blocks of Nans have d==1 so the breaks 
+                % tell us where the contiguous blocks end
+                end_indices = find(d>1);
+                end_indices = [end_indices(:)' numel(nan_ix)];
+                start_ix = 1;
+                for end_ix = end_indices
+                    X(nan_ix(start_ix:end_ix)) = X(nan_ix(end_ix)+1);
+                    start_ix = end_ix+1;
+                end
+            end
+        end
+
+        % permute back to original dimensions
+        back_to_original_dims = [2:dim 1 dim+1:ndims(X)];
+        X = permute(X, back_to_original_dims);
+
     end
     
-elseif strcmp(pparam.method, 'backward')
 elseif strcmp(pparam.method, 'random')
 
     if pparam.is_train_set
