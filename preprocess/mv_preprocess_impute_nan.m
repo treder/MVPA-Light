@@ -31,7 +31,7 @@ function [pparam, X, clabel] = mv_preprocess_impute_nan(pparam, X, clabel)
 %   error('mv_preprocess_replacenan currently only supports a singleton sample_dimension');
 % end
 
-nan_ix = find(isnan(X));
+nan_ix = find(~isfinite(X));
 
 if isempty(nan_ix)
     % nothing to do...
@@ -47,13 +47,13 @@ sub = cell(ndims(X),1);
 
 if strcmp(pparam.method, 'forward') || strcmp(pparam.method, 'backward')
     for dim = pparam.impute_dimension
-        if ~any(isnan(X(:)))
+        if all(isfinite(X(:)))
             break
         end
         % permute such that the current impute dimension is in the columns
         % and hence accessible via linear indexing
         X = permute(X, [dim, setdiff(1:ndims(X), dim)]);
-        nan_ix = find(isnan(X));
+        nan_ix = find(~isfinite(X));
 
         if strcmp(pparam.method, 'forward')
             % --- FORWARD IMPUTE ---
@@ -64,9 +64,9 @@ if strcmp(pparam.method, 'forward') || strcmp(pparam.method, 'backward')
             % fill nan with previous element
             X(nan_ix) = X(nan_ix-1);
     
-            % if there are nans left then multiple nans follow each other 
-            % and we need to loop through them 
-            nan_ix = nan_ix(isnan(X(nan_ix)));
+            % if there are nans left it means that multiple nans follow each 
+            % other and we need to loop through these blocks of nans
+            nan_ix = nan_ix(~isfinite(X(nan_ix)));
             if ~isempty(nan_ix)
                 d = diff(nan_ix);
                 % all contiguous blocks of Nans have d==1 so the breaks 
@@ -88,9 +88,9 @@ if strcmp(pparam.method, 'forward') || strcmp(pparam.method, 'backward')
             % fill nan with following element
             X(nan_ix) = X(nan_ix+1);
     
-            % if there are nans left then multiple nans follow each other 
-            % and we need to loop through them 
-            nan_ix = nan_ix(isnan(X(nan_ix)));
+            % if there are nans left it means that multiple nans follow each 
+            % other and we need to loop through these blocks of nans
+            nan_ix = nan_ix(~isfinite(X(nan_ix)));
             if ~isempty(nan_ix)
                 d = diff(nan_ix);
                 % all contiguous blocks of Nans have d==1 so the breaks 
