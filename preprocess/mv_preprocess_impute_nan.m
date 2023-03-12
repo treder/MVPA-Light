@@ -1,5 +1,6 @@
 function [pparam, X, clabel] = mv_preprocess_impute_nan(pparam, X, clabel)
-% Imputes nans in the data, so that downstream train functions return numeric results.
+% Imputes nan and inf values in the data, so that downstream train functions 
+% return numeric results.
 %
 %Usage:
 % [pparam, X, clabel] = mv_preprocess_impute_nan(pparam, X, clabel)
@@ -10,7 +11,7 @@ function [pparam, X, clabel] = mv_preprocess_impute_nan(pparam, X, clabel)
 %
 % pparam         - [struct] with preprocessing parameters
 % .impute_dimension -  dimension(s) along with imputation is performed. E.g. imagine [samples x 
-%                  electrodes x time] data. If imputation_dimension = 3 imputation is performed
+%                  electrodes x time] data. If impute_dimension = 3 imputation is performed
 %                  across time, that is, other time points (within a given trial and electrode)
 %                  would be used to replace the nans.
 % .method        - can be 'forward': earlier elements in the array are used e.g. [4, 6, NaN, NaN 2, 1]
@@ -18,6 +19,31 @@ function [pparam, X, clabel] = mv_preprocess_impute_nan(pparam, X, clabel)
 %                  'backward': [4, 6, NaN, NaN, 2, 1] becomes [4, 6, 2, 2, 2, 1],
 %                  'nearest':  [4, 6, NaN, NaN, 2, 1] becomes [4, 6, 6, 2, 2, 1],
 %                  'random':  replace missing values by randomly drawing from non-NaN data
+% .fill          - it is possible that after the imputation the array still
+%                  contains Nans (e.g. the array [NaN, 1, 2, NaN] with
+%                  'forward' impute yields [NaN, 1, 2, 2]). In this case, the
+%                  leftover Nans can be filled with the fill value (default
+%                  Nan, no filling is done)
+%
+% Further parameters for RANDOM impute:
+% .use_clabel    - (used only in 'random' impute) if the impute dimension
+%                  is the sample dimension, then clabels can be used to
+%                  apply imputation only to samples of the same class
+%                  (default 0). 
+%
+% FORWARD and BACKWARD impute:
+% Simple imputation approach that uses the preceding or following values
+% along the impute dimensions to fill missing values. The imputation can be
+% along multiple dimensions. In this case, Nans are first filled along the
+% first impute dimension, any remaining nans along the second impute
+% dimension, etc.
+%
+% RANDOM impute:
+% Just supports a single impute dimension. Any Nans along this dimension
+% are filled in with values from a randomly chosen slice that is free of
+% nans. If use_clabel=1 only slices from the same class are selected for
+% the impute.
+%
 %
 % Note: If you use impute_nan with cross-validation, the replacement
 % needs to be done *within* each training fold. The reason is that if the
@@ -31,19 +57,8 @@ function [pparam, X, clabel] = mv_preprocess_impute_nan(pparam, X, clabel)
 %   error('mv_preprocess_replacenan currently only supports a singleton sample_dimension');
 % end
 
-nan_ix = find(~isfinite(X));
-
-if isempty(nan_ix)
-    % nothing to do...
-    return;
-end
-
 pparam.impute_dimension = pparam.impute_dimension(:)'; % make sure it's a row vector
 sz = size(X);
-
-% convert linear indices to row/col/... 
-sub = cell(ndims(X),1);
-[sub{:}] = ind2sub(sz, nan_ix);
 
 if strcmp(pparam.method, 'forward') || strcmp(pparam.method, 'backward')
     for dim = pparam.impute_dimension
@@ -112,53 +127,48 @@ if strcmp(pparam.method, 'forward') || strcmp(pparam.method, 'backward')
     end
     
 elseif strcmp(pparam.method, 'random')
+    % --- RANDOM IMPUTE ---
+    if all(isfinite(X(:))), return; end
+    assert(numel(pparam.impute_dimension)==1, 'for method=''random'' only a single impute_dimension is supported')
+    if pparam.use_clabel, assert(size(X,pparam.impute_dimension)==length(clabel), 'if use_clabel=1 length of clabel should match the size of impute dimension'); end
+    dim = pparam.impute_dimension;
+    X = permute(X, [dim, setdiff(1:ndims(X), dim)]);
+    nan_sum = sum(~isfinite(X), 2:ndims(X));
+    nan_ix = find(nan_sum > 0);
+    non_nan_ix = find(nan_sum == 0);
 
-    if pparam.is_train_set
-        
-        nclasses = max(clabel);
-        
-        
-        sz = [size(X) 1];
-        
-        % reshape into a samples by features matrix for the given class -> this
-        % is not needed because the caller function already has permuted the
-        % data such to have the sample_dimension to be 1. Additionally, the
-        % pparma.sample_dimension will have been adjusted to reflect the
-        % permutation of the data matrices, which essentially renders the parameter
-        % inconsistent with the data representation at this stage.
-        % For now I assume the samples always to be along the first dimension.
-        %if pparam.sample_dimension~=1
-        %    permutevec = [pparam.sample_dimension setdiff(1:numel(sz), pparam.sample_dimension)];
-        %    X = permute(X, permutevec);
-        %end
-        %sz = [size(X) 1];
-    
-        for cc=1:nclasses
-            
-            ix_this_class = find(clabel == cc);
-            
-            Xtmp = X(ix_this_class, :);
-            
-            % check that all features for a given sample are non-finite
-            Nonfinite  = ~isfinite(Xtmp);
-            Nnonfinite = sum(Nonfinite, 1);
-            fprintf('Replacing on average %3.1f NaN samples (%d - %d) with surrogate data for class %d\n', mean(Nnonfinite(:)), min(Nnonfinite(:)), max(Nnonfinite(:)), cc);
-            for i=1:size(Xtmp,2)
-                Nonfin = Nonfinite(:,i);
-                if sum(Nonfin) >= sum(~Nonfin)
-                    error('There should be more samples without NaNs than samples with Nans');
+    if any(non_nan_ix)
+
+        if ~pparam.use_clabel
+            random_ix = non_nan_ix(randi(numel(non_nan_ix), numel(nan_ix), 1));
+        else
+            random_ix = zeros(numel(nan_ix), 1);
+            for cc = 1:max(clabel)
+                class_ix = clabel(nan_ix)==cc;
+                nan_ix_per_class = nan_ix(class_ix);
+                if isempty(nan_ix_per_class)
+                    continue
                 end
-                selok = find(~Nonfin);
-                selok = selok(randperm(sum(~Nonfin), sum(Nonfin)));
-                Xtmp(Nonfin, i) = Xtmp(selok, i);
+                non_nan_ix_per_class = non_nan_ix(clabel(non_nan_ix)==cc);
+                random_ix_per_class = non_nan_ix_per_class(randi(numel(non_nan_ix_per_class), numel(nan_ix_per_class), 1));
+                random_ix(class_ix) = random_ix_per_class;
             end
-            X(ix_this_class, :) = Xtmp;
-            
+
         end
-        
-        % this is not needed since the permutation has been commented out above
-        if exist('permutevec', 'var')
-            X = ipermute(reshape(X, sz), permutevec);
+
+        % loop through all slices that have any nans and replace the nans
+        for ix = 1:length(nan_ix)
+            X(nan_ix(ix), isnan(X(nan_ix(ix), :))) = X(random_ix(ix), isnan(X(nan_ix(ix), :)));
         end
     end
+
+    % permute back to original dimensions
+    back_to_original_dims = [2:dim 1 dim+1:ndims(X)];
+    X = permute(X, back_to_original_dims);
+
+end
+
+% fill any leftover nans
+if ~isnan(pparam.fill)
+    X(~isfinite(X)) = pparam.fill;
 end

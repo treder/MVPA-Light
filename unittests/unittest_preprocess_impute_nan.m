@@ -69,9 +69,22 @@ X = magic(4);
 X(1,3) = nan;
 X(3,1) = nan;
 
+param.method = 'forward';
 param.impute_dimension = [1, 2];
 [~, X2, ~] = mv_preprocess_impute_nan(param, X, clabel);
 print_unittest_result('[forward 2D dim=1,2] all Nans gone', [X(2,1) X(1,2)], [X2(3,1) X2(1,3)], tol);
+
+%% non-imputed nans should get fill value
+clabel = ones(5,1);
+X = magic(5);
+X(1:3,1:2) = nan;
+X(end-2:end,end-1:end) = nan;
+
+param.impute_dimension = 1;
+param.method = 'forward';
+param.fill = -100;
+[~, X2, ~] = mv_preprocess_impute_nan(param, X, clabel);
+print_unittest_result('non-imputed nans should get fill value', param.fill * ones(3,2), X2(1:3,1:2), tol);
 
 %% order of imputation matters
 X = magic(4);
@@ -108,6 +121,7 @@ X = round(randn(3,4,5,4)*20);
 X(2,3,4,4)= nan;
 X(2,2,3,2)= nan;
 
+param.method = 'forward';
 param.impute_dimension = 1;
 [~, X2, ~] = mv_preprocess_impute_nan(param, X, clabel);
 print_unittest_result('[forward 3D dim=1]', [X(1,3,4,4) X(1,2,3,2)], [X2(2,3,4,4) X2(2,2,3,2)], tol);
@@ -141,3 +155,42 @@ param.impute_dimension = [4 1];
 [~, X2, ~] = mv_preprocess_impute_nan(param, X, clabel);
 print_unittest_result('[forward 5D dim] unchanged with no Nans', X, X2, tol);
 
+%% 5D: nan and inf are dealt with equally
+clabel = ones(3,1);
+X = round(randn(3,4,5,4,6)*20);
+Xnan = X;
+Xinf = X;
+Xnan(2:3:end) = nan;
+Xinf(2:3:end) = inf;
+
+param.method = 'forward';
+param.impute_dimension = [4 1];
+[~, X2nan, ~] = mv_preprocess_impute_nan(param, Xnan, clabel);
+[~, X2inf, ~] = mv_preprocess_impute_nan(param, Xinf, clabel);
+print_unittest_result('[forward 5D dim] nan and inf are dealt with equally', X2nan, X2inf, tol);
+
+%% method='random'
+clabel = ones(10,1);
+clabel(6:10) = 2;
+X = magic(10);
+X = reshape(X, [10, 5, 2]);
+X(1, :, :) = nan;
+X(5, 1:3, :) = nan;
+X(7, 2, 2) = nan;
+
+param = mv_get_preprocess_param('impute_nan');
+param.impute_dimension = 1;
+param.method = 'random';
+param.use_clabel = 0;
+[~, X2, ~] = mv_preprocess_impute_nan(param, X, clabel);
+print_unittest_result('[random, use_clabel=0] all nans gone', true, ~any(isnan(X2(:))), tol);
+print_unittest_result('[random, use_clabel=0] non-nans unchanged', X(~isnan(X)), X2(~isnan(X)), tol);
+
+% for class 1 all except row 4 have Nans
+X(2,:) = nan;
+X(3,1:2:end) = nan;
+param.use_clabel = 1;
+[~, X2, ~] = mv_preprocess_impute_nan(param, X, clabel);
+print_unittest_result('[random, use_clabel=1] all nans imputed by row 4', true, ...
+    all(X(4, isnan(X(1,:)))==X2(1, isnan(X(1,:)))) && all(X(4, isnan(X(2,:)))==X2(2, isnan(X(2,:)))) && all(X(4, isnan(X(3,:)))==X2(3, isnan(X(3,:)))) && all(X2(4, isnan(X(5,:)))==X2(5, isnan(X(5,:))))...
+    , tol);

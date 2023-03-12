@@ -81,10 +81,11 @@ switch(preprocess)
     
     case 'impute_nan'
         mv_set_default(preprocess_param,'is_train_set',1);
-        mv_set_default(preprocess_param,'sample_dimension',1);
         mv_set_default(preprocess_param,'select_data',[]);
         mv_set_default(preprocess_param,'impute_dimension',[2,3]);
         mv_set_default(preprocess_param,'method','forward');
+        mv_set_default(preprocess_param,'fill',nan);
+        mv_set_default(preprocess_param,'use_clabel',0);
    
     case 'ssd'
         mv_set_default(preprocess_param,'is_train_set',1);
