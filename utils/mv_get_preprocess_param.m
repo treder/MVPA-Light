@@ -78,7 +78,15 @@ switch(preprocess)
         mv_set_default(preprocess_param,'target_dimension',3);
         mv_set_default(preprocess_param,'normalize',1);
         mv_set_default(preprocess_param,'select_data',[]);
-
+    
+    case 'impute_nan'
+        mv_set_default(preprocess_param,'is_train_set',1);
+        mv_set_default(preprocess_param,'select_data',[]);
+        mv_set_default(preprocess_param,'impute_dimension',[2,3]);
+        mv_set_default(preprocess_param,'method','forward');
+        mv_set_default(preprocess_param,'fill',nan);
+        mv_set_default(preprocess_param,'use_clabel',0);
+   
     case 'ssd'
         mv_set_default(preprocess_param,'is_train_set',1);
         mv_set_default(preprocess_param,'feature_dimension',2);
