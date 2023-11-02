@@ -62,27 +62,6 @@ if isfield(cfg,'hyperparameter') && isstruct(cfg.hyperparameter)
     end
 end
 
-%% cfg: set defaults for cross-validation
-mv_set_default(cfg,'cv','kfold');
-mv_set_default(cfg,'repeat',5);
-mv_set_default(cfg,'k',5);
-mv_set_default(cfg,'p',0.1);
-mv_set_default(cfg,'stratify',1);
-mv_set_default(cfg,'fold',[]);
-
-switch(cfg.cv)
-    case 'leaveout' 
-        cfg.k = size(X,1);
-        cfg.repeat = 1;
-    case 'holdout', cfg.k = 1;
-    case 'predefined'
-        if isempty(cfg.fold)
-            error('if cfg.cv=''predefined'' then cfg.fold must be specified')
-        end
-        cfg.k = max(cfg.fold);
-        cfg.repeat = 1;
-end
-
 %% cfg: given a metric, set default for output_type
 if any(ismember({'dval','auc','roc','tval'},cfg.metric))
     mv_set_default(cfg,'output_type','dval');
@@ -172,6 +151,29 @@ end
 if numel(cfg.preprocess) ~= numel(cfg.preprocess_param)
     error('The number of elements in cfg.preprocess and cfg.preprocess_param does not match')
 end
+
+%% cfg: set defaults for cross-validation
+mv_set_default(cfg,'cv','kfold');
+mv_set_default(cfg,'k',5);
+mv_set_default(cfg,'p',0.1);
+mv_set_default(cfg,'stratify',1);
+mv_set_default(cfg,'fold',[]);
+
+switch(cfg.cv)
+    case 'leaveout' 
+        CV = mv_get_crossvalidation_folds(cfg.cv, clabel, cfg.k, cfg.stratify, cfg.p, cfg.fold, cfg.preprocess, cfg.preprocess_param);
+        cfg.k = CV.NumTestSets;
+        mv_set_default(cfg,'repeat', 1);
+    case 'holdout'
+        cfg.k = 1;
+    case 'predefined'
+        if isempty(cfg.fold)
+            error('if cfg.cv=''predefined'' then cfg.fold must be specified')
+        end
+        cfg.k = max(cfg.fold);
+        mv_set_default(cfg,'repeat', 1);
+end
+mv_set_default(cfg,'repeat', 5);
 
 %% X and clabel: check whether the number of instances matches the number of class labels
 if numel(clabel) ~= size(X,1)
