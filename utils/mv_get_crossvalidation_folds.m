@@ -1,4 +1,4 @@
-function CV = mv_get_crossvalidation_folds(cv, y, k, stratify, frac, fold)
+function CV = mv_get_crossvalidation_folds(cv, y, k, stratify, frac, fold, preprocess, preprocess_param)
 % Defines a cross-validation scheme and returns a cvpartition object with
 % the definition of the folds.
 %
@@ -25,6 +25,8 @@ function CV = mv_get_crossvalidation_folds(cv, y, k, stratify, frac, fold)
 % fold        - if cv_type='predefined', fold is a vector of length
 %                 #samples containing of 1's, 2's, 3's etc that specifies 
 %                 for each sample the fold that it belongs to
+% preprocess, preprocess_param  - preprocessing field. This allows cross-validation to be
+%               aware of preprocessing operations such as average_samples.
 %
 %Output:
 % CV - struct with cross-validation folds
@@ -46,8 +48,36 @@ switch(cv)
         end
         
     case 'leaveout'
-        CV= cvpartition(N,'leaveout');
-        
+        averaging_idx = find(ismember(preprocess, {'average_samples', 'average_kernel'}));
+        if any(averaging_idx)
+            % We need to leave out one *averaged* sample, i.e. the test set
+            % actually has to consist of multiple samples (equal to
+            % averaging group_size) from the same class.
+            % if samples are being averaged, we need to hold an *averaged*
+            % sample out, not just a single sample
+            group_size = preprocess_param{averaging_idx}.group_size;
+            CV = struct();
+            CV.group        = nan(length(y),1);
+            nclasses = max(y);
+            group_index = 1;
+            for c=1:nclasses
+                idx = find(y == c);  % indices of all samples of class c
+                idx = idx(randperm(length(idx))); % shuffle indices
+                for i=1:group_size:numel(idx)-group_size+1
+                    CV.group(idx(i:i+group_size-1)) = group_index;
+                    group_index = group_index + 1;
+                end
+            end
+            CV.NumTestSets  = max(CV.group);
+            CV.NumObservations  = length(y);
+            CV.training     = @(x) ~ismember(CV.group, x);
+            CV.test         = @(x) ismember(CV.group, x);
+            CV.TrainSize    = arrayfun(@(x) sum(CV.training(x)), 1:CV.NumTestSets);
+            CV.TestSize     = arrayfun(@(x) sum(CV.test(x)), 1:CV.NumTestSets);
+        else
+            CV= cvpartition(N,'leaveout');
+        end
+
     case 'holdout'
         if stratify
             CV= cvpartition(y,'holdout',frac);
