@@ -335,7 +335,7 @@ if ~strcmp(cfg.cv,'none') && ~has_second_dataset
         if cfg.feedback, fprintf('Repetition #%d. Fold ',rr), end
         
         % Define cross-validation
-        CV = mv_get_crossvalidation_folds(cfg.cv, clabel, cfg.k, cfg.stratify, cfg.p, cfg.fold);
+        CV = mv_get_crossvalidation_folds(cfg.cv, clabel, cfg.k, cfg.stratify, cfg.p, cfg.fold, cfg.preprocess, cfg.preprocess_param);
         
         for kk=1:CV.NumTestSets                      % ---- CV folds ----
             if cfg.feedback
@@ -392,7 +392,7 @@ if ~strcmp(cfg.cv,'none') && ~has_second_dataset
                     X_ix = Xtrain(sample_skip{:}, ix_nb{:}, feature_skip{:});
                     X_ix = reshape(X_ix, [sz_Xtrain(sample_dim), prod(cellfun(@numel, ix_nb)) * nfeat]);
                     % test data
-                    Xtest_ix = squeeze(Xtest(sample_skip{:}, ix_nb{:}, feature_skip{:}));
+                    Xtest_ix = squeeze1(Xtest(sample_skip{:}, ix_nb{:}, feature_skip{:}));
                     Xtest_ix = reshape(Xtest_ix, [sz_Xtest(sample_dim), prod(cellfun(@numel, ix_nb)) * nfeat]);
                 elseif cfg.append
                     % search dimensions are appended to train data
@@ -403,7 +403,7 @@ if ~strcmp(cfg.cv,'none') && ~has_second_dataset
                     else,                   ix_test = ix(1:end-1);
                     end
                     X_ix = squeeze(Xtrain(sample_skip{:}, ix{:}, feature_skip{:}));
-                    Xtest_ix = squeeze(Xtest(sample_skip{:}, ix_test{:}, feature_skip{:}));
+                    Xtest_ix = squeeze1(Xtest(sample_skip{:}, ix_test{:}, feature_skip{:}));
                 end
                 
                 % Train classifier
@@ -468,7 +468,7 @@ elseif has_second_dataset
             ix_nb = cellfun( @(N,f) find(N(f,:)), cfg.neighbours, ix, 'Un',0);
             X_ix = Xtrain(sample_skip{:}, ix_nb{:}, feature_skip{:});
             X_ix = reshape(X_ix, [sz_Xtrain(sample_dim), prod(cellfun(@numel, ix_nb)) * nfeat]);
-            Xtest_ix = squeeze(Xtest(sample_skip{:}, ix_nb{:}, feature_skip{:}));
+            Xtest_ix = squeeze1(Xtest(sample_skip{:}, ix_nb{:}, feature_skip{:}));
             Xtest_ix = reshape(Xtest_ix, [sz_Xtest(sample_dim), prod(cellfun(@numel, ix_nb)) * nfeat]);
         elseif cfg.append
             % search dimensions are appended to train data
@@ -479,7 +479,7 @@ elseif has_second_dataset
             else,                   ix_test = ix(1:end-1);
             end
             X_ix = squeeze(Xtrain(sample_skip{:}, ix{:}, feature_skip{:}));
-            Xtest_ix = squeeze(Xtest(sample_skip{:}, ix_test{:}, feature_skip{:}));
+            Xtest_ix = squeeze1(Xtest(sample_skip{:}, ix_test{:}, feature_skip{:}));
         end
         
         % Train classifier
