@@ -78,3 +78,19 @@ pparam.is_train_set = 0;
 print_unittest_result('[nested preprocessing] train set size of clabel', numel(clabel_train)/pparam.group_size, numel(clabel_train2), tol);
 print_unittest_result('[nested preprocessing] test set size of clabel', numel(clabel_test)/pparam.group_size, numel(clabel_test2), tol);
 
+%% nested preprocessing: train and test set with leaveout [again just look for errors]
+cfg = [];
+cfg.classifier      = 'multiclass_lda';
+cfg.cv              = 'leaveout';
+cfg.repeat          = 1;
+cfg.metric          = 'acc';
+cfg.preprocess      = {'zscore','average_samples','undersample'};
+cfg.feedback        = 0;
+
+X = randn(60, 10, 30);
+clabel = ones(60,1);
+clabel(2:2:end) = 2;
+
+perf = mv_classify(cfg, X, clabel);
+
+
