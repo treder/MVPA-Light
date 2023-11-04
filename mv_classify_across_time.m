@@ -121,7 +121,7 @@ if ~strcmp(cfg.cv,'none') && ~has_second_dataset
     for rr=1:cfg.repeat                 % ---- CV repetitions ----
         if cfg.feedback, fprintf('Repetition #%d. Fold ',rr), end
 
-        CV = mv_get_crossvalidation_folds(cfg.cv, clabel, cfg.k, cfg.stratify, cfg.p, cfg.fold);
+        CV = mv_get_crossvalidation_folds(cfg.cv, clabel, cfg.k, cfg.stratify, cfg.p, cfg.fold, cfg.preprocess, cfg.preprocess_param);
 
         for kk=1:CV.NumTestSets                     % ---- CV folds ----
             if cfg.feedback
@@ -146,7 +146,7 @@ if ~strcmp(cfg.cv,'none') && ~has_second_dataset
             for tt=1:ntime           % ---- Train and test time ----
                 % Train and test data for time point tt
                 Xtrain_tt= squeeze(Xtrain(:,:,cfg.time(tt)));
-                Xtest_tt= squeeze(Xtest(:,:,cfg.time(tt)));
+                Xtest_tt= squeeze1(Xtest(:,:,cfg.time(tt)));
 
                 % Train classifier
                 cf= train_fun(cfg.hyperparameter, Xtrain_tt, trainlabel);

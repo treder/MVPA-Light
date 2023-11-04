@@ -299,7 +299,7 @@ if ~strcmp(cfg.cv,'none') && ~has_second_dataset
         if cfg.feedback, fprintf('Repetition #%d. Fold ',rr), end
         
         % Define cross-validation
-        CV = mv_get_crossvalidation_folds(cfg.cv, Y, cfg.k, 0, cfg.p, cfg.fold);
+        CV = mv_get_crossvalidation_folds(cfg.cv, Y, cfg.k, 0, cfg.p, cfg.fold, cfg.preprocess, cfg.preprocess_param);
         
         for kk=1:CV.NumTestSets                      % ---- CV folds ----
             if cfg.feedback
