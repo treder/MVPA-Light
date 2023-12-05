@@ -5,8 +5,9 @@ function X = squeeze1(X)
 % relevant e.g. in leaveout cross-validation where the first dimension is
 % the sample dimension and the test set contains only 1 sample.
 sz = size(X);
+sz_end = sz(2:end);
 
 % remove singleton dimensions except for the first dimension
-sz = [sz(1) setdiff(sz(2:end), 1)];
+sz = [sz(1) sz_end(~ismember(sz_end,1))];
 
 X = reshape(X, sz);
