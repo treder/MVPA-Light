@@ -10,4 +10,8 @@ sz_end = sz(2:end);
 % remove singleton dimensions except for the first dimension
 sz = [sz(1) sz_end(~ismember(sz_end,1))];
 
+if length(sz) == 1
+    sz = [sz 1];
+end
+
 X = reshape(X, sz);
