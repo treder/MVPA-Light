@@ -22,7 +22,11 @@ function lambda = LedoitWolfEstimate(X, form)
 [n, p] = size(X);
 
 % remove mean
-X = X - repmat(mean(X,1), n, 1);
+if n > 1
+    X = X - repmat(mean(X,1), n, 1);
+else
+    X = X - mean(X);
+end
 
 if strcmp(form, 'primal')
     % calculate lambda using covariance matrix
