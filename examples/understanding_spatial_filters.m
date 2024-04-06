@@ -34,6 +34,7 @@
 % (6) CSP for cross-validated classification using simulated data
 % (7) CSP for cross-validated classification using real data
 % (8) Using SSD+CSP for cross-validated classification
+% (9) Multivariate noise normalization (MMN)
 %
 % Note: If you are new to working with MVPA-Light, make sure that you
 % complete the introductory tutorials first:
@@ -597,8 +598,38 @@ cfg.flatten_features    = 0;
 % paradigms involving clear oscillatory activity (such as motor imagery)
 % might be better suited for this type of analysis.
 
-% Anyways, we arrived at the end of this tutorial.
 % Congrats, you now mastered using SSD and CSP with MVPA-Light!
+
+%% (9) Multivariate noise normalization (MMN)
+% MMN is a pre-processing technique suggested in:
+% Guggenmos, M., Sterzer, P. & Cichy, R. M. Multivariate pattern analysis 
+% for MEG: A comparison of dissimilarity measures. Neuroimage 173, 434–447 (2018).
+% https://www.sciencedirect.com/science/article/pii/S1053811918301411
+% Supplemental material: https://ars.els-cdn.com/content/image/1-s2.0-S1053811918301411-mmc1.docx
+
+% We will use the real EEG data for this example with a SVM classifier with
+% RBF kernel. We will compare performance with and without preprocessing
+% with MMN
+
+[dat, clabel] = load_example_data('epoched3');
+X = dat.trial;
+
+cfg = [];
+cfg.classifier          = 'svm';
+cfg.hyperparameter      = [];
+cfg.hyperparameter.kernel = 'rbf';
+cfg.preprocess          = {'demean' 'mmn'};
+[~, result_with_mmn] = mv_classify(cfg, X, clabel);
+
+cfg.preprocess          = {'demean'};
+[~, result_without_mmn] = mv_classify(cfg, X, clabel);
+
+% combine both results into one plot
+result_merge = mv_combine_results({result_with_mmn,result_without_mmn }, 'merge');
+result_merge.plot{1}.legend_labels = {'SVM with MMN' 'SVM without MMN'};
+mv_plot_result(result_merge)
+
+% Congrats, we arrived at the end of this tutorial!
 
 %% SOLUTIONS TO THE EXERCISES
 %% SOLUTION TO EXERCISE 1
