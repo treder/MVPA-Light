@@ -64,6 +64,15 @@ switch(preprocess)
         mv_set_default(preprocess_param,'dimension',1);
         mv_set_default(preprocess_param,'select_data',[]);
 
+    case 'mmn'
+        mv_set_default(preprocess_param,'is_train_set',1);
+        mv_set_default(preprocess_param,'sample_dimension', 1);
+        mv_set_default(preprocess_param,'feature_dimension', 2);
+        mv_set_default(preprocess_param,'target_dimension', 3);
+        mv_set_default(preprocess_param,'lambda','auto');
+        mv_set_default(preprocess_param,'target_indices',{':'});
+        mv_set_default(preprocess_param,'select_data',[]);
+
     case 'oversample'
         mv_set_default(preprocess_param,'is_train_set',1);
         mv_set_default(preprocess_param,'sample_dimension',1);
