@@ -8,9 +8,9 @@ Matlab toolbox for classification and regression of multi-dimensional data
 
 ### News
 
+* (May 2024) added Multivariate Noise Normalization ([paper](https://www.sciencedirect.com/science/article/abs/pii/S1053811918301411?via%3Dihub)), see [`mv_preprocess_mmn`](preprocess/mv_preprocess_mmn) and example 9 in [`understanding_spatial_filters`](https://github.com/treder/MVPA-Light/blob/master/examples/understanding_spatial_filters.m#L603-630)
 * (Mar 2023) [mv_preprocess_impute_nan](https://github.com/treder/MVPA-Light/blob/master/preprocess/mv_preprocess_impute_nan.m) preprocesses and imputes data that has `nan` or `inf` values
 * (Mar 2023) `cfg.save` allows saving of models and train labels for each fold and training iteration (see eg [`mv_classify` docu](https://github.com/treder/MVPA-Light/blob/master/mv_classify.m#L40-L43))
-* (Nov 2021) spatial filtering methods [SSD](preprocess/mv_preprocess_ssd.m) and [CSP](preprocess/mv_preprocess_csp.m) added (see [`understanding_spatial_filters`](examples/understanding_spatial_filters.m) for detailed examples)
 
 ### Table of contents<a name="contents"></a>
 1. [Installation](#installation)
