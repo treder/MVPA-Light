@@ -372,11 +372,17 @@ cfg_stat.null            = 0.5;
 % Level 2 (group level) test, it represents the critical cutoff value for
 % the statistic. Here, we selected Wilcoxon, so clustercritval corresponds
 % to the cutoff value for the z-statistic which is obtained by a normal
-% approximation
+% approximation.
 cfg_stat.clustercritval  = 1.96;
 % z-val = 1.65 corresponds to uncorrected p-value = 0.1
 % z-val = 1.96 corresponds to uncorrected p-value = 0.05
 % z-val = 2.58 corresponds to uncorrected p-value = 0.01
+% Note that these z-values correspond to a two-sided test. In many cases it
+% suffices to use a one-sided test. In this case, the following cutoff
+% values are obtained:
+% z-val = 1.282 corresponds to uncorrected p-value = 0.1
+% z-val = 1.645 corresponds to uncorrected p-value = 0.05
+% z-val = 2.326 corresponds to uncorrected p-value = 0.01
 
 stat_level2 = mv_statistics(cfg_stat, results);
 
