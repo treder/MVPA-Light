@@ -53,8 +53,9 @@ elseif strcmp(form, 'dual')
     % Gram matrix
     G = X*X';
     
-    traceG2 = trace(G^2);
-    
+    %traceG2 = trace(G^2);
+    traceG2 = sum(sum(G.^2));
+
     % numerator: rewrite the Chen formula SUM_i ||xi xi' - S||_F^2, this yields
     numer = traceG2/n + sum(diag(G).^2) - 2 * sum(sum(G.^2))/n;
     
