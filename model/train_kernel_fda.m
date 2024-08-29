@@ -68,9 +68,6 @@ function cf = train_kernel_fda(param,X,clabel)
 nclasses = max(clabel);
 nsamples = size(X,1);
 
-% Number of samples per class
-l = arrayfun(@(c) sum(clabel == c), 1:nclasses);
-
 % indicates whether kernel matrix has been precomputed
 is_precomputed = strcmp(param.kernel,'precomputed');
 
@@ -92,15 +89,22 @@ else
 %     end
 end
 
-%% N: "Dual" of within-class scatter matrix
-N = zeros(nsamples);
 
 % Get indices of samples for each class
 ix = arrayfun( @(c) clabel==c, 1:nclasses,'Un',0);
+ix = cat(2, ix{:});
 
-for c=1:nclasses
-    N = N + K(:,ix{c}) * (eye(l(c)) - 1/l(c)) * K(ix{c},:);
-end
+% Number of samples per class
+%l = arrayfun(@(c) sum(clabel == c), 1:nclasses);
+l = sum(ix);
+
+%% N: "Dual" of within-class scatter matrix
+% N = zeros(nsamples);
+% for c=1:nclasses
+%     N = N + K(:,ix(:,c)) * (eye(l(c)) - 1/l(c)) * K(ix(:,c),:);
+% end
+Q = sparse(eye(nsamples) - ix*diag(1./l)*ix');
+N = K*Q*K'; % avoids the above for-loop
 
 %% Regularization of N
 lambda = param.lambda;
@@ -120,19 +124,24 @@ end
 %% M: "Dual" of between-classes scatter matrix
 
 % Get class-wise means
-Mj = zeros(nsamples,nclasses);
-for c=1:nclasses
-    Mj(:,c) = mean( K(:, ix{c}), 2);
-end
+% Mj = zeros(nsamples,nclasses);
+% for c=1:nclasses
+%     Mj(:,c) = mean( K(:, ix(:,c)), 2);
+% end
+Mj = K * (ix./l); % avoids the above for-loop
 
 % Sample mean
 Ms = mean(K,2);
 
+% Subtract mean
+Mj = Mj - Ms * ones(1, size(Mj,2));
+
 % Calculate M
-M = zeros(nsamples);
-for c=1:nclasses
-    M = M + l(c) * (Mj(:,c)-Ms) * (Mj(:,c)-Ms)';
-end
+% M = zeros(nsamples);
+% for c=1:nclasses
+%     %M = M + l(c) * (Mj(:,c)-Ms) * (Mj(:,c)-Ms)';
+% end
+M = Mj*diag(l)*Mj'; % avoids the above for-loop
 
 %% Calculate A (matrix of alpha's)
 [A,~] = eigs( N\M, nclasses-1);
