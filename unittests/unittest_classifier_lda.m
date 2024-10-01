@@ -28,7 +28,6 @@ print_unittest_result('check scale parameter for class 1',1, mean(dval(clabel==1
 print_unittest_result('check scale parameter for class 2',-1, mean(dval(clabel==2)), tol);
 
 %% check "prob" parameter: if prob = 1, probabilities should be returned as third parameter
-
 % Get classifier params
 param = mv_get_hyperparameter('lda');
 param.prob = 1;
@@ -39,6 +38,19 @@ cf = train_lda(param, X, clabel);
 
 % Are all returned values between 0 and 1?
 print_unittest_result('check prob parameter',1, all(abs(prob)<=1),  tol);
+
+% Random data p >> n
+X = randn(10, 100);
+clabel = randi(2, size(X,1),1);
+
+param.form = 'primal'; % for p > n form needs to be primal
+
+% Train and test classifier
+cf = train_lda(param, X, clabel);
+[~,~,prob] = test_lda(cf,X);
+
+% Are all returned values between 0 and 1?
+print_unittest_result('check prob parameter [p>n]',1, all(abs(prob)<=1),  tol);
 
 %% check "lambda" parameter: if lambda = 1, w should be collinear with the difference between the class means
 

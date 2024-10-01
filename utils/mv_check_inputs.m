@@ -263,6 +263,7 @@ if strcmp(cfg.output_type,'prob')
     if strcmp(cfg.classifier,'lda')
         param = cfg.hyperparameter;
         mv_set_default(param,'prob',1);
+        mv_set_default(param,'form','primal');
         cfg.hyperparameter = param;
     end
 end
