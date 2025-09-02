@@ -33,10 +33,11 @@ function [pparam, X, clabel] = mv_preprocess_oversample(pparam, X, clabel)
 if pparam.is_train_set || pparam.oversample_test_set
     
     sd = sort(pparam.sample_dimension(:))';
-    nclasses = max(clabel);
+    uc = unique(clabel);
+    nclasses = numel(uc);
     
     % Sample count for each class
-    N = arrayfun( @(c) sum(clabel==c) , 1:nclasses);
+    N = arrayfun( @(c) sum(clabel==c) , uc);
 
     % there can be multiple sample dimensions. Therefore, we build a colon
     % operator to extract the train/test samples irrespective of the
@@ -47,7 +48,7 @@ if pparam.is_train_set || pparam.oversample_test_set
     add_samples = abs(N - max(N));
     for cc=1:nclasses
         if add_samples(cc)>0
-            ix_this_class = find(clabel == cc);
+            ix_this_class = find(clabel == uc(cc));
             if pparam.replace
                 ix_add = randi( numel(ix_this_class), add_samples(cc), 1);
             else
@@ -62,7 +63,7 @@ if pparam.is_train_set || pparam.oversample_test_set
 
             end
             % Add to class labels
-            clabel(end+1:end+add_samples(cc))= cc;
+            clabel(end+1:end+add_samples(cc))= uc(cc);
         end
     end
 end

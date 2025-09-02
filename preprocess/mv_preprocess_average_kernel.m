@@ -31,11 +31,12 @@ function [pparam, K, clabel] = mv_preprocess_average_kernel(pparam, K, clabel)
 % classifiers in large datasets via kernel averaging. Lecture Notes in 
 % Computer Science, 11309, 239–248. https://doi.org/10.1007/978-3-030-05587-5_23
 
-nclasses = max(clabel);
+uc       = unique(clabel);
+nclasses = numel(uc);
 sz = size(K);
 
 % indices of samples per class
-indices = arrayfun(@(c) find(clabel == c), 1:nclasses, 'Un', 0);
+indices = arrayfun(@(c) find(clabel == c), uc, 'Un', 0);
 
 % number of samples per class
 npc = cellfun(@numel, indices);
@@ -59,7 +60,7 @@ for cc=1:nclasses   % -- loop across classes
 end
 
 % Create class labels for averaged data
-clabel = arrayfun(@(c) ones(nav(c),1)*c, 1:nclasses, 'Un',0);
+clabel = arrayfun(@(c) ones(nav(c),1)*uc(c), 1:nclasses, 'Un',0);
 clabel = cat(1, clabel{:});
 
 

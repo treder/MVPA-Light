@@ -24,11 +24,12 @@ function [pparam, X, clabel] = mv_preprocess_average_samples(pparam, X, clabel)
 % a comparison of representational structure in time and space. NeuroImage 
 % 158, 441–454. https://doi.org/10.1016/j.neuroimage.2017.07.0235.
 
-nclasses = max(clabel);
+uc = unique(clabel);
+nclasses = numel(uc);
 sz = size(X);
 
 % indices of samples per class
-indices = arrayfun(@(c) find(clabel == c), 1:nclasses, 'Un', 0);
+indices = arrayfun(@(c) find(clabel == c), uc, 'Un', 0);
 
 % number of samples per class
 npc = cellfun(@numel, indices);
@@ -52,7 +53,7 @@ for cc=1:nclasses   % -- loop across classes
 end
 
 % Create class labels for averaged data
-clabel = arrayfun(@(c) ones(nav(c),1)*c, 1:nclasses, 'Un',0);
+clabel = arrayfun(@(c) ones(nav(c),1)*uc(c), 1:nclasses, 'Un',0);
 clabel = cat(1, clabel{:});
 
 % SAMPLE AVERAGING

@@ -22,10 +22,11 @@ function [pparam, X, clabel] = mv_preprocess_undersample(pparam, X, clabel)
 if pparam.is_train_set || pparam.undersample_test_set
     
     sd = sort(pparam.sample_dimension(:))';
-    nclasses = max(clabel);
+    uc = unique(clabel);
+    nclasses = numel(uc);
     
     % Sample count for each class
-    N = arrayfun( @(c) sum(clabel==c) , 1:nclasses);
+    N = arrayfun( @(c) sum(clabel==c) , uc);
 
     % there can be multiple sample dimensions. Therefore, we build a colon
     % operator to extract the train/test samples irrespective of the
@@ -36,7 +37,7 @@ if pparam.is_train_set || pparam.undersample_test_set
     rm_samples = abs(N - min(N));
     for cc=1:nclasses
         if rm_samples(cc)>0
-            ix_this_class = find(clabel == cc);
+            ix_this_class = find(clabel == uc(cc));
             ix_rm = randperm( numel(ix_this_class), rm_samples(cc));
 
             % Remove samples from all sample dimensions
