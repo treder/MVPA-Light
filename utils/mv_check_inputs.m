@@ -258,5 +258,15 @@ if isfield(cfg,'param') && (~isfield(cfg,'hyperparameter') || isempty(cfg.hyperp
     cfg = rmfield(cfg,'param');
 end
 
+%% cfg.hyperparameter: change default values when output_type = 'prob'
+if strcmp(cfg.output_type,'prob') 
+    if strcmp(cfg.classifier,'lda')
+        param = cfg.hyperparameter;
+        mv_set_default(param,'prob',1);
+        mv_set_default(param,'form','primal');
+        cfg.hyperparameter = param;
+    end
+end
+
 %% cfg: set defaults for classifier hyperparameter
 cfg.hyperparameter = mv_get_hyperparameter(cfg.classifier, cfg.hyperparameter);
