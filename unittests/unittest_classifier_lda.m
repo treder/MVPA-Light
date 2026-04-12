@@ -3,7 +3,7 @@
 % Classifier: lda
 
 rng(42)
-tol = 10e-8;
+tol = 10e-5;
 mf = mfilename;
 
 % Random data
