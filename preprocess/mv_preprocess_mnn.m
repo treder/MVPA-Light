@@ -1,5 +1,5 @@
-function [pparam, X, clabel] = mv_preprocess_mmn(pparam, X, clabel)
-% Applies Multivariate Noise Normalization (MMN) (Guggenmos et al., 2018).
+function [pparam, X, clabel] = mv_preprocess_mnn(pparam, X, clabel)
+% Applies Multivariate Noise Normalization (MNN) (Guggenmos et al., 2018).
 % Data is denoised with an estimate of the noise covariance:
 %
 %               X_denoised = C^(-1/2) * X
@@ -7,7 +7,7 @@ function [pparam, X, clabel] = mv_preprocess_mmn(pparam, X, clabel)
 % where C is the covariance matrix and C^(-1/2) is its inverse square-root.
 %
 %Usage:
-% [pparam, X, clabel] = mv_preprocess_mmn(pparam, X, clabel)
+% [pparam, X, clabel] = mv_preprocess_mnn(pparam, X, clabel)
 %
 %Parameters:
 % X              - [... x ... x ...] data matrix. Data needs to have at
@@ -135,7 +135,7 @@ if pparam.is_train_set
         clear C
 
     else % --- >2 dimensions ---
-        % create empty MMN matrices
+        % create empty MNN matrices
         C_invsqrt = zeros([sz_search, size(X, nd), size(X, nd)]);
         lambda = 0.01;  % for the rank-1 covariance case (if size(Xtmp, 1) == 1) we need to set lambda manually
         % loop and build covariance
@@ -169,7 +169,7 @@ if pparam.is_train_set
     pparam.C_invsqrt = C_invsqrt;
 end
 
-% Apply MMN
+% Apply MNN
 if nd == 2
     X = X * pparam.C_invsqrt;
 else
