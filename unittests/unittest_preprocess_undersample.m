@@ -19,6 +19,15 @@ clabel(2*N/3+1:end) = 3;
 
 print_unittest_result('[balanced data] undersampling should not affect data', numel(clabel2), numel(clabel), tol);
 
+%% dealing with integer labels not ordered as 1,2,3,...
+clabel = ones(N,1)*10;
+clabel(N/3+1:2*N/3) = 3;
+clabel(2*N/3+1:end) = 7;
+
+[~, ~, clabel2] = mv_preprocess_undersample(param, X, clabel);
+
+print_unittest_result('[balanced data] dealing with integer labels not ordered as 1,2,3,...', numel(clabel2), numel(clabel), tol);
+
 %% after undersample: size of each class equal to minority class
 clabel = ones(N,1);
 clabel(end-30:end) = 2;

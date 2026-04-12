@@ -31,6 +31,16 @@ pparam.group_size = 4;
 
 print_unittest_result('N/group_size equals number of averages?', N/pparam.group_size, numel(clabel2), tol);
 
+
+%% dealing with integer labels not ordered as 1,2,3,...
+clabel = ones(N,1)*2;
+clabel(1:2:end) = 7;
+
+pparam.group_size = 4;
+[~, ~, clabel2] = mv_preprocess_average_samples(pparam, X, clabel);
+
+print_unittest_result('dealing with integer labels not ordered as 1,2,3,...', N/pparam.group_size, numel(clabel2), tol);
+
 %% if group_size = 1 data size should be unchanged 
 % (though note that the order of the samples changes)
 clabel = ones(N,1);
