@@ -23,7 +23,7 @@ function lambda = LedoitWolfEstimate(X, form)
 
 % remove mean
 if n > 1
-    X = X - repmat(mean(X,1), n, 1);
+    X = X - mean(X,1);
 else
     X = X - mean(X);
 end
