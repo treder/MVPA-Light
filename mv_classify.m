@@ -383,7 +383,7 @@ if ~strcmp(cfg.cv,'none') && ~has_second_dataset
             sz_Xtest = size(Xtest);
             
             % JM ADDITION: NFEAT MIGHT HAVE CHANGED DURING PREPROCESSING
-            nfeat = [sz_Xtrain ones(1, numel(cfg.dimension_names) - ndims(X))];
+            nfeat = [sz_Xtrain ones(1, numel(cfg.dimension_names) - ndims(sz_Xtrain))];
             nfeat = nfeat(feature_dim);
             if isempty(nfeat), nfeat = 1; end
 
