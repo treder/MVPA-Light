@@ -8,9 +8,8 @@ Matlab toolbox for classification and regression of multi-dimensional data
 
 ### News
 
+* (Sep 2026) Due to upcoming changes (Nan-handling) only Matlab versions from 2020 on will be explicitly supported. If you have compatibility issues with an older Matlab version, try [v0.1](https://github.com/treder/MVPA-Light/tree/v0.1) of the toolbox which is compatible with `R2012a` and newer
 * (May 2024) added Multivariate Noise Normalization ([paper](https://www.sciencedirect.com/science/article/abs/pii/S1053811918301411?via%3Dihub)), see [`mv_preprocess_mnn`](preprocess/mv_preprocess_mnn.m) and example 9 in [`understanding_spatial_filters`](https://github.com/treder/MVPA-Light/blob/master/examples/understanding_spatial_filters.m#L603-630)
-* (Mar 2023) [mv_preprocess_impute_nan](https://github.com/treder/MVPA-Light/blob/master/preprocess/mv_preprocess_impute_nan.m) preprocesses and imputes data that has `nan` or `inf` values
-* (Mar 2023) `cfg.save` allows saving of models and train labels for each fold and training iteration (see eg [`mv_classify` docu](https://github.com/treder/MVPA-Light/blob/master/mv_classify.m#L40-L43))
 
 ### Table of contents<a name="contents"></a>
 1. [Installation](#installation)
@@ -35,7 +34,7 @@ startup_MVPA_Light
 
 This assumes that the repository is located in `C:\git\MVPA-Light`, so change the path if necessary. The function `startup_MVPA_Light` adds the relevant folders and it avoids adding the `.git` subfolder. 
 
-If you do not want to use the `startup.m` file, you can directly add the `MVPA-Light` folder and its subfolders to the path using [MATLAB's Path tool](https://uk.mathworks.com/help/matlab/matlab_env/add-remove-or-reorder-folders-on-the-search-path.html). The toolbox has been tested with Matlab `R2012a` and newer. There may be issues with earlier Matlab versions.
+If you do not want to use the `startup.m` file, you can directly add the `MVPA-Light` folder and its subfolders to the path using [MATLAB's Path tool](https://uk.mathworks.com/help/matlab/matlab_env/add-remove-or-reorder-folders-on-the-search-path.html). The toolbox has been tested with Matlab `R2020` and newer. There may be issues with earlier Matlab versions.
 
 ## Overview <a name="overview"></a>
 
