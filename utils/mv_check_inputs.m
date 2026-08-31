@@ -12,7 +12,36 @@ n_metrics = numel(cfg.metric);
 has_second_dataset = (nargin > 3) && ~isempty(X2) && ~isempty(clabel2);
 if ~has_second_dataset, clabel2 = []; end
 
-%% clabel: check class labels
+%% cfg: given a metric, set default for output_type
+if any(ismember({'dval','auc','roc','tval'},cfg.metric))
+    mv_set_default(cfg,'output_type','dval');
+else
+    mv_set_default(cfg,'output_type','clabel');
+end
+
+%% Deprecation checks
+if isfield(cfg,'param') && (~isfield(cfg,'hyperparameter') || isempty(cfg.hyperparameter))
+    warning('cfg.param has been renamed to cfg.hyperparameter, changing cfg accordingly..');
+    cfg.hyperparameter = cfg.param;
+    cfg = rmfield(cfg,'param');
+end
+
+%% cfg.hyperparameter: change default values when output_type = 'prob'
+if strcmp(cfg.output_type,'prob') 
+    if strcmp(cfg.classifier,'lda')
+        param = cfg.hyperparameter;
+        mv_set_default(param,'prob',1);
+        mv_set_default(param,'form','primal');
+        cfg.hyperparameter = param;
+    end
+end
+
+%% cfg.hyperparameter: set default for relabel_design, then check
+cfg.hyperparameter = mv_get_hyperparameter(cfg.classifier, cfg.hyperparameter);
+mv_set_default(cfg.hyperparameter, 'relabel_design', true);
+relabelflag = cfg.hyperparameter.relabel_design;
+
+%% clabel: check class labels and relabel
 clabel = clabel(:);
 u = unique(clabel);
 n_classes = length(u);
@@ -21,8 +50,8 @@ if n_classes==1
     error('Only one class specified. Class labels must contain at least 2 classes')
 end
 
-if iscell(clabel) || ~all(ismember(clabel,1:n_classes))
-    warning('clabel should be a vector consisting of integers 1 (class 1), 2 (class 2), 3 (class 3) and so on. Relabelling them accordingly.');
+if (iscell(clabel) || ~all(ismember(clabel,1:n_classes))) && relabelflag
+    warning('clabel should almost always be a vector consisting of integers 1 (class 1), 2 (class 2), 3 (class 3) and so on. Relabelling them accordingly.');
     newlabel = nan(numel(clabel), 1);
     for i = 1:n_classes
         newlabel(ismember(clabel, u(i))) = i; % set to 1:nth classes
@@ -60,13 +89,6 @@ if isfield(cfg,'hyperparameter') && isstruct(cfg.hyperparameter)
     if any(not_lowercase)
         error('For consistency, all parameters must be given in lowercase: please replace hyperparameter.%s by hyperparameter.%s', pfn{not_lowercase(1)},lower(pfn{not_lowercase(1)}) )
     end
-end
-
-%% cfg: given a metric, set default for output_type
-if any(ismember({'dval','auc','roc','tval'},cfg.metric))
-    mv_set_default(cfg,'output_type','dval');
-else
-    mv_set_default(cfg,'output_type','clabel');
 end
 
 %% cfg: check whether number of classes and metric are compatible (eg 'auc' does not work for more than 2 classes)
@@ -251,22 +273,3 @@ if strcmp(cfg.classifier, 'liblinear')
     end
 end
 
-%% Deprecation checks
-if isfield(cfg,'param') && (~isfield(cfg,'hyperparameter') || isempty(cfg.hyperparameter))
-    warning('cfg.param has been renamed to cfg.hyperparameter, changing cfg accordingly..');
-    cfg.hyperparameter = cfg.param;
-    cfg = rmfield(cfg,'param');
-end
-
-%% cfg.hyperparameter: change default values when output_type = 'prob'
-if strcmp(cfg.output_type,'prob') 
-    if strcmp(cfg.classifier,'lda')
-        param = cfg.hyperparameter;
-        mv_set_default(param,'prob',1);
-        mv_set_default(param,'form','primal');
-        cfg.hyperparameter = param;
-    end
-end
-
-%% cfg: set defaults for classifier hyperparameter
-cfg.hyperparameter = mv_get_hyperparameter(cfg.classifier, cfg.hyperparameter);
