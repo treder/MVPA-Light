@@ -415,7 +415,12 @@ if ~strcmp(cfg.cv,'none') && ~has_second_dataset
             % Remember sizes
             sz_Xtrain = size(Xtrain);
             sz_Xtest = size(Xtest);
-            
+
+            % nfeat might have changed during preprocessing, e.g. with pca
+            nfeat = [sz_Xtrain ones(1, numel(cfg.dimension_names) - ndims(sz_Xtrain))];
+            nfeat = nfeat(feature_dim);
+            if isempty(nfeat), nfeat = 1; end
+ 
             for ix = dim_loop                       % ---- search dimensions ----
                                 
                 % Training data for current search position
@@ -537,13 +542,10 @@ elseif has_second_dataset
     sz_Xtest = size(Xtest);
     
     cnt = 0; 
-   
     for ix = dim_loop                       % ---- search dimensions ----
         cnt = cnt+1;
         if mod(cnt, 200)==0
-          
           fprintf('progress: %2.3g\n', 100*(cnt./size(dim_loop,2)));
-          
         end
         % Training data for current search position
         if has_neighbours && ~cfg.append
