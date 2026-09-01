@@ -36,6 +36,8 @@ function [pparam, X, clabel] = mv_preprocess_ssd(pparam, X, clabel)
 %                  trials. If SSD is to be used directly,
 %                  pparam.noise_train needs to be set by hand (e.g.
 %                  pparam.noise_train = pparam.noise).
+% .nanflag       - how to deal with missing values/nan in the
+%                  cov() function (default 'omitrows')
 %
 % Usually the signal is data bandpass filtered in a narrow band
 % (e.g. 8-12 Hz), whereas the noise would be the flanking frequencies (e.g.
@@ -131,16 +133,16 @@ if pparam.is_train_set
     % dominating the result).
     if f < t
         for ix = dim_loop
-            tmp = cov(squeeze(pparam.signal_train(ix{:},:))');
+            tmp = cov(squeeze(pparam.signal_train(ix{:},:))', pparam.nanflag);
             C_signal = C_signal + tmp/trace(tmp);  
-            tmp = cov(squeeze(pparam.noise_train(ix{:},:))');
+            tmp = cov(squeeze(pparam.noise_train(ix{:},:))', pparam.nanflag);
             C_noise = C_noise + tmp/trace(tmp);  
         end
     else
         for ix = dim_loop
-            tmp = cov(squeeze(pparam.signal_train(ix{:},:)));
+            tmp = cov(squeeze(pparam.signal_train(ix{:},:)), pparam.nanflag);
             C_signal = C_signal + tmp/trace(tmp);
-            tmp = cov(squeeze(pparam.noise_train(ix{:},:)));
+            tmp = cov(squeeze(pparam.noise_train(ix{:},:)), pparam.nanflag);
             C_noise = C_noise + tmp/trace(tmp);
         end
     end

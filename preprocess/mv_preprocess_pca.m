@@ -17,6 +17,8 @@ function [pparam, X, clabel] = mv_preprocess_pca(pparam, X, clabel)
 %                     (default 2)
 % .normalize        - if 1, all PCs are scaled to have variance 1 (default
 %                     1). This only works if X has a rank of at least n. 
+% .nanflag          - how to deal with missing values/nan in the
+%                     cov() function (default 'omitrows')
 %
 % Note: features x features covariance matrices are calculated across the
 % target dimension. A covariance matrix is calculated for every element of
@@ -70,11 +72,11 @@ if pparam.is_train_set
     % to flip the matrix for the covariance calculation
     if f < t
         for ix = dim_loop
-            C = C + cov(squeeze(X(ix{:},:))');
+            C = C + cov(squeeze(X(ix{:},:))', pparam.nanflag);
         end
     else
         for ix = dim_loop
-            C = C + cov(squeeze(X(ix{:},:)) );
+            C = C + cov(squeeze(X(ix{:},:)), pparam.nanflag);
         end
     end
     

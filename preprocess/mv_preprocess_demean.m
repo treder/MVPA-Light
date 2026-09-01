@@ -12,6 +12,8 @@ function [pparam, X, clabel] = mv_preprocess_demean(pparam, X, clabel)
 % .dimension        - which dimension(s) of the data matrix will be used
 %                     for demeaning. Typically the dimension representing
 %                     the samples (default 1)
+% .missingflag      - how to deal with missing values/nan in the
+%                     mean() function (default 'omitnan')
 %
 % Nested preprocessing: For train data, preprocess_param.mean is calculated
 % and applied to the data. For test data (is_train_set = 0), the
@@ -19,7 +21,7 @@ function [pparam, X, clabel] = mv_preprocess_demean(pparam, X, clabel)
 % test data.
 
 if pparam.is_train_set
-    pparam.mean = mean(X, pparam.dimension);
+    pparam.mean = mean(X, pparam.dimension, pparam.missingflag);
 end
 
 % Remove mean from data

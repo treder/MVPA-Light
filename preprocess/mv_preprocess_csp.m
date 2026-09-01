@@ -52,7 +52,8 @@ function [pparam, X, clabel] = mv_preprocess_csp(pparam, X, clabel)
 %                      calculate_variance = 1 (default 1)
 % .calculate_spatial_pattern - if 1 calculate the spatial pattern for each source
 %                      (useful for visualization)
-
+% .nanflag           - how to deal with missing values/nan in the
+%                      cov() function (default 'omitrows')
 %
 % Note: features x features covariance matrices are calculated across the
 % target dimension. A covariance matrix is calculated for every element of
@@ -116,16 +117,16 @@ if pparam.is_train_set
     
     % if the feature dimension comes before the target dimension, we have
     % to flip the matrix for the covariance calculation. Each single trial
-    % covariane matrix is normalized by its trace which increases
+    % covariance matrix is normalized by its trace which increases
     % robustness (by reducing the risk of artifactual high-variance trials
     % dominating the result).
     if f < t
         for ix = dim_loop1
-            tmp = cov(squeeze(X(ix{:},:))');
+            tmp = cov(squeeze(X(ix{:},:))', pparam.nanflag);
             C1 = C1 + tmp/trace(tmp);  
         end
         for ix = dim_loop2
-            tmp = cov(squeeze(X(ix{:},:))');
+            tmp = cov(squeeze(X(ix{:},:))', pparam.nanflag);
             C2 = C2 + tmp/trace(tmp);  
         end
     else

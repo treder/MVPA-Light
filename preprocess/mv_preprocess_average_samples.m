@@ -18,6 +18,8 @@ function [pparam, X, clabel] = mv_preprocess_average_samples(pparam, X, clabel)
 % .group_size       - group size, ie number of samples per group. If the
 %                     total number of samples is not divisible by group_size, 
 %                     some samples are discarded (default 5)
+% .missingflag   - [string] how to deal with missing values/nan in the
+%                     mean() functions (default 'omitnan')
 %
 % References:
 % Cichy, R.M., Pantazis, D. (2017): Multivariate pattern analysis of MEG and EEG: 
@@ -68,7 +70,7 @@ for cc=1:nclasses     % -- loop across classes
     for aa=1:nav(cc)    % -- loop across averages within classes
         
         % Extract group and store average in tmp
-        tmp(pos,:,:,:,:,:,:,:,:,:,:) = squeeze(mean(X(randix{cc}{aa},:,:,:,:,:,:,:,:,:,:), 1));
+        tmp(pos,:,:,:,:,:,:,:,:,:,:) = squeeze(mean(X(randix{cc}{aa},:,:,:,:,:,:,:,:,:,:), 1, pparam.missingflag));
         pos = pos + 1;
     end
 end

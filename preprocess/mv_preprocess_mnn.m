@@ -48,6 +48,8 @@ function [pparam, X, clabel] = mv_preprocess_mnn(pparam, X, clabel)
 %                  regularization parameter is calculated automatically 
 %                  using the Ledoit-Wolf formula(function cov1para.m).
 %                  Default 'auto'.
+% .nanflag          - how to deal with missing values/nan in the
+%                     cov() function (default 'omitrows')
 %
 % Reference:
 % Guggenmos, M., Sterzer, P. & Cichy, R. M. Multivariate pattern analysis 
@@ -122,7 +124,7 @@ if pparam.is_train_set
         % --- 2D case ---
         % data is just [samples x features] so we just calculate one
         % covariance matrix
-        C = cov(X);
+        C = cov(X, pparam.nanflag);
 
         % Regularization
         if ischar(pparam.lambda) && strcmp(pparam.lambda,'auto')
@@ -154,7 +156,7 @@ if pparam.is_train_set
                     if ischar(pparam.lambda) && strcmp(pparam.lambda,'auto')
                         lambda = LedoitWolfEstimate(Xtmp, 'primal');
                     end
-                    C = cov(Xtmp);
+                    C = cov(Xtmp, pparam.nanflag);
                 end
                 C = (1-lambda) * C + lambda * eye(size(C,1)) * trace(C)/size(C,1);
 

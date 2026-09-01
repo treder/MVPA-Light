@@ -42,11 +42,13 @@ switch(preprocess)
         mv_set_default(preprocess_param,'is_train_set',1);
         mv_set_default(preprocess_param,'group_size',5);
         mv_set_default(preprocess_param,'select_data',[]);
+        mv_set_default(preprocess_param,'missingflag','omitnan');
     
     case 'average_samples'
         mv_set_default(preprocess_param,'is_train_set',1);
         mv_set_default(preprocess_param,'group_size',5);
         mv_set_default(preprocess_param,'select_data',[]);
+        mv_set_default(preprocess_param,'missingflag','omitnan');
         
     case 'csp'
         mv_set_default(preprocess_param,'is_train_set',1);
@@ -58,11 +60,13 @@ switch(preprocess)
         mv_set_default(preprocess_param,'calculate_log',true);
         mv_set_default(preprocess_param,'calculate_spatial_pattern',false);
         mv_set_default(preprocess_param,'select_data',[]);
+        mv_set_default(preprocess_param,'nanflag','omitrows');
 
     case 'demean'
         mv_set_default(preprocess_param,'is_train_set',1);
         mv_set_default(preprocess_param,'dimension',1);
         mv_set_default(preprocess_param,'select_data',[]);
+        mv_set_default(preprocess_param,'missingflag', 'omitnan');
 
     case 'mnn'
         mv_set_default(preprocess_param,'is_train_set',1);
@@ -72,6 +76,7 @@ switch(preprocess)
         mv_set_default(preprocess_param,'lambda','auto');
         mv_set_default(preprocess_param,'target_indices',{':'});
         mv_set_default(preprocess_param,'select_data',[]);
+        mv_set_default(preprocess_param,'nanflag','omitrows');
 
     case 'oversample'
         mv_set_default(preprocess_param,'is_train_set',1);
@@ -87,6 +92,7 @@ switch(preprocess)
         mv_set_default(preprocess_param,'target_dimension',3);
         mv_set_default(preprocess_param,'normalize',1);
         mv_set_default(preprocess_param,'select_data',[]);
+        mv_set_default(preprocess_param,'nanflag','omitrows');
     
     case 'impute_nan'
         mv_set_default(preprocess_param,'is_train_set',1);
@@ -108,6 +114,7 @@ switch(preprocess)
         mv_set_default(preprocess_param,'calculate_log',true);
         mv_set_default(preprocess_param,'calculate_spatial_pattern',false);
         mv_set_default(preprocess_param,'select_data', {'signal' 'noise'});
+        mv_set_default(preprocess_param,'nanflag','omitrows');
 
     case 'undersample'
         mv_set_default(preprocess_param,'is_train_set',1);
@@ -119,4 +126,5 @@ switch(preprocess)
         mv_set_default(preprocess_param,'is_train_set',1);
         mv_set_default(preprocess_param,'dimension',1);     
         mv_set_default(preprocess_param,'select_data',[]);
+        mv_set_default(preprocess_param,'missingflag','omitnan');
 end
