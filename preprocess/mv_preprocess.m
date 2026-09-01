@@ -26,6 +26,22 @@ for pp=1:numel(cfg.preprocess_fun)   % -- loop over preprocessing pipeline
     % call preprocessing function
     [cfg.preprocess_param{pp}, X, clabel] = cfg.preprocess_fun{pp}(cfg.preprocess_param{pp}, X, clabel);
     
+    % the current preprocessing step may affect downstream preprocessing, e.g.
+    % when undersampling and subsequent confounding class specific mean subtraction
+    if cfg.preprocess_param{pp}.is_train_set && isfield(cfg.preprocess_param{pp}, 'keep_idx_train')
+      for p = (pp+1):numel(cfg.preprocess_fun)
+        for fn = cfg.preprocess_param{p}.select_data
+          cfg.preprocess_param{p}.([fn{1} '_train']) = cfg.preprocess_param{p}.([fn{1} '_train'])(cfg.preprocess_param{pp}.keep_idx_train,:,:,:);
+        end
+      end
+    elseif ~cfg.preprocess_param{pp}.is_train_set && isfield(cfg.preprocess_param{pp}, 'keep_idx_test')
+      for p = (pp+1):numel(cfg.preprocess_fun)
+        for fn = cfg.preprocess_param{p}.select_data
+          cfg.preprocess_param{p}.([fn{1} '_test'])  = cfg.preprocess_param{p}.([fn{1} '_test'])(cfg.preprocess_param{pp}.keep_idx_test,:,:,:);
+        end
+      end
+    end
+    
     % swap between train/test set
     cfg.preprocess_param{pp}.is_train_set = 1 - cfg.preprocess_param{pp}.is_train_set;
 

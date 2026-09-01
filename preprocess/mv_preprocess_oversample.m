@@ -29,21 +29,23 @@ function [pparam, X, clabel] = mv_preprocess_oversample(pparam, X, clabel)
 % contain identical samples (a sample could be in the training data and its
 % copy in the test data). This will make life easier for the classifier and
 % will lead to an artificially inflated performance.
-
 if pparam.is_train_set || pparam.oversample_test_set
-    
+    % ensure column
+    clabel = clabel(:);
+
     sd = sort(pparam.sample_dimension(:))';
     uc = unique(clabel);
     nclasses = numel(uc);
-    
     % Sample count for each class
     N = arrayfun( @(c) sum(clabel==c) , uc);
-
+    nsamples_orig = sum(N);
     % there can be multiple sample dimensions. Therefore, we build a colon
     % operator to extract the train/test samples irrespective of the
     % position and number of sample dimensions
     s = repmat({':'},[1, ndims(X)]);
-    
+    % track, for every output sample, which original sample it came from
+    ix_map = (1:nsamples_orig)';
+
     % oversample the minority class(es)
     add_samples = abs(N - max(N));
     for cc=1:nclasses
@@ -52,19 +54,24 @@ if pparam.is_train_set || pparam.oversample_test_set
             if pparam.replace
                 ix_add = randi( numel(ix_this_class), add_samples(cc), 1);
             else
-                ix_add = randperm( numel(ix_this_class), add_amples(cc));
+                ix_add = randperm( numel(ix_this_class), add_samples(cc));
             end
-
             % Add samples to all sample dimensions
             for add_dim=sd
                 s_dim = s;
                 s_dim(add_dim) = {ix_this_class(ix_add)};
                 X= cat(add_dim, X, X(s_dim{:}));
-
             end
             % Add to class labels
             clabel(end+1:end+add_samples(cc))= uc(cc);
+            % Record source index of the added samples
+            ix_map(end+1:end+add_samples(cc)) = ix_this_class(ix_add);
         end
     end
-end
 
+    if pparam.is_train_set
+        pparam.keep_idx_train = ix_map;
+    elseif pparam.oversample_test_set
+        pparam.keep_idx_test = ix_map;
+    end
+end

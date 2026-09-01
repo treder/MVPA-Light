@@ -20,7 +20,9 @@ function [pparam, X, clabel] = mv_preprocess_undersample(pparam, X, clabel)
 % since it does not introduce any dependencies between samples.
 
 if pparam.is_train_set || pparam.undersample_test_set
-    
+    % ensure column
+    clabel = clabel(:);
+
     sd = sort(pparam.sample_dimension(:))';
     uc = unique(clabel);
     nclasses = numel(uc);
@@ -35,19 +37,26 @@ if pparam.is_train_set || pparam.undersample_test_set
     
     % undersample the majority class(es)
     rm_samples = abs(N - min(N));
+    ix_rm = zeros(0,1);
     for cc=1:nclasses
         if rm_samples(cc)>0
             ix_this_class = find(clabel == uc(cc));
-            ix_rm = randperm( numel(ix_this_class), rm_samples(cc));
-
-            % Remove samples from all sample dimensions
-            for rm_dim=sd
-                s_dim = s;
-                s_dim(rm_dim) = {ix_this_class(ix_rm)};
-                X(s_dim{:})= [];
-            end
-            clabel(ix_this_class(ix_rm))= [];
+            ix_rm = [ix_rm; ix_this_class(randperm( numel(ix_this_class), rm_samples(cc)))];
         end
+    end
+
+    % Remove samples from all sample dimensions
+    for rm_dim=sd
+        s_dim = s;
+        s_dim(rm_dim) = {ix_rm};
+        X(s_dim{:})= [];
+    end
+    clabel(ix_rm)= [];
+ 
+    if pparam.is_train_set
+      pparam.keep_idx_train = setdiff(1:sum(N), ix_rm);
+    elseif pparam.undersample_test_set
+      pparam.keep_idx_test = setdiff(1:sum(N), ix_rm);
     end
 end
 
