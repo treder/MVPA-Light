@@ -98,9 +98,10 @@ function [perf, result, testlabel] = mv_classify(cfg, X, clabel, varargin)
 %                dimensions, a cell array of such matrices should be
 %                provided. (default: identity matrix). The size of the 
 %                neighbourhood is specified by the matrix. If two datasets
-%                are provided, the neighours should be specified as a
-%                2 x Nsearch_dim cell array, where each row of the cells
-%                refers to one of the input arguments.
+%                are provided and their generalization dimensions differ
+%                in size, the neighbours should be specified as a
+%                2 x Nsearch_dim cell array, where the first row refers to
+%                the train data (X) and the second row to the test data (X2).
 % append       - if true, searchlight dimensions are appended to the train 
 %                data instead of
 %                being looped over. This can be useful for performance, 
@@ -163,7 +164,9 @@ mv_set_default(cfg,'dimension_names',strcat('dim', arrayfun(@(x) {num2str(x)}, 1
 mv_set_default(cfg,'neighbours',{});
 if isempty(cfg.neighbours), cfg.neighbours = {}; end  % replace [] by {}
 if ~iscell(cfg.neighbours), cfg.neighbours = {cfg.neighbours}; end
-cfg.neighbours = cfg.neighbours(:);  % make sure it's a column vector
+% make sure it's a column vector, but keep 2 x Nsearch_dim cell arrays
+% (train/test neighbours for cross decoding) intact
+if isvector(cfg.neighbours), cfg.neighbours = cfg.neighbours(:); end
 
 mv_set_default(cfg,'preprocess',{});
 mv_set_default(cfg,'preprocess_param',{});
@@ -227,11 +230,13 @@ if has_neighbours && ~has_second_dataset
 elseif has_neighbours && has_second_dataset
     if numel(cfg.neighbours)==numel(search_dim)
         if ~isempty(gen_dim)
-            assert(size(X, gen_dim)==size(X2, gen_dim), 'Unexpected dimensionality of cfg.neighbours')
+            assert(size(X, gen_dim)==size(X2, gen_dim), ['If a single set of neighbourhood matrices is given, the generalization dimension ' ...
+                'must have the same size in both datasets. Otherwise, provide cfg.neighbours as a 2 x [number of search dimensions] cell array (row 1: train, row 2: test)'])
         end
         cfg.neighbours = repmat(cfg.neighbours(:)', [2 1]);
     elseif numel(cfg.neighbours)==numel(search_dim)*2
-        assert(size(cfg.neighbours,1)==2 && size(cfg.neighbours,2)==numel(search_dim), 'Unexpected dimensionality of cfg.neighbours')
+        cfg.neighbours = reshape(cfg.neighbours, 2, []);
+        assert(size(cfg.neighbours,2)==numel(search_dim), 'cfg.neighbours should be a 2 x [number of search dimensions] cell array')
     else
         error('If any neighbourhood matrix is given, you must specify a matrix for every search dimension')
     end
