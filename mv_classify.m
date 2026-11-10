@@ -561,6 +561,15 @@ elseif has_second_dataset
         dim_loop2 = dim_loop2(:,ok_nb);
         dim_loop_mat2 = dim_loop_mat2(:,ok_nb);
 
+        % the train search points must have the same neighbourhood size
+        % along the generalization dimension as the test points, otherwise
+        % the number of features differs between train and test data
+        % (e.g. at the edges of a banded neighbourhood matrix)
+        n_nb_train = cellfun(@(f) nnz(cfg.neighbours{1,ix}(f,:)), dim_loop(ix,:));
+        ok_train   = n_nb_train == n_nb(1,ix);
+        dim_loop     = dim_loop(:,ok_train);
+        dim_loop_mat = dim_loop_mat(:,ok_train);
+
         % pre create the (nsamplesxnsearch) x nfeatures test matrix, this can be done without nested for-loops if there's a single search dimension
         if size(dim_loop,1)==1
             sz_Xtest = size(Xtest);
