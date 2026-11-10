@@ -21,9 +21,10 @@ function [perf, result, testlabel] = mv_classify(cfg, X, clabel, varargin)
 % X2, clabel2    - (optional) if a second dataset is provided, transfer
 %                  classification (aka cross decoding) is performed. 
 %                  X/clabel acts as train data and X2/clabel2 acts as test 
-%                  data. The datasets must have the same size, they can
-%                  only differ in the number of samples and in the
-%                  generalization dimension.
+%                  data. The datasets may differ in the number of samples and
+%                  in the generalization dimensions. This may
+%                  require additional specification of the neighbours etc.
+%                  (see below).
 %
 % cfg          - struct with optional parameters:
 % .classifier     - name of classifier, needs to have according train_ and test_
@@ -95,10 +96,12 @@ function [perf, result, testlabel] = mv_classify(cfg, X, clabel, varargin)
 % .neighbours  - [... x ...] matrix specifying which elements of the search
 %                are neighbours of each other. If there is multiple search
 %                dimensions, a cell array of such matrices should be
-%                provided. (default: identity matrix). Note: this
-%                corresponds to the GRAPH option in mv_searchlight.
-%                There is no separate parameter for neighbourhood size, the
-%                size of the neighbourhood is specified by the matrix.
+%                provided. (default: identity matrix). The size of the 
+%                neighbourhood is specified by the matrix. If two datasets
+%                are provided and their generalization dimensions differ
+%                in size, the neighbours should be specified as a
+%                2 x Nsearch_dim cell array, where the first row refers to
+%                the train data (X) and the second row to the test data (X2).
 % append       - if true, searchlight dimensions are appended to the train 
 %                data instead of
 %                being looped over. This can be useful for performance, 
@@ -161,7 +164,9 @@ mv_set_default(cfg,'dimension_names',strcat('dim', arrayfun(@(x) {num2str(x)}, 1
 mv_set_default(cfg,'neighbours',{});
 if isempty(cfg.neighbours), cfg.neighbours = {}; end  % replace [] by {}
 if ~iscell(cfg.neighbours), cfg.neighbours = {cfg.neighbours}; end
-cfg.neighbours = cfg.neighbours(:);  % make sure it's a column vector
+% make sure it's a column vector, but keep 2 x Nsearch_dim cell arrays
+% (train/test neighbours for cross decoding) intact
+if isvector(cfg.neighbours), cfg.neighbours = cfg.neighbours(:); end
 
 mv_set_default(cfg,'preprocess',{});
 mv_set_default(cfg,'preprocess_param',{});
@@ -220,11 +225,24 @@ end
 
 %% check neighbours parameters
 has_neighbours = ~isempty(cfg.neighbours);
-assert(~(has_neighbours && (numel(cfg.neighbours) ~= numel(search_dim))), 'If any neighbourhood matrix is given, you must specify a matrix for every search dimension')
-%assert(~(has_neighbours && numel(gen_dim)>0), 'Searchlight and generalization are currently not supported simultaneously')
+if has_neighbours && ~has_second_dataset
+    assert(numel(cfg.neighbours)==numel(search_dim), 'If any neighbourhood matrix is given, you must specify a matrix for every search dimension')
+elseif has_neighbours && has_second_dataset
+    if numel(cfg.neighbours)==numel(search_dim)
+        if ~isempty(gen_dim)
+            assert(size(X, gen_dim)==size(X2, gen_dim), ['If a single set of neighbourhood matrices is given, the generalization dimension ' ...
+                'must have the same size in both datasets. Otherwise, provide cfg.neighbours as a 2 x [number of search dimensions] cell array (row 1: train, row 2: test)'])
+        end
+        cfg.neighbours = repmat(cfg.neighbours(:)', [2 1]);
+    elseif numel(cfg.neighbours)==numel(search_dim)*2
+        cfg.neighbours = reshape(cfg.neighbours, 2, []);
+        assert(size(cfg.neighbours,2)==numel(search_dim), 'cfg.neighbours should be a 2 x [number of search dimensions] cell array')
+    else
+        error('If any neighbourhood matrix is given, you must specify a matrix for every search dimension')
+    end
+end
 
 %% order the dimensions by samples -> search dimensions -> features
-
 if ~isempty(gen_dim) && (search_dim(end) ~= gen_dim)
     % the generalization dimension should be the last of the search dimensions,
     % if it is not then permute the dimensions accordingly
@@ -239,7 +257,11 @@ X = permute(X, new_dim_order);
 if has_neighbours
     % order of neighbours might need to be changed for consistency
     [~,reorder] = sort(new_dim_order(2:(1+numel(search_dim))));
-    cfg.neighbours = cfg.neighbours(reorder);
+    if ~has_second_dataset
+      cfg.neighbours = cfg.neighbours(reorder);
+    else
+      cfg.neighbours = cfg.neighbours(:,reorder);
+    end
 end
 if has_second_dataset, X2 = permute(X2, new_dim_order); end
 cfg.dimension_names = cfg.dimension_names(new_dim_order);
@@ -273,16 +295,23 @@ train_fun = eval(['@train_' cfg.classifier]);
 test_fun = eval(['@test_' cfg.classifier]);
 
 % Define search dimension
-if has_neighbours
+if has_neighbours && ~has_second_dataset
     % size of the search dimension corresponds to the rows of the
     % neighbourhood matrices
     sz_search = cell2mat(cellfun(@(neigh) size(neigh,1), cfg.neighbours, 'Un', 0))';
+elseif has_neighbours && has_second_dataset
+    sz_search  = cellfun(@(neigh) size(neigh,1), cfg.neighbours(1,:));  % row vector
+    sz_search2 = cellfun(@(neigh) size(neigh,1), cfg.neighbours(2,:));  % row vector
 else
     % size of the search dimensions is equal to size of the corresponding X
     % dimensions
     sz_search = size(X);
     sz_search = sz_search(search_dim);
-    if isempty(sz_search), sz_search = 1; end    
+    if has_second_dataset 
+        sz_search2 = size(X2);
+        sz_search2 = sz_search2(search_dim);
+    end
+    if isempty(sz_search), sz_search = 1; end
 end
 
 % sample_skip and feature_skip helps us access the search dimensions by 
@@ -298,7 +327,13 @@ if isempty(search_dim)
 elseif cfg.append
     % search dimensions are appended, so we just perform cross-validation once
     dim_loop = {':'};
-    cfg.hyperparameter.neighbours       = cfg.neighbours;
+    if has_neighbours && has_second_dataset
+        % classifiers expect one neighbourhood matrix per search dimension,
+        % use the train neighbours
+        cfg.hyperparameter.neighbours   = cfg.neighbours(1,:)';
+    else
+        cfg.hyperparameter.neighbours   = cfg.neighbours;
+    end
     cfg.hyperparameter.is_multivariate  =  ~isempty(cfg.feature_dimension);    
 else
     len_loop = prod(sz_search);
@@ -311,6 +346,17 @@ else
     % to use dim_loop for indexing, we need to convert it to a cell array
     dim_loop = num2cell(dim_loop_mat);
 
+    if has_second_dataset
+        len_loop = prod(sz_search2);
+        dim_loop_mat2 = zeros(numel(sz_search2), len_loop);
+        for rr = 1:numel(sz_search2)  % row
+            seq = mv_repelem(1:sz_search2(rr), prod(sz_search2(1:rr-1)));
+            dim_loop_mat2(rr, :) = repmat(seq, [1, len_loop/numel(seq)]);
+        end
+         
+        % to use dim_loop for indexing, we need to convert it to a cell array
+        dim_loop2 = num2cell(dim_loop_mat2);
+    end
 end
 
 nfeat = [size(X) ones(1, numel(cfg.dimension_names) - ndims(X))];
@@ -431,7 +477,7 @@ if ~strcmp(cfg.cv,'none') && ~has_second_dataset
                         Xtest_ix = reshape(Xtest_ix, [sz_Xtest(sample_dim), numel(Xtest_ix)./prod(sz_Xtest(sample_dim))]);
                     elseif ~isempty(gen_dim) && size(dim_loop,1)>1
                         % pre create the (nsamplesxnsearch) x nfeatures test matrix, this needs a nested for-loop
-                        selection = sum(dim_loop_mat(search_dim~=gen_dim,:)==repmat(cell2mat(ix(search_dim~=gen_dim)),[1 size(dim_loop,2)]),1)>0;
+                        selection = all(dim_loop_mat(search_dim~=gen_dim,:)==repmat(cell2mat(ix(search_dim~=gen_dim)),[1 size(dim_loop,2)]),1);
                         iy_nb_sel = iy_nb(selection,:)';
                         nnb       = prod(cellfun(@numel,iy_nb_sel(:,1)));
 
@@ -509,8 +555,8 @@ elseif has_second_dataset
         % this may require an additional for-loop when requesting the classifier's output,
         % pre-run the dim_loop to identify the search points that can generalize from training to testing, 
         % given the matching number of features, and keep track of the neighbours for convenience
-        for iy = 1:size(dim_loop,2)
-            iy_nb(iy,:) = cellfun( @(N,f) find(N(f,:)), cfg.neighbours, dim_loop(:,iy), 'Un',0);
+        for iy = 1:size(dim_loop2,2)
+            iy_nb(iy,:) = cellfun( @(N,f) find(N(f,:)), cfg.neighbours(2,:)', dim_loop2(:,iy), 'Un',0);
         end
         n_nb  = cellfun( @numel, iy_nb);
         ix    = find(search_dim==gen_dim);
@@ -518,14 +564,23 @@ elseif has_second_dataset
         
         n_nb     = n_nb(ok_nb,:);
         iy_nb    = iy_nb(ok_nb,:);
-        dim_loop = dim_loop(:,ok_nb);
-        dim_loop_mat = dim_loop_mat(:,ok_nb);
+        dim_loop2 = dim_loop2(:,ok_nb);
+        dim_loop_mat2 = dim_loop_mat2(:,ok_nb);
+
+        % the train search points must have the same neighbourhood size
+        % along the generalization dimension as the test points, otherwise
+        % the number of features differs between train and test data
+        % (e.g. at the edges of a banded neighbourhood matrix)
+        n_nb_train = cellfun(@(f) nnz(cfg.neighbours{1,ix}(f,:)), dim_loop(ix,:));
+        ok_train   = n_nb_train == n_nb(1,ix);
+        dim_loop     = dim_loop(:,ok_train);
+        dim_loop_mat = dim_loop_mat(:,ok_train);
 
         % pre create the (nsamplesxnsearch) x nfeatures test matrix, this can be done without nested for-loops if there's a single search dimension
         if size(dim_loop,1)==1
             sz_Xtest = size(Xtest);
-            Xtest_ix = zeros([sz_Xtest(sample_dim)*size(dim_loop,2) prod(n_nb(1,:)).*prod(sz_Xtest(feature_dim))]);
-            for ix = 1:size(dim_loop,2)
+            Xtest_ix = zeros([sz_Xtest(sample_dim)*size(dim_loop2,2) prod(n_nb(1,:)).*prod(sz_Xtest(feature_dim))]);
+            for ix = 1:size(dim_loop2,2)
                 ix_sub = (ix-1).*sz_Xtest(sample_dim) + (1:sz_Xtest(sample_dim));
                 Xtest_ix(ix_sub,:) = reshape(Xtest(sample_skip{:}, iy_nb{ix, :}, feature_skip{:}), sz_Xtest(sample_dim), []);
             end
@@ -540,14 +595,12 @@ elseif has_second_dataset
    
     for ix = dim_loop                       % ---- search dimensions ----
         cnt = cnt+1;
-        if mod(cnt, 200)==0
-          
-          fprintf('progress: %2.3g\n', 100*(cnt./size(dim_loop,2)));
-          
+        if cfg.feedback && mod(cnt, 200)==0
+            fprintf('progress: %2.3g%%\n', 100*(cnt./size(dim_loop,2)));
         end
         % Training data for current search position
         if has_neighbours && ~cfg.append
-            ix_nb = cellfun( @(N,f) find(N(f,:)), cfg.neighbours, ix, 'Un',0);
+            ix_nb = cellfun( @(N,f) find(N(f,:)), cfg.neighbours(1,:)', ix, 'Un',0);
             X_ix = Xtrain(sample_skip{:}, ix_nb{:}, feature_skip{:});
             X_ix = reshape(X_ix, [sz_Xtrain(sample_dim), numel(X_ix)./prod(sz_Xtrain(sample_dim))]);
             if isempty(gen_dim)
@@ -555,7 +608,7 @@ elseif has_second_dataset
                 Xtest_ix = reshape(Xtest_ix, [sz_Xtest(sample_dim), numel(Xtest_ix)./prod(sz_Xtest(sample_dim))]);
             elseif ~isempty(gen_dim) && size(dim_loop,1)>1
                 % pre create the (nsamplesxnsearch) x nfeatures test matrix, this needs a nested for-loop
-                selection = sum(dim_loop_mat(search_dim~=gen_dim,:)==repmat(cell2mat(ix(search_dim~=gen_dim)),[1 size(dim_loop,2)]),1)>0;
+                selection = all(dim_loop_mat2(search_dim~=gen_dim,:)==repmat(cell2mat(ix(search_dim~=gen_dim)),[1 size(dim_loop2,2)]),1);
                 iy_nb_sel = iy_nb(selection,:)';
                 nnb       = prod(cellfun(@numel,iy_nb_sel(:,1)));
 
@@ -668,7 +721,7 @@ elseif strcmp(cfg.cv,'none')
                 Xtest_ix = reshape(Xtest_ix, [sz_Xtest(sample_dim), numel(Xtest_ix)./prod(sz_Xtest(sample_dim))]);
             elseif ~isempty(gen_dim) && size(dim_loop,1)>1
                 % pre create the (nsamplesxnsearch) x nfeatures test matrix, this needs a nested for-loop
-                selection = sum(dim_loop_mat(search_dim~=gen_dim,:)==repmat(cell2mat(ix(search_dim~=gen_dim)),[1 size(dim_loop,2)]),1)>0;
+                selection = all(dim_loop_mat(search_dim~=gen_dim,:)==repmat(cell2mat(ix(search_dim~=gen_dim)),[1 size(dim_loop,2)]),1);
                 iy_nb_sel = iy_nb(selection,:)';
                 nnb       = prod(cellfun(@numel,iy_nb_sel(:,1)));
 

@@ -661,3 +661,47 @@ cfg.cv = 'none';
 perfnb2 = mv_classify(cfg, X, clabel);
 print_unittest_result('spatiotemporal searchlight + time generalization, no crossval, output dim', [60 6 6], size(perfnb2{1}), tol);
 
+
+%% cross decoding + time generalization + neighbours, with different time axes
+% uses X, clabel, nchans, ntime, nbmat1, nbmat2 and sel1/sel2 from above
+ntime2  = 50;
+nbmat2b = ~(tril(ones(ntime2),-3) + triu(ones(ntime2),3));
+Xb      = X(sel2,:,1:ntime2);
+
+cfg = [];
+cfg.feedback                 = 0;
+cfg.feature_dimension        = [];
+cfg.generalization_dimension = 3;
+
+% 2 x Nsearch_dim neighbours: row 1 = train data, row 2 = test data
+cfg.neighbours = {nbmat1 nbmat2; nbmat1 nbmat2b};
+perf = mv_classify(cfg, X(sel1,:,:), clabel(sel1), Xb, clabel(sel2));
+print_unittest_result('[cross decoding, different time axes, 2 x N neighbours] output dim', [nchans ntime-4 ntime2-4], size(perf), tol);
+
+% 2 x N neighbours with identical rows should equal 1 x N neighbours for equal time axes
+cfg.neighbours = {nbmat1 nbmat2};
+perf1 = mv_classify(cfg, X(sel1,:,:), clabel(sel1), X(sel2,:,:), clabel(sel2));
+cfg.neighbours = {nbmat1 nbmat2; nbmat1 nbmat2};
+perf2 = mv_classify(cfg, X(sel1,:,:), clabel(sel1), X(sel2,:,:), clabel(sel2));
+print_unittest_result('[cross decoding] 1 x N vs 2 x N neighbours give same result', perf1, perf2, tol);
+
+% a single set of neighbours with different time axes should throw an error
+cfg.neighbours = {nbmat1 nbmat2};
+err = false;
+try
+    mv_classify(cfg, X(sel1,:,:), clabel(sel1), Xb, clabel(sel2));
+catch
+    err = true;
+end
+print_unittest_result('[cross decoding] 1 x N neighbours with different time axes throws error', true, err, tol);
+
+%% cross decoding + append + neighbours (naive bayes uses neighbours)
+cfg = [];
+cfg.feedback          = 0;
+cfg.classifier        = 'naive_bayes';
+cfg.feature_dimension = [];
+cfg.append            = 1;
+perf1 = mv_classify(cfg, X(sel1,:,:), clabel(sel1), X(sel2,:,:), clabel(sel2));
+cfg.neighbours = {eye(nchans) eye(ntime)};
+perf2 = mv_classify(cfg, X(sel1,:,:), clabel(sel1), X(sel2,:,:), clabel(sel2));
+print_unittest_result('[cross decoding, append, naive bayes] identity neighbours vs no neighbours', perf1, perf2, tol);
