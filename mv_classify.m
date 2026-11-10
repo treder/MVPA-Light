@@ -300,8 +300,8 @@ if has_neighbours && ~has_second_dataset
     % neighbourhood matrices
     sz_search = cell2mat(cellfun(@(neigh) size(neigh,1), cfg.neighbours, 'Un', 0))';
 elseif has_neighbours && has_second_dataset
-    sz_search  = cell2mat(cellfun(@(neigh) size(neigh,1), cfg.neighbours(1,:), 'Un', 0))';
-    sz_search2 = cell2mat(cellfun(@(neigh) size(neigh,1), cfg.neighbours(2,:), 'Un', 0))';
+    sz_search  = cellfun(@(neigh) size(neigh,1), cfg.neighbours(1,:));  % row vector
+    sz_search2 = cellfun(@(neigh) size(neigh,1), cfg.neighbours(2,:));  % row vector
 else
     % size of the search dimensions is equal to size of the corresponding X
     % dimensions
@@ -556,7 +556,7 @@ elseif has_second_dataset
         % pre-run the dim_loop to identify the search points that can generalize from training to testing, 
         % given the matching number of features, and keep track of the neighbours for convenience
         for iy = 1:size(dim_loop2,2)
-            iy_nb(iy,:) = cellfun( @(N,f) find(N(f,:)), cfg.neighbours(2,:), dim_loop2(:,iy), 'Un',0);
+            iy_nb(iy,:) = cellfun( @(N,f) find(N(f,:)), cfg.neighbours(2,:)', dim_loop2(:,iy), 'Un',0);
         end
         n_nb  = cellfun( @numel, iy_nb);
         ix    = find(search_dim==gen_dim);
@@ -600,7 +600,7 @@ elseif has_second_dataset
         end
         % Training data for current search position
         if has_neighbours && ~cfg.append
-            ix_nb = cellfun( @(N,f) find(N(f,:)), cfg.neighbours(1,:), ix, 'Un',0);
+            ix_nb = cellfun( @(N,f) find(N(f,:)), cfg.neighbours(1,:)', ix, 'Un',0);
             X_ix = Xtrain(sample_skip{:}, ix_nb{:}, feature_skip{:});
             X_ix = reshape(X_ix, [sz_Xtrain(sample_dim), numel(X_ix)./prod(sz_Xtrain(sample_dim))]);
             if isempty(gen_dim)
