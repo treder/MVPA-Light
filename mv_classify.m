@@ -327,7 +327,13 @@ if isempty(search_dim)
 elseif cfg.append
     % search dimensions are appended, so we just perform cross-validation once
     dim_loop = {':'};
-    cfg.hyperparameter.neighbours       = cfg.neighbours;
+    if has_neighbours && has_second_dataset
+        % classifiers expect one neighbourhood matrix per search dimension,
+        % use the train neighbours
+        cfg.hyperparameter.neighbours   = cfg.neighbours(1,:)';
+    else
+        cfg.hyperparameter.neighbours   = cfg.neighbours;
+    end
     cfg.hyperparameter.is_multivariate  =  ~isempty(cfg.feature_dimension);    
 else
     len_loop = prod(sz_search);
